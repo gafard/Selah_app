@@ -18,7 +18,7 @@ import 'package:essai/views/settings_page.dart';
 import 'package:essai/views/reader_page_modern.dart';
 import 'package:essai/views/reader_settings_page.dart';
 import 'package:essai/views/meditation_chooser_page.dart';
-import 'package:essai/views/meditation_flow_page.dart';
+import 'package:essai/views/meditation_flow_modern.dart';
 import 'package:essai/views/meditation_free_page.dart';
 import 'package:essai/views/meditation_qcm_page.dart';
 import 'package:essai/views/meditation_auto_qcm_page.dart';
@@ -56,7 +56,7 @@ class AppRouter {
     '/meditation/chooser': (context) => const MeditationChooserPage(),
     '/meditation/flow': (context) {
       final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-      return MeditationFlowPage(
+      return MeditationFlowModern(
         planId: args?['planId'],
         day: args?['day'],
         ref: args?['ref'],

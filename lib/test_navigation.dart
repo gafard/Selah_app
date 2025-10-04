@@ -310,19 +310,19 @@ class TestNavigationPage extends StatelessWidget {
 
                           const SizedBox(height: 12),
 
-                          _buildNavigationButton(
-                            context,
-                            'Méditation Flow',
-                            'Processus complet de méditation en 5 étapes',
-                            Icons.psychology_alt_rounded,
-                            Colors.purple,
-                            '/meditation/flow',
-                            arguments: {
-                              'planId': 'demo-plan',
-                              'day': 3,
-                              'ref': 'Jean 3:16',
-                            },
-                          ),
+            _buildNavigationButton(
+              context,
+              'Méditation Flow Moderne',
+              'Processus complet de méditation avec design moderne',
+              Icons.psychology_alt_rounded,
+              Colors.purple,
+              '/meditation/flow',
+              arguments: {
+                'planId': 'demo-plan',
+                'day': 3,
+                'ref': 'Jean 3:16',
+              },
+            ),
 
                           const SizedBox(height: 12),
 
