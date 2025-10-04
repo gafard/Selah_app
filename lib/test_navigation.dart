@@ -312,7 +312,7 @@ class TestNavigationPage extends StatelessWidget {
 
             _buildNavigationButton(
               context,
-              'Méditation Flow Moderne',
+              'Méditation Flow',
               'Processus complet de méditation avec design moderne',
               Icons.psychology_alt_rounded,
               Colors.purple,
