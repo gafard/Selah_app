@@ -152,7 +152,7 @@ class TestNavigationPage extends StatelessWidget {
                             'Liste des plans prédéfinis',
                             Icons.list,
                             Colors.orange,
-                            '/preset_plans',
+                            '/goals',
                           ),
 
                           const SizedBox(height: 12),
@@ -270,7 +270,7 @@ class TestNavigationPage extends StatelessWidget {
                             'Surlignage exactement comme l\'image',
                             Icons.highlight,
                             Colors.orange,
-                            '/reader_highlight',
+                            '/reader',
                           ),
 
                           const SizedBox(height: 16),
@@ -282,7 +282,7 @@ class TestNavigationPage extends StatelessWidget {
                             'Page de méditation simple',
                             Icons.psychology_alt_rounded,
                             Colors.purple,
-                            '/meditation',
+                            '/meditation/chooser',
                           ),
 
                           const SizedBox(height: 12),
