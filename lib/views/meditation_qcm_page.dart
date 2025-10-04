@@ -1,316 +1,701 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../models/passage_qcm_builder.dart';
+import '../models/passage_analysis.dart';
+import '../services/prayer_subjects_builder.dart';
 
 class MeditationQcmPage extends StatefulWidget {
-  const MeditationQcmPage({super.key});
+  final String? passageRef;
+  final String? passageText;
+  const MeditationQcmPage({super.key, this.passageRef, this.passageText});
 
   @override
   State<MeditationQcmPage> createState() => _MeditationQcmPageState();
 }
 
 class _MeditationQcmPageState extends State<MeditationQcmPage> {
-  // Banque QCM basée sur tes questions d'origine (neutres)
-  final List<QcmQuestion> _questions = [
-    QcmQuestion(
-      id: 'topic',
-      title: 'De quoi / de qui parlent ces versets ?',
-      type: QcmType.multi, // on autorise plusieurs éléments
-      options: [
-        QcmOption('Dieu / Son caractère', tags: ['truth','praise']),
-        QcmOption('Un commandement / appel à obéir', tags: ['obedience']),
-        QcmOption('Une promesse', tags: ['promise']),
-        QcmOption('Un avertissement', tags: ['warning']),
-        QcmOption('Un exemple à suivre', tags: ['obedience','formation']),
-        QcmOption('Un exemple à éviter', tags: ['repentance']),
-      ],
-    ),
-    QcmQuestion(
-      id: 'aboutGod',
-      title: 'Ce passage m\'apprend-il quelque chose sur Dieu ?',
-      type: QcmType.single,
-      options: [
-        QcmOption('Oui, sur Son amour / fidélité', tags: ['praise','trust']),
-        QcmOption('Oui, sur Sa justice / sainteté', tags: ['repentance','awe']),
-        QcmOption('Oui, sur Sa sagesse / direction', tags: ['guidance']),
-        QcmOption('Non explicite', tags: []),
-      ],
-    ),
-    QcmQuestion(
-      id: 'commands',
-      title: 'Y a-t-il un ordre auquel obéir ?',
-      type: QcmType.single,
-      options: [
-        QcmOption('Oui — à mettre en pratique', tags: ['obedience']),
-        QcmOption('Non', tags: []),
-      ],
-    ),
-    QcmQuestion(
-      id: 'promise',
-      title: 'Y a-t-il une promesse ?',
-      type: QcmType.single,
-      options: [
-        QcmOption('Oui — à croire et proclamer', tags: ['promise','trust']),
-        QcmOption('Non', tags: []),
-      ],
-    ),
-    QcmQuestion(
-      id: 'warning',
-      title: 'Y a-t-il un avertissement ?',
-      type: QcmType.single,
-      options: [
-        QcmOption('Oui — à prendre au sérieux', tags: ['warning','repentance']),
-        QcmOption('Non', tags: []),
-      ],
-    ),
-    QcmQuestion(
-      id: 'apply',
-      title: 'Application aujourd\'hui (choisis au moins une)',
-      type: QcmType.multi,
-      options: [
-        QcmOption('Rendre grâce', tags: ['gratitude']),
-        QcmOption('Se repentir / corriger', tags: ['repentance']),
-        QcmOption('Obéir concrètement', tags: ['obedience']),
-        QcmOption('Croire / s\'approprier une promesse', tags: ['promise','trust']),
-        QcmOption('Intercéder pour quelqu\'un', tags: ['intercession']),
-      ],
-    ),
-  ];
+  final Map<String, Set<String>> _answers = {}; // questionId -> selected options
+  final Map<String, TextEditingController> _freeByQuestion = {};
 
-  // Sélections utilisateur (par question)
-  final Map<String, Set<String>> _answers = {}; // questionId -> set of option labels
+  // Les 8 questions fixes avec leurs options générées intelligemment
+  late List<Map<String, dynamic>> _questions;
 
-  // Catalogue de sujets final (mapping tags -> sujets neutres)
-  final Map<String, List<String>> _subjectsByTag = {
-    'gratitude': [
-      'Remercier pour la vie et la grâce reçue',
-      'Remercier pour les personnes autour de moi',
-    ],
-    'repentance': [
-      'Reconnaître et abandonner une habitude nocive',
-      'Demander un cœur humble et pur',
-    ],
-    'obedience': [
-      'Mettre en pratique une action concrète aujourd\'hui',
-      'Être fidèle dans une petite chose précise',
-    ],
-    'promise': [
-      'S\'approprier une promesse lue et s\'y appuyer',
-      'Demander la foi pour croire au bon moment de Dieu',
-    ],
-    'warning': [
-      'Demander la crainte de Dieu face à un avertissement',
-      'Prendre une mesure de garde-fou',
-    ],
-    'intercession': [
-      'Prier pour un proche en difficulté',
-      'Prier pour l\'Église / la ville',
-    ],
-    'trust': [
-      'Demander la paix et la confiance au milieu de l\'incertitude',
-    ],
-    'guidance': [
-      'Demander la sagesse pour une décision',
-    ],
-    'praise': [
-      'Adorer Dieu pour son caractère révélé',
-    ],
-    'truth': [
-      'Remercier pour une vérité comprise aujourd\'hui',
-    ],
-    'formation': [
-      'Imiter un bon exemple vu dans le texte',
-    ],
-  };
+  static const _fallbackDemo = '''
+Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l'eau vive".
+  ''';
 
-  void _toggleAnswer(String qid, String label, bool multi) {
+  @override
+  void initState() {
+    super.initState();
+    final text = (widget.passageText ?? _fallbackDemo).trim();
+    
+    // Générer les options intelligentes pour chaque question fixe
+    _questions = _generateIntelligentQuestions(text);
+    
+    for (final q in _questions) {
+      _answers[q['id']] = <String>{};
+      _freeByQuestion[q['id']] = TextEditingController();
+    }
+  }
+
+  List<Map<String, dynamic>> _generateIntelligentQuestions(String passage) {
+    // Analyser le passage avec passage_analysis.dart
+    final facts = extractFacts(passage);
+    
+    // Utiliser buildDynamicQcm pour générer des options variées
+    final dynamicQcm = buildDynamicQcm(passage);
+    
+    // Analyser le passage pour générer des options intelligentes
+    final actors = _extractActors(passage);
+    final actions = _extractActions(passage);
+    final themes = _extractThemes(passage);
+    final promises = _extractPromises(passage);
+    final warnings = _extractWarnings(passage);
+    final commands = _extractCommands(passage);
+    final godAttributes = _extractGodAttributes(passage);
+
+    return [
+      {
+        'id': 'de_quoi_qui',
+        'question': 'De quoi ou de qui parlent ces versets ?',
+        'type': 'multi',
+        'options': [
+          // Utiliser les personnages extraits du passage
+          ...facts.people.map((person) => {'label': person, 'tags': ['intercession']}),
+          if (passage.toLowerCase().contains('dieu') || passage.toLowerCase().contains('jésus') || passage.toLowerCase().contains('seigneur'))
+            {'label': 'Dieu / Jésus-Christ', 'tags': ['praise', 'trust']},
+          if (passage.toLowerCase().contains('enseign') || passage.toLowerCase().contains('apprend'))
+            {'label': 'Un enseignement moral', 'tags': ['obedience']},
+          if (passage.toLowerCase().contains('prophét') || passage.toLowerCase().contains('annonc'))
+            {'label': 'Une prophétie', 'tags': ['promise', 'trust']},
+          {'label': 'Autre', 'tags': []},
+        ],
+      },
+      {
+        'id': 'apprend_dieu',
+        'question': 'Est-ce que ce passage m\'apprend quelque chose sur Dieu ?',
+        'type': 'multi',
+        'options': [
+          // Utiliser les événements clés du passage pour comprendre ce qu'on apprend de Dieu
+          ...facts.keyEvents.take(3).map((event) => {
+            'label': 'Dieu révélé dans: ${event.length > 50 ? event.substring(0, 47) + '...' : event}',
+            'tags': ['praise', 'gratitude']
+          }),
+          ...godAttributes.map((attr) => {'label': attr, 'tags': ['praise', 'gratitude']}),
+          if (passage.toLowerCase().contains('amour') || passage.toLowerCase().contains('grâce'))
+            {'label': 'Son amour et sa grâce', 'tags': ['praise', 'gratitude']},
+          if (passage.toLowerCase().contains('justice') || passage.toLowerCase().contains('saint'))
+            {'label': 'Sa justice et sa sainteté', 'tags': ['repentance', 'awe']},
+          if (passage.toLowerCase().contains('sagesse') || passage.toLowerCase().contains('direction'))
+            {'label': 'Sa sagesse et sa direction', 'tags': ['guidance']},
+          if (passage.toLowerCase().contains('fidél') || passage.toLowerCase().contains('promesse'))
+            {'label': 'Sa fidélité et ses promesses', 'tags': ['trust', 'promise']},
+          if (passage.toLowerCase().contains('puissance') || passage.toLowerCase().contains('majest'))
+            {'label': 'Sa puissance et sa majesté', 'tags': ['praise', 'awe']},
+          {'label': 'Rien de spécifique', 'tags': []},
+        ],
+      },
+      {
+        'id': 'exemple',
+        'question': 'Y a-t-il un exemple à suivre ou à ne pas suivre ?',
+        'type': 'multi',
+        'options': [
+          // Utiliser les événements du passage pour identifier des exemples
+          ...facts.keyEvents.take(2).map((event) => {
+            'label': 'Exemple dans le passage: ${event.length > 40 ? event.substring(0, 37) + '...' : event}',
+            'tags': ['obedience']
+          }),
+          if (passage.toLowerCase().contains('foi') || passage.toLowerCase().contains('croire'))
+            {'label': 'Un exemple de foi à imiter', 'tags': ['trust', 'obedience']},
+          if (passage.toLowerCase().contains('amour') || passage.toLowerCase().contains('aimer'))
+            {'label': 'Un exemple d\'amour à suivre', 'tags': ['obedience']},
+          if (passage.toLowerCase().contains('obéir') || passage.toLowerCase().contains('écouter'))
+            {'label': 'Un exemple d\'obéissance', 'tags': ['obedience']},
+          if (passage.toLowerCase().contains('péché') || passage.toLowerCase().contains('mal'))
+            {'label': 'Un mauvais exemple à éviter', 'tags': ['warning', 'repentance']},
+          if (passage.toLowerCase().contains('repent') || passage.toLowerCase().contains('regret'))
+            {'label': 'Un exemple de repentance', 'tags': ['repentance']},
+          {'label': 'Aucun exemple particulier', 'tags': []},
+        ],
+      },
+      {
+        'id': 'ordre',
+        'question': 'Y a-t-il un ordre auquel obéir ?',
+        'type': 'multi',
+        'options': [
+          // Utiliser les lieux du passage pour identifier des contextes d'obéissance
+          ...facts.places.map((place) => {'label': 'Obéir dans le contexte de: $place', 'tags': ['obedience']}),
+          ...commands.map((cmd) => {'label': cmd, 'tags': ['obedience']}),
+          if (passage.toLowerCase().contains('aimer') && passage.toLowerCase().contains('dieu'))
+            {'label': 'Aimer Dieu de tout mon cœur', 'tags': ['obedience']},
+          if (passage.toLowerCase().contains('aimer') && passage.toLowerCase().contains('prochain'))
+            {'label': 'Aimer mon prochain', 'tags': ['obedience']},
+          if (passage.toLowerCase().contains('prier') || passage.toLowerCase().contains('méditer'))
+            {'label': 'Prier et méditer', 'tags': ['obedience']},
+          if (passage.toLowerCase().contains('évangile') || passage.toLowerCase().contains('annoncer'))
+            {'label': 'Partager l\'Évangile', 'tags': ['obedience']},
+          if (passage.toLowerCase().contains('saint') || passage.toLowerCase().contains('pur'))
+            {'label': 'Vivre dans la sainteté', 'tags': ['obedience', 'repentance']},
+          {'label': 'Aucun ordre spécifique', 'tags': []},
+        ],
+      },
+      {
+        'id': 'promesse',
+        'question': 'Y a-t-il une promesse ?',
+        'type': 'multi',
+        'options': [
+          // Utiliser les événements du passage pour identifier des promesses
+          ...facts.keyEvents.where((event) => 
+            event.toLowerCase().contains('donner') || 
+            event.toLowerCase().contains('recevoir') ||
+            event.toLowerCase().contains('aura') ||
+            event.toLowerCase().contains('sera')
+          ).take(2).map((event) => {
+            'label': 'Promesse dans le passage: ${event.length > 45 ? event.substring(0, 42) + '...' : event}',
+            'tags': ['promise', 'trust']
+          }),
+          ...promises.map((promise) => {'label': promise, 'tags': ['promise', 'trust']}),
+          if (passage.toLowerCase().contains('salut') || passage.toLowerCase().contains('sauver'))
+            {'label': 'Promesse de salut', 'tags': ['promise', 'trust']},
+          if (passage.toLowerCase().contains('guid') || passage.toLowerCase().contains('direction'))
+            {'label': 'Promesse de guidance', 'tags': ['guidance', 'trust']},
+          if (passage.toLowerCase().contains('protect') || passage.toLowerCase().contains('garde'))
+            {'label': 'Promesse de protection', 'tags': ['trust']},
+          if (passage.toLowerCase().contains('bénédict') || passage.toLowerCase().contains('bénir'))
+            {'label': 'Promesse de bénédiction', 'tags': ['gratitude', 'promise']},
+          if (passage.toLowerCase().contains('présent') || passage.toLowerCase().contains('avec'))
+            {'label': 'Promesse de présence', 'tags': ['trust']},
+          {'label': 'Aucune promesse', 'tags': []},
+        ],
+      },
+      {
+        'id': 'avertissement',
+        'question': 'Y a-t-il un avertissement ?',
+        'type': 'multi',
+        'options': [
+          // Utiliser les événements du passage pour identifier des avertissements
+          ...facts.keyEvents.where((event) => 
+            event.toLowerCase().contains('ne') || 
+            event.toLowerCase().contains('pas') ||
+            event.toLowerCase().contains('attention') ||
+            event.toLowerCase().contains('gare')
+          ).take(2).map((event) => {
+            'label': 'Avertissement dans le passage: ${event.length > 45 ? event.substring(0, 42) + '...' : event}',
+            'tags': ['warning', 'repentance']
+          }),
+          ...warnings.map((warning) => {'label': warning, 'tags': ['warning', 'repentance']}),
+          if (passage.toLowerCase().contains('péché') || passage.toLowerCase().contains('faute'))
+            {'label': 'Avertissement contre le péché', 'tags': ['warning', 'repentance']},
+          if (passage.toLowerCase().contains('apostas') || passage.toLowerCase().contains('abandon'))
+            {'label': 'Avertissement contre l\'apostasie', 'tags': ['warning']},
+          if (passage.toLowerCase().contains('orgueil') || passage.toLowerCase().contains('fier'))
+            {'label': 'Avertissement contre l\'orgueil', 'tags': ['warning', 'repentance']},
+          if (passage.toLowerCase().contains('idolâtr') || passage.toLowerCase().contains('adorer'))
+            {'label': 'Avertissement contre l\'idolâtrie', 'tags': ['warning', 'repentance']},
+          if (passage.toLowerCase().contains('conséquenc') || passage.toLowerCase().contains('résultat'))
+            {'label': 'Avertissement sur les conséquences', 'tags': ['warning']},
+          {'label': 'Aucun avertissement', 'tags': []},
+        ],
+      },
+      {
+        'id': 'verite',
+        'question': 'Quelle vérité Dieu me révèle-t-il ?',
+        'type': 'multi',
+        'options': [
+          // Utiliser les événements du passage pour identifier des vérités révélées
+          ...facts.keyEvents.take(3).map((event) => {
+            'label': 'Vérité révélée: ${event.length > 50 ? event.substring(0, 47) + '...' : event}',
+            'tags': ['praise', 'gratitude']
+          }),
+          if (passage.toLowerCase().contains('homme') || passage.toLowerCase().contains('humain'))
+            {'label': 'Vérité sur ma condition humaine', 'tags': ['repentance']},
+          if (passage.toLowerCase().contains('amour') && passage.toLowerCase().contains('dieu'))
+            {'label': 'Vérité sur l\'amour de Dieu', 'tags': ['praise', 'gratitude']},
+          if (passage.toLowerCase().contains('plan') || passage.toLowerCase().contains('volonté'))
+            {'label': 'Vérité sur le plan de Dieu', 'tags': ['trust', 'guidance']},
+          if (passage.toLowerCase().contains('chrétien') || passage.toLowerCase().contains('vie'))
+            {'label': 'Vérité sur la vie chrétienne', 'tags': ['obedience']},
+          if (passage.toLowerCase().contains('espérance') || passage.toLowerCase().contains('avenir'))
+            {'label': 'Vérité sur l\'espérance', 'tags': ['trust', 'promise']},
+          {'label': 'Autre vérité', 'tags': []},
+        ],
+      },
+      {
+        'id': 'autres_passages',
+        'question': 'Y a-t-il d\'autres passages bibliques qui m\'aident à comprendre ?',
+        'type': 'multi',
+        'options': [
+          // Utiliser les personnages du passage pour suggérer des passages connexes
+          ...facts.people.map((person) => {
+            'label': 'Passages liés à $person',
+            'tags': ['trust']
+          }),
+          if (passage.toLowerCase().contains('jacob') || passage.toLowerCase().contains('abraham') || passage.toLowerCase().contains('moïse'))
+            {'label': 'Des passages de l\'Ancien Testament', 'tags': ['trust']},
+          if (passage.toLowerCase().contains('jésus') || passage.toLowerCase().contains('évangile'))
+            {'label': 'Des passages des Évangiles', 'tags': ['praise', 'trust']},
+          if (passage.toLowerCase().contains('paul') || passage.toLowerCase().contains('épître'))
+            {'label': 'Des passages des Épîtres', 'tags': ['obedience']},
+          if (passage.toLowerCase().contains('louange') || passage.toLowerCase().contains('adoration'))
+            {'label': 'Des Psaumes', 'tags': ['praise', 'gratitude']},
+          if (passage.toLowerCase().contains('sagesse') || passage.toLowerCase().contains('conseil'))
+            {'label': 'Des Proverbes', 'tags': ['guidance']},
+          {'label': 'Aucun autre passage', 'tags': []},
+        ],
+      },
+    ];
+  }
+
+  List<String> _extractActors(String text) {
+    final rx = RegExp(r'\b([A-ZÉÈÎÂÔÛ][a-zéèêàîôûâ]+)\b');
+    final set = <String>{};
+    for (final m in rx.allMatches(text)) {
+      set.add(m.group(1)!);
+    }
+    if (text.toLowerCase().contains('dieu') || text.toLowerCase().contains('seigneur')) set.add('Dieu');
+    return set.take(3).toList();
+  }
+
+  List<String> _extractActions(String text) {
+    final verbs = ['demander', 'croire', 'obéir', 'remercier', 'se repentir', 'aimer', 'servir'];
+    return verbs.where((v) => text.toLowerCase().contains(v)).toList();
+  }
+
+  List<String> _extractThemes(String text) {
+    final themes = <String>[];
+    if (text.toLowerCase().contains('amour')) themes.add('Amour');
+    if (text.toLowerCase().contains('foi')) themes.add('Foi');
+    if (text.toLowerCase().contains('grâce')) themes.add('Grâce');
+    if (text.toLowerCase().contains('salut')) themes.add('Salut');
+    if (text.toLowerCase().contains('repentance')) themes.add('Repentance');
+    return themes;
+  }
+
+  List<String> _extractPromises(String text) {
+    final promises = <String>[];
+    final lower = text.toLowerCase();
+    
+    if (lower.contains('eau vive') || lower.contains('don de dieu')) {
+      promises.add('Promesse d\'eau vive');
+    }
+    if (lower.contains('vie éternelle')) {
+      promises.add('Promesse de vie éternelle');
+    }
+    if (lower.contains('donner') && lower.contains('fils')) {
+      promises.add('Promesse du don du Fils');
+    }
+    if (lower.contains('croire') && lower.contains('périsse')) {
+      promises.add('Promesse de ne pas périr');
+    }
+    
+    return promises;
+  }
+
+  List<String> _extractWarnings(String text) {
+    final warnings = <String>[];
+    final lower = text.toLowerCase();
+    
+    if (lower.contains('périsse')) {
+      warnings.add('Avertissement sur la perdition');
+    }
+    if (lower.contains('croire') && lower.contains('pas')) {
+      warnings.add('Avertissement sur l\'incrédulité');
+    }
+    
+    return warnings;
+  }
+
+  List<String> _extractCommands(String text) {
+    final commands = <String>[];
+    final lower = text.toLowerCase();
+    
+    if (lower.contains('donne-moi à boire')) {
+      commands.add('Demander à boire');
+    }
+    if (lower.contains('connaître') && lower.contains('don')) {
+      commands.add('Connaître le don de Dieu');
+    }
+    if (lower.contains('demander') && lower.contains('boire')) {
+      commands.add('Demander l\'eau vive');
+    }
+    
+    return commands;
+  }
+
+  List<String> _extractGodAttributes(String text) {
+    final attributes = <String>[];
+    final lower = text.toLowerCase();
+    
+    if (lower.contains('don de dieu')) {
+      attributes.add('Dieu qui donne');
+    }
+    if (lower.contains('eau vive')) {
+      attributes.add('Dieu source de vie');
+    }
+    if (lower.contains('fils unique')) {
+      attributes.add('Dieu qui aime');
+    }
+    if (lower.contains('tant aimé')) {
+      attributes.add('Dieu d\'amour infini');
+    }
+    
+    return attributes;
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _freeByQuestion.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  void _toggle(String questionId, String optionLabel, String type) {
     setState(() {
-      _answers.putIfAbsent(qid, () => <String>{});
-      if (multi) {
-        if (_answers[qid]!.contains(label)) {
-          _answers[qid]!.remove(label);
-        } else {
-          _answers[qid]!.add(label);
-        }
+      final selected = _answers[questionId]!;
+      if (type == 'single') {
+        selected.clear();
+        selected.add(optionLabel);
       } else {
-        _answers[qid]!
-          ..clear()
-          ..add(label);
+        if (selected.contains(optionLabel)) {
+          selected.remove(optionLabel);
+        } else {
+          selected.add(optionLabel);
+        }
       }
     });
   }
 
-  void _finish() {
-    // 1) Collecte des tags depuis les réponses choisies
-    final selectedTags = <String>{};
+  void _finish() async {
+    // Ajouter les entrées "j'écris moi-même" si non vides
     for (final q in _questions) {
-      final chosen = _answers[q.id] ?? {};
-      for (final opt in q.options) {
-        if (chosen.contains(opt.label)) {
-          selectedTags.addAll(opt.tags);
-        }
+      final ctrl = _freeByQuestion[q['id']];
+      if (ctrl != null) {
+        final t = ctrl.text.trim();
+        if (t.isNotEmpty) _answers[q['id']]!.add(t);
       }
     }
 
-    // 2) Générer la liste de sujets à proposer (sans guider)
-    final subjects = <String>{};
-    for (final tag in selectedTags) {
-      final bundle = _subjectsByTag[tag];
-      if (bundle != null) subjects.addAll(bundle);
+    // Collecte des tags sélectionnés
+    final selectedTags = <String>[];
+    for (final q in _questions) {
+      final chosen = _answers[q['id']] ?? <String>{};
+      final options = q['options'] as List<Map<String, dynamic>>;
+      
+      for (final option in options) {
+        if (chosen.contains(option['label'])) {
+          final tags = (option['tags'] as List).cast<String>();
+          selectedTags.addAll(tags);
+        }
+      }
     }
+    
+    // Générer les sujets de prière à partir des tags sélectionnés
+    final subjects = PrayerSubjectsBuilder.fromQcm(
+      selectedOptionTags: selectedTags,
+    );
+    
+    // Extraire les labels des sujets pour les passer à la page de workflow
+    final subjectLabels = subjects.map((s) => s.label).toList();
 
-    // 3) Aller à la page de prière (ou renvoyer la liste)
-    Navigator.pushNamed(
+    // Naviguer vers la page de workflow de prière avec les sujets
+    final result = await Navigator.pushNamed(
       context,
-      '/prayer_subjects',
+      '/prayer_workflow',
       arguments: {
-        'suggestedSubjects': subjects.toList(), // tu peux fusionner avec ta page existante
+        'subjects': subjectLabels,
       },
     );
+    
+    if (result != null && mounted) {
+      Navigator.pop(context, result);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F9),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFF7F7F9),
-        elevation: 0,
-        title: Text('Méditation — QCM', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
-      ),
-      body: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-        itemBuilder: (_, i) {
-          final q = _questions[i];
-          final selected = _answers[q.id] ?? {};
-          return _QuestionCard(
-            question: q,
-            selected: selected,
-            onToggle: (label) => _toggleAnswer(q.id, label, q.type == QcmType.multi),
-          );
-        },
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemCount: _questions.length,
-      ),
-      bottomSheet: SafeArea(
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          color: const Color(0xFFF7F7F9),
-          child: SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _finish,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF111827),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF1C1740), Color(0xFF2D1B69)],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildInfoCard(),
+                      const SizedBox(height: 24),
+                      ..._questions.map((q) => _buildQuestionCard(q)),
+                      const SizedBox(height: 100), // Espace pour le bouton flottant
+                    ],
+                  ),
+                ),
               ),
-              child: Text('Proposer des sujets de prière', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+            ],
+          ),
+        ),
+      ),
+      floatingActionButton: _buildFloatingButton(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+              ),
+              Expanded(
+                child: Text(
+                  'Méditation Guidée',
+                  style: GoogleFonts.inter(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(width: 48),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (widget.passageRef != null)
+            Text(
+              widget.passageRef!,
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                color: Colors.white70,
+              ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF4F46E5).withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.quiz_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Réflexion Guidée',
+                  style: GoogleFonts.inter(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Sélectionne les options qui correspondent le mieux à ta compréhension du passage.',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              color: Colors.white.withOpacity(0.9),
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuestionCard(Map<String, dynamic> question) {
+    final questionId = question['id'] as String;
+    final questionText = question['question'] as String;
+    final type = question['type'] as String;
+    final options = question['options'] as List<Map<String, dynamic>>;
+    final selected = _answers[questionId] ?? <String>{};
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            questionText,
+            style: GoogleFonts.inter(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ...options.map((option) => _buildOptionTile(
+            questionId,
+            option['label'] as String,
+            (option['tags'] as List).cast<String>(),
+            type,
+            selected.contains(option['label']),
+          )),
+          const SizedBox(height: 16),
+          _buildFreeTextField(questionId),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOptionTile(String questionId, String label, List<String> tags, String type, bool isSelected) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        onTap: () => _toggle(questionId, label, type),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isSelected 
+              ? Colors.white.withOpacity(0.2)
+              : Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected 
+                ? Colors.white.withOpacity(0.4)
+                : Colors.white.withOpacity(0.2),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  shape: type == 'single' ? BoxShape.circle : BoxShape.rectangle,
+                  border: Border.all(
+                    color: isSelected ? Colors.white : Colors.white.withOpacity(0.5),
+                    width: 2,
+                  ),
+                  color: isSelected ? Colors.white : Colors.transparent,
+                ),
+                child: isSelected
+                  ? Icon(
+                      type == 'single' ? Icons.circle : Icons.check,
+                      size: 12,
+                      color: const Color(0xFF1C1740),
+                    )
+                  : null,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.9),
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
-}
 
-// --- Modèles simples ---
-enum QcmType { single, multi }
-
-class QcmQuestion {
-  final String id;
-  final String title;
-  final QcmType type;
-  final List<QcmOption> options;
-  QcmQuestion({required this.id, required this.title, required this.type, required this.options});
-}
-
-class QcmOption {
-  final String label;
-  final List<String> tags;
-  QcmOption(this.label, {this.tags = const []});
-}
-
-// --- UI ---
-class _QuestionCard extends StatelessWidget {
-  final QcmQuestion question;
-  final Set<String> selected;
-  final ValueChanged<String> onToggle;
-
-  const _QuestionCard({
-    required this.question,
-    required this.selected,
-    required this.onToggle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isMulti = question.type == QcmType.multi;
+  Widget _buildFreeTextField(String questionId) {
+    final controller = _freeByQuestion[questionId]!;
+    
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, 6))],
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.2),
+          width: 1,
+        ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Titre + badge single/multi
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    question.title,
-                    style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: const Color(0xFF111827)),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF3F4F6),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    isMulti ? 'Multiple' : 'Unique',
-                    style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF374151)),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            // Options
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: question.options.map((opt) {
-                final on = selected.contains(opt.label);
-                return GestureDetector(
-                  onTap: () => onToggle(opt.label),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 160),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: on ? const Color(0xFFEEF2FF) : const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: on ? const Color(0xFF6366F1) : const Color(0xFFE5E7EB), width: 2),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(on ? Icons.check_circle : Icons.radio_button_unchecked,
-                            size: 18, color: on ? const Color(0xFF6366F1) : const Color(0xFF9CA3AF)),
-                        const SizedBox(width: 8),
-                        Text(opt.label,
-                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF111827))),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
+      child: TextField(
+        controller: controller,
+        maxLines: 2,
+        style: GoogleFonts.inter(
+          color: Colors.white,
+          fontSize: 14,
+        ),
+        decoration: InputDecoration(
+          hintText: '… ou j\'écris ma propre réponse',
+          hintStyle: GoogleFonts.inter(
+            color: Colors.white.withOpacity(0.5),
+            fontSize: 14,
+          ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.all(12),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFloatingButton() {
+    return FloatingActionButton.extended(
+      onPressed: _finish,
+      backgroundColor: Colors.white,
+      foregroundColor: const Color(0xFF1C1740),
+      icon: const Icon(Icons.arrow_forward_rounded),
+      label: Text(
+        'Continuer vers la prière',
+        style: GoogleFonts.inter(
+          fontWeight: FontWeight.w700,
+          fontSize: 16,
         ),
       ),
     );

@@ -96,12 +96,45 @@ class _ReaderPageModernState extends State<ReaderPageModern>
   void _goToMeditation() {
     HapticFeedback.mediumImpact();
     Navigator.pushNamed(
-      context, 
-      '/meditation/start',
+      context,
+      '/meditation/chooser', // page avec 2 options
       arguments: {
-        'planId': 'demo-plan',
-        'day': 1,
-        'ref': 'Jean 4:10-12',
+        'passageRef': 'Ézéchiel 33:1-18',
+        'passageText': '''1 La parole de l'Éternel me fut adressée, en ces mots :
+
+2 Fils de l'homme, parle aux enfants de ton peuple, et dis-leur : Lorsque je fais venir l'épée sur un pays, et que le peuple du pays prend dans son sein un homme et l'établit comme sentinelle,
+
+3 si cet homme voit venir l'épée sur le pays, sonne de la trompette, et avertit le peuple ;
+
+4 et si celui qui entend le son de la trompette ne se laisse pas avertir, et que l'épée vienne le surprendre, son sang sera sur sa tête.
+
+5 Il a entendu le son de la trompette, et ne s'est pas laissé avertir : son sang sera sur lui. S'il se laisse avertir, il sauvera son âme.
+
+6 Si la sentinelle voit venir l'épée, et ne sonne pas de la trompette ; si le peuple n'est pas averti, et que l'épée vienne enlever à quelqu'un la vie, celui-ci périra à cause de son iniquité, mais je redemanderai son sang à la sentinelle.
+
+7 Toi, fils de l'homme, je t'ai établi comme sentinelle sur la maison d'Israël. Tu dois écouter la parole qui sort de ma bouche, et les avertir de ma part.
+
+8 Quand je dis au méchant : Méchant, tu mourras ! si tu ne parles pas pour détourner le méchant de sa voie, ce méchant mourra dans son iniquité, et je redemanderai son sang à ta main.
+
+9 Mais si tu avertis le méchant pour le détourner de sa voie et qu'il ne s'en détourne pas, il mourra dans son iniquité, et toi tu sauveras ton âme.
+
+10 Et toi, fils de l'homme, dis à la maison d'Israël : Vous dites : Nos transgressions et nos péchés sont sur nous, et c'est à cause d'eux que nous sommes frappés de langueur ; comment pourrions-nous vivre ?
+
+11 Dis-leur : Je suis vivant ! dit le Seigneur, l'Éternel, ce que je désire, ce n'est pas que le méchant meure, c'est qu'il change de conduite et qu'il vive. Revenez, revenez de votre mauvaise voie ; et pourquoi mourriez-vous, maison d'Israël ?
+
+12 Et toi, fils de l'homme, dis aux enfants de ton peuple : La justice du juste ne le sauvera pas au jour de sa transgression ; et le méchant ne tombera pas par sa méchanceté le jour où il s'en détournera, de même que le juste ne pourra pas vivre par sa justice au jour où il péchera.
+
+13 Lorsque je dis au juste qu'il vivra, -s'il se confie dans sa justice et commet l'iniquité, toute sa justice sera oubliée, et il mourra à cause de l'iniquité qu'il a commise.
+
+14 Lorsque je dis au méchant : Tu mourras ! -s'il revient de son péché et pratique la droiture et la justice,
+
+15 s'il rend le gage, s'il restitue ce qu'il a ravi, s'il suit les préceptes qui donnent la vie, sans commettre l'iniquité, il vivra, il ne mourra pas.
+
+16 Tous les péchés qu'il a commis seront oubliés ; il pratique la droiture et la justice, il vivra.
+
+17 Les enfants de ton peuple disent : La voie du Seigneur n'est pas droite. C'est leur voie qui n'est pas droite.
+
+18 Si le juste se détourne de sa justice et commet l'iniquité, il mourra à cause de cela.''',
       },
     );
   }

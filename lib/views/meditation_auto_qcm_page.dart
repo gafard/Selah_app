@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../models/passage_qcm_builder.dart';
 import '../models/passage_analysis.dart';
+import '../services/prayer_subjects_builder.dart';
 
 class MeditationAutoQcmPage extends StatefulWidget {
   const MeditationAutoQcmPage({super.key});
@@ -10,8 +12,9 @@ class MeditationAutoQcmPage extends StatefulWidget {
 }
 
 class _MeditationAutoQcmPageState extends State<MeditationAutoQcmPage> {
-  final Map<int, int> _answers = {}; // questionIndex -> selectedIndex
-  List<McqItem> _mcqItems = [];
+  late List<QcmQuestion> _questions;
+  final Map<String, Set<String>> _answers = {}; // questionId -> selected options
+  final Map<String, TextEditingController> _freeByQuestion = {};
   bool _isLoading = true;
 
   // Texte de démonstration (en production, ceci viendrait du passage biblique)
@@ -27,10 +30,10 @@ class _MeditationAutoQcmPageState extends State<MeditationAutoQcmPage> {
   @override
   void initState() {
     super.initState();
-    _generateMcqs();
+    _generateQuestions();
   }
 
-  void _generateMcqs() {
+  void _generateQuestions() {
     setState(() {
       _isLoading = true;
     });
@@ -38,279 +41,403 @@ class _MeditationAutoQcmPageState extends State<MeditationAutoQcmPage> {
     // Simuler un délai de traitement
     Future.delayed(const Duration(milliseconds: 500), () {
       setState(() {
-        _mcqItems = buildMcqs(_demoPassage);
+        // Utiliser l'analyse du passage pour générer des questions intelligentes
+        final facts = extractFacts(_demoPassage);
+        final mcqs = buildMcqs(_demoPassage);
+        
+        // Convertir les McqItem en QcmQuestion avec des options basées sur le passage
+        _questions = mcqs.map((mcq) {
+          return QcmQuestion(
+            id: 'auto_${_questions.length}',
+            title: mcq.question,
+            type: QcmType.single,
+            options: mcq.choices.map((choice) => QcmOption(choice, tags: [])).toList(),
+            allowFreeWrite: true,
+          );
+        }).toList();
+        
+        // Ajouter des questions basées sur les faits extraits
+        if (facts.people.isNotEmpty) {
+          _questions.add(QcmQuestion(
+            id: 'people',
+            title: 'Quels personnages apparaissent dans ce passage ?',
+            type: QcmType.multi,
+            options: facts.people.map((person) => QcmOption(person, tags: ['intercession'])).toList(),
+            allowFreeWrite: true,
+          ));
+        }
+        
+        if (facts.keyEvents.isNotEmpty) {
+          _questions.add(QcmQuestion(
+            id: 'events',
+            title: 'Quels événements se déroulent dans ce passage ?',
+            type: QcmType.multi,
+            options: facts.keyEvents.take(4).map((event) => 
+              QcmOption(event.length > 60 ? event.substring(0, 57) + '...' : event, tags: ['obedience'])).toList(),
+            allowFreeWrite: true,
+          ));
+        }
+        
+        for (final q in _questions) {
+          _answers[q.id] = <String>{};
+          if (q.allowFreeWrite) {
+            _freeByQuestion[q.id] = TextEditingController();
+          }
+        }
         _isLoading = false;
       });
     });
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F9),
-      appBar: AppBar(
-        title: Text('QCM Automatique', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
-        backgroundColor: const Color(0xFFF7F7F9),
-        elevation: 0,
-        foregroundColor: Colors.black,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _generateMcqs,
-            tooltip: 'Générer de nouvelles questions',
-          ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
-          : _mcqItems.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.quiz_outlined,
-                        size: 64,
-                        color: Colors.grey.shade400,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Aucune question générée',
-                        style: GoogleFonts.inter(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Le texte ne contient pas assez d\'éléments pour générer des questions',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: Colors.grey.shade500,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                )
-              : Column(
-                  children: [
-                    Expanded(
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _mcqItems.length,
-                        itemBuilder: (context, index) {
-                          final item = _mcqItems[index];
-                          final selectedAnswer = _answers[index];
-                          
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Numéro de question
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFEEF2FF),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    'Question ${index + 1}',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF6366F1),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                
-                                // Question
-                                Text(
-                                  item.question,
-                                  style: GoogleFonts.inter(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                
-                                // Options
-                                ...item.choices.asMap().entries.map((entry) {
-                                  final choiceIndex = entry.key;
-                                  final choice = entry.value;
-                                  final isSelected = selectedAnswer == choiceIndex;
-                                  
-                                  return Container(
-                                    margin: const EdgeInsets.only(bottom: 8),
-                                    child: InkWell(
-                                      onTap: () {
-                                        setState(() {
-                                          _answers[index] = choiceIndex;
-                                        });
-                                      },
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Container(
-                                        padding: const EdgeInsets.all(12),
-                                        decoration: BoxDecoration(
-                                          color: isSelected ? const Color(0xFFEEF2FF) : const Color(0xFFF9FAFB),
-                                          borderRadius: BorderRadius.circular(8),
-                                          border: Border.all(
-                                            color: isSelected ? const Color(0xFF6366F1) : Colors.grey.shade300,
-                                            width: isSelected ? 2 : 1,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Container(
-                                              width: 20,
-                                              height: 20,
-                                              decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                color: isSelected ? const Color(0xFF6366F1) : Colors.transparent,
-                                                border: Border.all(
-                                                  color: isSelected ? const Color(0xFF6366F1) : Colors.grey.shade400,
-                                                  width: 2,
-                                                ),
-                                              ),
-                                              child: isSelected
-                                                  ? const Icon(
-                                                      Icons.check,
-                                                      size: 12,
-                                                      color: Colors.white,
-                                                    )
-                                                  : null,
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                              child: Text(
-                                                choice,
-                                                style: GoogleFonts.inter(
-                                                  fontSize: 14,
-                                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                                                  color: isSelected ? const Color(0xFF6366F1) : Colors.black,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    
-                    // Bouton de correction
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 8,
-                            offset: const Offset(0, -2),
-                          ),
-                        ],
-                      ),
-                      child: SafeArea(
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _answers.length == _mcqItems.length ? _showResults : null,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF111827),
-                              foregroundColor: Colors.white,
-                              disabledBackgroundColor: Colors.grey.shade300,
-                              disabledForegroundColor: Colors.grey.shade600,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                            ),
-                            child: Text(
-                              _answers.length == _mcqItems.length 
-                                  ? 'Voir les résultats'
-                                  : 'Répondez à toutes les questions (${_answers.length}/${_mcqItems.length})',
-                              style: GoogleFonts.inter(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-    );
+  void dispose() {
+    for (final controller in _freeByQuestion.values) {
+      controller.dispose();
+    }
+    super.dispose();
   }
 
-  void _showResults() {
-    int correctAnswers = 0;
-    for (int i = 0; i < _mcqItems.length; i++) {
-      if (_answers[i] == _mcqItems[i].correctIndex) {
-        correctAnswers++;
+  void _toggle(String questionId, String optionLabel, QcmType type) {
+    setState(() {
+      final selected = _answers[questionId]!;
+      if (type == QcmType.single) {
+        selected.clear();
+        selected.add(optionLabel);
+      } else {
+        if (selected.contains(optionLabel)) {
+          selected.remove(optionLabel);
+        } else {
+          selected.add(optionLabel);
+        }
+      }
+    });
+  }
+
+  void _finish() async {
+    // Ajouter les entrées "j'écris moi-même" si non vides
+    for (final q in _questions) {
+      final ctrl = _freeByQuestion[q.id];
+      if (ctrl != null) {
+        final t = ctrl.text.trim();
+        if (t.isNotEmpty) _answers[q.id]!.add(t);
       }
     }
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Résultats',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w700),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Vous avez obtenu $correctAnswers sur ${_mcqItems.length}',
-              style: GoogleFonts.inter(fontSize: 16),
-            ),
-            const SizedBox(height: 16),
-            LinearProgressIndicator(
-              value: correctAnswers / _mcqItems.length,
-              backgroundColor: Colors.grey.shade300,
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _generateMcqs();
-            },
-            child: const Text('Nouvelles questions'),
+    // Collecte des tags sélectionnés
+    final selectedTags = <String>[];
+    for (final q in _questions) {
+      final chosen = _answers[q.id] ?? <String>{};
+      for (final opt in q.options) {
+        if (chosen.contains(opt.label)) {
+          selectedTags.addAll(opt.tags);
+        }
+      }
+    }
+    
+    // Générer les sujets de prière à partir des tags sélectionnés
+    final subjects = PrayerSubjectsBuilder.fromQcm(
+      selectedOptionTags: selectedTags,
+    );
+    
+    // Extraire les labels des sujets pour les passer à la page de workflow
+    final subjectLabels = subjects.map((s) => s.label).toList();
+
+    // Naviguer vers la page de workflow de prière avec les sujets
+    final result = await Navigator.pushNamed(
+      context,
+      '/prayer_workflow',
+      arguments: {
+        'subjects': subjectLabels,
+      },
+    );
+    
+    if (result != null && mounted) {
+      Navigator.pop(context, result);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF1C1740), Color(0xFF2D1B69)],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Fermer'),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(),
+              Expanded(
+                child: _isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(color: Colors.white),
+                      )
+                    : SingleChildScrollView(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildInfoCard(),
+                            const SizedBox(height: 24),
+                            ..._questions.map((q) => _buildQuestionCard(q)),
+                            const SizedBox(height: 100), // Espace pour le bouton flottant
+                          ],
+                        ),
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      floatingActionButton: _buildFloatingButton(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+              ),
+              Expanded(
+                child: Text(
+                  'Test de Compréhension',
+                  style: GoogleFonts.inter(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              IconButton(
+                onPressed: _generateQuestions,
+                icon: const Icon(Icons.refresh, color: Colors.white),
+                tooltip: 'Générer de nouvelles questions',
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildInfoCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF4F46E5).withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'QCM Automatique',
+                  style: GoogleFonts.inter(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Ces questions ont été générées automatiquement à partir du passage biblique pour tester votre compréhension.',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              color: Colors.white.withOpacity(0.9),
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuestionCard(QcmQuestion question) {
+    final selected = _answers[question.id] ?? <String>{};
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            question.title,
+            style: GoogleFonts.inter(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ...question.options.map((option) => _buildOptionTile(
+            question.id,
+            option.label,
+            option.tags,
+            question.type,
+            selected.contains(option.label),
+          )),
+          if (question.allowFreeWrite) ...[
+            const SizedBox(height: 16),
+            _buildFreeTextField(question.id),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOptionTile(String questionId, String label, List<String> tags, QcmType type, bool isSelected) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        onTap: () => _toggle(questionId, label, type),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isSelected 
+              ? Colors.white.withOpacity(0.2)
+              : Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected 
+                ? Colors.white.withOpacity(0.4)
+                : Colors.white.withOpacity(0.2),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  shape: type == QcmType.single ? BoxShape.circle : BoxShape.rectangle,
+                  border: Border.all(
+                    color: isSelected ? Colors.white : Colors.white.withOpacity(0.5),
+                    width: 2,
+                  ),
+                  color: isSelected ? Colors.white : Colors.transparent,
+                ),
+                child: isSelected
+                  ? Icon(
+                      type == QcmType.single ? Icons.circle : Icons.check,
+                      size: 12,
+                      color: const Color(0xFF1C1740),
+                    )
+                  : null,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.9),
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFreeTextField(String questionId) {
+    final controller = _freeByQuestion[questionId]!;
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: TextField(
+        controller: controller,
+        maxLines: 2,
+        style: GoogleFonts.inter(
+          color: Colors.white,
+          fontSize: 14,
+        ),
+        decoration: InputDecoration(
+          hintText: '… ou j\'écris ma propre réponse',
+          hintStyle: GoogleFonts.inter(
+            color: Colors.white.withOpacity(0.5),
+            fontSize: 14,
+          ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.all(12),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFloatingButton() {
+    return FloatingActionButton.extended(
+      onPressed: _finish,
+      backgroundColor: Colors.white,
+      foregroundColor: const Color(0xFF1C1740),
+      icon: const Icon(Icons.arrow_forward_rounded),
+      label: Text(
+        'Continuer vers la prière',
+        style: GoogleFonts.inter(
+          fontWeight: FontWeight.w700,
+          fontSize: 16,
+        ),
       ),
     );
   }

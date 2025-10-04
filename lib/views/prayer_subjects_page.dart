@@ -9,198 +9,148 @@ class PrayerSubjectsPage extends StatefulWidget {
 }
 
 class _PrayerSubjectsPageState extends State<PrayerSubjectsPage> {
-  final Set<String> _selectedSubjects = <String>{};
+  // Sujets + dégradés (ordre = de haut en bas)
+  final subjects = <_Band>[
+    _Band(label: 'Action de grâce', colors: [const Color(0xFFFF8AC9), const Color(0xFFFF7BAA)]),
+    _Band(label: 'Foi / Confiance',  colors: [const Color(0xFFFFB36B), const Color(0xFFFFA245)]),
+    _Band(label: 'Obéissance',       colors: [const Color(0xFFFFD36B), const Color(0xFFFFC23E)]),
+    _Band(label: 'Intercession',     colors: [const Color(0xFFFFE39B), const Color(0xFFFFD773)]),
+    _Band(label: 'Repentance',       colors: [const Color(0xFFFFF0C5), const Color(0xFFFFE9A6)]),
+  ];
+
+  final Set<String> completed = {}; // pour griser/valider
+
+  void _toggle(String label) {
+    setState(() {
+      completed.contains(label) ? completed.remove(label) : completed.add(label);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    final suggestedSubjects = args?['suggestedSubjects'] as List<String>? ?? [];
-    final memoryVerse = args?['memoryVerse'] as String? ?? '';
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F9),
-      appBar: AppBar(
-        title: Text('Sujets de Prière', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
-        backgroundColor: const Color(0xFFF7F7F9),
-        elevation: 0,
-        foregroundColor: Colors.black,
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                // Verset à mémoriser
-                if (memoryVerse.isNotEmpty) ...[
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEEF2FF),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFF6366F1)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Verset à mémoriser',
-                          style: GoogleFonts.inter(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF6366F1),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          memoryVerse,
-                          style: GoogleFonts.inter(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                
-                // Sujets suggérés
-                Text(
-                  'Sujets de prière suggérés',
-                  style: GoogleFonts.inter(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                
-                ...suggestedSubjects.map((subject) {
-                  final isSelected = _selectedSubjects.contains(subject);
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: InkWell(
-                      onTap: () {
-                        setState(() {
-                          if (isSelected) {
-                            _selectedSubjects.remove(subject);
-                          } else {
-                            _selectedSubjects.add(subject);
-                          }
-                        });
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: isSelected ? const Color(0xFFEEF2FF) : Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isSelected ? const Color(0xFF6366F1) : Colors.grey.shade300,
-                            width: isSelected ? 2 : 1,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 24,
-                              height: 24,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: isSelected ? const Color(0xFF6366F1) : Colors.transparent,
-                                border: Border.all(
-                                  color: isSelected ? const Color(0xFF6366F1) : Colors.grey.shade400,
-                                  width: 2,
-                                ),
-                              ),
-                              child: isSelected
-                                  ? const Icon(
-                                      Icons.check,
-                                      size: 16,
-                                      color: Colors.white,
-                                    )
-                                  : null,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                subject,
-                                style: GoogleFonts.inter(
-                                  fontSize: 15,
-                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                                  color: isSelected ? const Color(0xFF6366F1) : Colors.black,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ],
-            ),
-          ),
-          
-          // Bouton de confirmation
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
-            child: SafeArea(
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _selectedSubjects.isNotEmpty ? _startPrayer : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF111827),
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: Colors.grey.shade300,
-                    disabledForegroundColor: Colors.grey.shade600,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  child: Text(
-                    _selectedSubjects.isEmpty 
-                        ? 'Sélectionnez au moins un sujet'
-                        : 'Commencer la prière (${_selectedSubjects.length})',
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header façon maquette
+              Text('Choisis tes sujets de prière',
+                  style: GoogleFonts.inter(fontSize: 28, fontWeight: FontWeight.w800, height: 1.1)),
+              const SizedBox(height: 16),
+
+              // Bandes empilées
+              Expanded(
+                child: ListView.separated(
+                  padding: const EdgeInsets.only(bottom: 20),
+                  itemCount: subjects.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, i) {
+                    final s = subjects[i];
+                    final isDone = completed.contains(s.label);
+                    return _SubjectBandTile(
+                      label: s.label,
+                      colors: s.colors,
+                      done: isDone,
+                      onTap: () => _toggle(s.label),
+                    );
+                  },
                 ),
               ),
-            ),
+
+              // CTA
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: completed.isEmpty ? null : () {
+                    Navigator.pushNamed(context, '/prayer_editor', arguments: {
+                      'selectedSubjects': completed.toList(),
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: const Color(0xFFE5E7EB),
+                    disabledForegroundColor: const Color(0xFF9CA3AF),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: Text('Continuer', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
+}
 
-  void _startPrayer() {
-    // Navigation vers la page de prière avec les sujets sélectionnés
-    Navigator.pushNamed(context, '/prayer', arguments: {
-      'subjects': _selectedSubjects.toList(),
-    });
+class _SubjectBandTile extends StatelessWidget {
+  final String label;
+  final List<Color> colors;
+  final bool done;
+  final VoidCallback onTap;
+
+  const _SubjectBandTile({
+    required this.label,
+    required this.colors,
+    required this.done,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // hauteur généreuse + coins très arrondis pour coller au visuel
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(28),
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 200),
+        opacity: done ? 0.45 : 1,
+        child: Container(
+          height: 86,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight),
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(color: colors.first.withOpacity(.25), blurRadius: 16, offset: const Offset(0, 8)),
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black.withOpacity(.9),
+                    decoration: done ? TextDecoration.lineThrough : TextDecoration.none, // "trait gris"
+                    decorationColor: Colors.black.withOpacity(.35),
+                    decorationThickness: 2,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // petit chevron comme sur la photo
+              Icon(Icons.keyboard_arrow_right_rounded, color: Colors.black.withOpacity(.75), size: 28),
+            ],
+          ),
+        ),
+      ),
+    );
   }
+}
+
+class _Band {
+  final String label;
+  final List<Color> colors;
+  _Band({required this.label, required this.colors});
 }

@@ -1,81 +1,54 @@
-import 'package:flutter/material.dart';
-
-class AppState extends ChangeNotifier {
-  bool _isLoading = true;
-  String? _currentUserId;
+/// Service de gestion de l'état global de l'application
+class AppState {
+  bool _isLoading = false;
+  bool _isFirstLaunch = true;
+  String? _currentUser;
+  bool _isLoggedIn = false;
+  bool _hasOnboarded = false;
   String? _currentPlanId;
-  int _currentDayNumber = 1;
-  List<String> _currentReferences = [];
-  final bool _isLoggedIn = false;
-  final bool _hasOnboarded = false;
   Map<String, dynamic>? _profile;
-  Map<String, dynamic>? _user;
-
+  
   // Getters
   bool get isLoading => _isLoading;
-  String? get currentUserId => _currentUserId;
-  String? get currentPlanId => _currentPlanId;
-  int get currentDayNumber => _currentDayNumber;
-  List<String> get currentReferences => _currentReferences;
+  bool get isFirstLaunch => _isFirstLaunch;
+  String? get currentUser => _currentUser;
   bool get isLoggedIn => _isLoggedIn;
   bool get hasOnboarded => _hasOnboarded;
+  String? get currentPlanId => _currentPlanId;
   Map<String, dynamic>? get profile => _profile;
-  Map<String, dynamic>? get user => _user;
-
-  // Setters
-  set isLoading(bool value) {
-    _isLoading = value;
-    notifyListeners();
+  Map<String, dynamic>? get user => _profile;
+  
+  // Méthodes pour gérer l'état
+  void setLoading(bool loading) {
+    _isLoading = loading;
   }
-
-  set currentUserId(String? value) {
-    _currentUserId = value;
-    notifyListeners();
+  
+  void setFirstLaunch(bool firstLaunch) {
+    _isFirstLaunch = firstLaunch;
   }
-
-  set currentPlanId(String? value) {
-    _currentPlanId = value;
-    notifyListeners();
+  
+  void setCurrentUser(String? user) {
+    _currentUser = user;
   }
-
-  set currentDayNumber(int value) {
-    _currentDayNumber = value;
-    notifyListeners();
+  
+  void setLoggedIn(bool loggedIn) {
+    _isLoggedIn = loggedIn;
   }
-
-  set currentReferences(List<String> value) {
-    _currentReferences = value;
-    notifyListeners();
+  
+  void setOnboarded(bool onboarded) {
+    _hasOnboarded = onboarded;
   }
-
-  // Methods
-  void initializeApp() async {
-    isLoading = true;
-    
-    // Simulate initialization
-    await Future.delayed(const Duration(seconds: 2));
-    
-    // Set default values
-    _currentUserId = 'user_123';
-    _currentPlanId = 'plan_1';
-    _currentDayNumber = 1;
-    _currentReferences = ['Jean 3:16-18'];
-    
-    isLoading = false;
+  
+  void setCurrentPlanId(String? planId) {
+    _currentPlanId = planId;
   }
-
-  void updateCurrentDay(int dayNumber, List<String> references) {
-    _currentDayNumber = dayNumber;
-    _currentReferences = references;
-    notifyListeners();
+  
+  void setProfile(Map<String, dynamic>? profile) {
+    _profile = profile;
   }
-
-  void reset() {
-    _isLoading = true;
-    _currentUserId = null;
-    _currentPlanId = null;
-    _currentDayNumber = 1;
-    _currentReferences = [];
-    notifyListeners();
-  }
+  
+  // Singleton
+  static final AppState _instance = AppState._internal();
+  factory AppState() => _instance;
+  AppState._internal();
 }

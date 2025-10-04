@@ -72,7 +72,7 @@ class PresetCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      preset.badge,
+                      preset.badge ?? '',
                       style: theme.textTheme.labelMedium?.copyWith(
                         color: (preset.color ?? Colors.blue).withOpacity(.9),
                         fontWeight: FontWeight.w600,

@@ -2,14 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:essai/views/welcome_page.dart';
 import 'package:essai/views/login_page.dart';
-import 'package:essai/views/register_page.dart';
 import 'package:essai/views/onboarding_page.dart';
 import 'package:essai/views/goals_page.dart';
 import 'package:essai/views/success_page.dart';
 import 'package:essai/views/prayer_workflow_demo.dart';
 import 'package:essai/views/prayer_generator_page.dart';
 import 'package:essai/views/home_page.dart';
-import 'package:essai/views/selah_home_page.dart';
 import 'package:essai/views/complete_profile_page.dart';
 import 'package:essai/views/custom_plan_page.dart';
 import 'package:essai/views/bible_videos_page.dart';
@@ -18,12 +16,16 @@ import 'package:essai/views/settings_page.dart';
 import 'package:essai/views/reader_page_modern.dart';
 import 'package:essai/views/reader_settings_page.dart';
 import 'package:essai/views/meditation_chooser_page.dart';
-import 'package:essai/views/meditation_flow_page.dart';
 import 'package:essai/views/meditation_free_page.dart';
 import 'package:essai/views/meditation_qcm_page.dart';
 import 'package:essai/views/meditation_auto_qcm_page.dart';
 import 'package:essai/views/passage_analysis_demo.dart';
 import 'package:essai/views/prayer_subjects_page.dart';
+import 'package:essai/views/scan_bible_page.dart';
+import 'package:essai/views/advanced_scan_bible_page.dart';
+import 'package:essai/views/profile_page.dart';
+import 'package:essai/views/splash_page.dart';
+// import 'package:essai/views/payerpage_widget.dart'; // Temporairement désactivé
 import 'package:essai/test_navigation.dart';
 
 class AppRouter {
@@ -34,7 +36,6 @@ class AppRouter {
     // Authentification
     '/welcome': (context) => const WelcomePage(),
     '/login': (context) => const LoginPage(),
-    '/register': (context) => const RegisterPage(),
     '/onboarding': (context) => const OnboardingFlow(),
     '/complete_profile': (context) => const CompleteProfilePage(),
     
@@ -44,7 +45,6 @@ class AppRouter {
     
     // Pages principales
     '/home': (context) => const HomePageWidget(),
-    '/selah_home': (context) => const SelahHomePage(),
     '/reader': (context) => const ReaderPageModern(),
     '/reader_modern': (context) => const ReaderPageModern(),
     '/reader_settings': (context) => const ReaderSettingsPage(),
@@ -54,15 +54,10 @@ class AppRouter {
     
     // Méditation
     '/meditation/chooser': (context) => const MeditationChooserPage(),
-    '/meditation/flow': (context) {
-      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-      return MeditationFlowModern(
-        planId: args?['planId'],
-        day: args?['day'],
-        ref: args?['ref'],
-      );
-    },
-    '/meditation/free': (context) => const MeditationFreePage(),
+    '/meditation/free': (context) => const MeditationFreePage(
+      passageRef: 'Jean 3:16',
+      passageText: 'Car Dieu a tant aimé le monde qu\'il a donné son Fils unique, afin que quiconque croit en lui ne périsse point, mais qu\'il ait la vie éternelle.',
+    ),
     '/meditation/qcm': (context) => const MeditationQcmPage(),
     '/meditation/auto_qcm': (context) => const MeditationAutoQcmPage(),
     '/passage_analysis_demo': (context) => const PassageAnalysisDemo(),
@@ -72,6 +67,17 @@ class AppRouter {
     '/prayer_workflow': (context) => const PrayerWorkflowDemo(),
     '/prayer_workflow_demo': (context) => const PrayerWorkflowDemo(),
     '/prayer_generator': (context) => const PrayerGeneratorPage(),
+    '/prayer_editor': (context) => const PrayerGeneratorPage(), // Placeholder pour l'éditeur de prière
+    
+    // Scan Bible
+    '/scan/bible': (context) => const ScanBiblePage(),
+    '/scan/bible/advanced': (context) => const AdvancedScanBiblePage(),
+    
+    // Profil
+    '/profile': (context) => const ProfilePage(),
+    
+    // Splash
+    '/splash': (context) => const SplashPage(),
     
     // Succès (page générique)
     '/success': (context) {
@@ -110,5 +116,8 @@ class AppRouter {
       message: 'Vos données ont été sauvegardées !',
       nextRoute: '/home',
     ),
+    
+    // Payerpage - Carousel de cartes de prière (temporairement désactivé)
+    // '/payerpage': (context) => const PayerpageWidget(),
   };
 }

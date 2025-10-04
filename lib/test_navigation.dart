@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'services/prayer_subjects_builder.dart';
+import 'views/prayer_carousel_page.dart';
 
+/// Page de test pour vérifier la navigation et les fonctionnalités
 class TestNavigationPage extends StatelessWidget {
   const TestNavigationPage({super.key});
 
@@ -9,623 +12,250 @@ class TestNavigationPage extends StatelessWidget {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          color: Color(0xFF1A1D29), // Fond sombre comme Superlist
-        ),
-        child: Stack(
-          children: [
-            // Formes décoratives en arrière-plan
-            Positioned.fill(
-              child: CustomPaint(
-                painter: BackgroundShapesPainter(),
-              ),
-            ),
-            // AppBar personnalisé
-            SafeArea(
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        ),
-                        Expanded(
-                          child: Text(
-                            'Test Navigation',
-                            style: GoogleFonts.inter(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              fontSize: 18,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        const SizedBox(width: 48), // Pour centrer le titre
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Pages disponibles :',
-                            style: GoogleFonts.inter(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-
-                          // Section Authentification
-                          Text(
-                            'Authentification :',
-                            style: GoogleFonts.inter(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white.withOpacity(0.8),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-
-                          // Bouton Login
-                          _buildNavigationButton(
-                            context,
-                            'Connexion',
-                            'Page de connexion avec design moderne',
-                            Icons.login,
-                            const Color(0xFF8B5CF6), // Violet pour les accents
-                            '/login',
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          // Bouton Register
-                          _buildNavigationButton(
-                            context,
-                            'Inscription',
-                            'Création de compte utilisateur',
-                            Icons.person_add,
-                            const Color(0xFF8B5CF6),
-                            '/register',
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          // Bouton Welcome Page
-                          _buildNavigationButton(
-                            context,
-                            'Page de bienvenue',
-                            'Page d\'accueil moderne avec authentification',
-                            Icons.waving_hand,
-                            const Color(0xFF8B5CF6),
-                            '/welcome',
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Bouton Onboarding
-                          _buildNavigationButton(
-                            context,
-                            'Onboarding',
-                            'Page d\'introduction avec 3 slides',
-                            Icons.slideshow,
-                            Colors.blue,
-                            '/onboarding',
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          // Bouton Profil Complet
-                          _buildNavigationButton(
-                            context,
-                            'Profil Complet',
-                            'Compléter les informations utilisateur',
-                            Icons.person_add_alt_1_rounded,
-                            const Color(0xFF4CAF50),
-                            '/complete_profile',
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Bouton Goals (Plans prédéfinis)
-                          _buildNavigationButton(
-                            context,
-                            'Goals - Plans prédéfinis',
-                            'Sélection des plans avec swipe',
-                            Icons.swipe,
-                            Colors.orange,
-                            '/goals',
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          // Bouton Plans Presets
-                          _buildNavigationButton(
-                            context,
-                            'Plans Presets',
-                            'Liste des plans prédéfinis',
-                            Icons.list,
-                            Colors.orange,
-                            '/goals',
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          // Bouton Plan Personnalisé
-                          _buildNavigationButton(
-                            context,
-                            'Plan Personnalisé',
-                            'Créer votre propre plan de lecture',
-                            Icons.tune_rounded,
-                            const Color(0xFF8B7355),
-                            '/custom_plan',
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Bouton Home
-                          _buildNavigationButton(
-                            context,
-                            'Home page',
-                            'Page d\'accueil classique',
-                            Icons.home,
-                            Colors.green,
-                            '/home',
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Bouton Selah Home
-                          _buildNavigationButton(
-                            context,
-                            'Selah Home',
-                            'Page d\'accueil moderne avec cartes',
-                            Icons.dashboard,
-                            Colors.purple,
-                            '/selah_home',
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          // Section Pages fonctionnelles
-                          Text(
-                            'Pages fonctionnelles :',
-                            style: GoogleFonts.inter(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white.withOpacity(0.8),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Bouton Profil complet
-                          _buildNavigationButton(
-                            context,
-                            'Profil complet',
-                            'Configuration du profil utilisateur',
-                            Icons.person,
-                            Colors.teal,
-                            '/complete_profile',
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Bouton Vidéos bibliques
-                          _buildNavigationButton(
-                            context,
-                            'Vidéos bibliques',
-                            'Contenu vidéo et méditation',
-                            Icons.play_circle,
-                            Colors.red,
-                            '/bible_videos',
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Bouton Reader
-                          _buildNavigationButton(
-                            context,
-                            'Lecteur biblique',
-                            'Lecture quotidienne avec versets',
-                            Icons.menu_book,
-                            Colors.blue,
-                            '/reader',
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          // Bouton Reader Moderne
-                          _buildNavigationButton(
-                            context,
-                            'Lecteur Moderne',
-                            'Lecteur avec design moderne',
-                            Icons.menu_book,
-                            Colors.blue,
-                            '/reader_modern',
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          // Bouton Reader Settings
-                          _buildNavigationButton(
-                            context,
-                            'Paramètres Lecteur',
-                            'Configuration du lecteur',
-                            Icons.settings,
-                            Colors.grey,
-                            '/reader_settings',
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          _buildNavigationButton(
-                            context,
-                            'Système de surlignage',
-                            'Surlignage exactement comme l\'image',
-                            Icons.highlight,
-                            Colors.orange,
-                            '/reader',
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Bouton Meditation
-                          _buildNavigationButton(
-                            context,
-                            'Méditation',
-                            'Page de méditation simple',
-                            Icons.psychology_alt_rounded,
-                            Colors.purple,
-                            '/meditation/chooser',
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          // Bouton Meditation Flow
-                          _buildNavigationButton(
-                            context,
-                            'Méditation Flow',
-                            'Processus complet de méditation',
-                            Icons.psychology_alt_rounded,
-                            Colors.purple,
-                            '/meditation/flow',
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          _buildNavigationButton(
-                            context,
-                            'Nouveau Chooser',
-                            'Méditation Libre vs QCM',
-                            Icons.psychology_alt_rounded,
-                            Colors.purple,
-                            '/meditation/chooser',
-                          ),
-
-                          const SizedBox(height: 12),
-
-            _buildNavigationButton(
-              context,
-              'Méditation Flow',
-              'Processus complet de méditation avec design moderne',
-              Icons.psychology_alt_rounded,
-              Colors.purple,
-              '/meditation/flow',
-              arguments: {
-                'planId': 'demo-plan',
-                'day': 3,
-                'ref': 'Jean 3:16',
-              },
-            ),
-
-                          const SizedBox(height: 12),
-
-                          _buildNavigationButton(
-                            context,
-                            'Analyse de Passage',
-                            'Extraction automatique de faits et génération de QCM',
-                            Icons.auto_awesome_rounded,
-                            Colors.blue,
-                            '/passage_analysis_demo',
-                          ),
-
-                          const SizedBox(height: 12),
-
-
-                          const SizedBox(height: 16),
-
-                          // Bouton Journal
-                          _buildNavigationButton(
-                            context,
-                            'Journal',
-                            'Journal personnel et réflexions',
-                            Icons.book,
-                            Colors.brown,
-                            '/journal',
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Bouton Paramètres
-                          _buildNavigationButton(
-                            context,
-                            'Paramètres',
-                            'Configuration de l\'application',
-                            Icons.settings,
-                            Colors.grey,
-                            '/settings',
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          _buildNavigationButton(
-                            context,
-                            'Analyse de Prière',
-                            'Détection automatique des catégories de prière',
-                            Icons.auto_awesome,
-                            Colors.purple,
-                            '/prayer_analysis',
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          _buildNavigationButton(
-                            context,
-                            'Test Classification',
-                            'Exemples de classification automatique',
-                            Icons.science,
-                            Colors.purple,
-                            '/prayer_test',
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          _buildNavigationButton(
-                            context,
-                            'Générateur de Prière',
-                            'Transforme vos réponses en prières structurées',
-                            Icons.auto_fix_high,
-                            Colors.purple,
-                            '/prayer_generator',
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          _buildNavigationButton(
-                            context,
-                            'Workflow Complet',
-                            'Démonstration du processus complet',
-                            Icons.account_tree,
-                            Colors.purple,
-                            '/prayer_workflow_demo',
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          // Section Pages de succès
-                          Text(
-                            'Pages de succès :',
-                            style: GoogleFonts.inter(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white.withOpacity(0.8),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Bouton Inscription réussie
-                          _buildNavigationButton(
-                            context,
-                            'Inscription réussie',
-                            'Page de succès pour l\'inscription',
-                            Icons.person_add_alt_1,
-                            Colors.green,
-                            '/success/registration',
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          // Bouton Connexion réussie
-                          _buildNavigationButton(
-                            context,
-                            'Connexion réussie',
-                            'Page de succès pour la connexion',
-                            Icons.login,
-                            Colors.blue,
-                            '/success/login',
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          // Bouton Plan créé
-                          _buildNavigationButton(
-                            context,
-                            'Plan créé',
-                            'Page de succès pour la création de plan',
-                            Icons.check_circle,
-                            Colors.orange,
-                            '/success/plan_created',
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          // Bouton Analyse terminée
-                          _buildNavigationButton(
-                            context,
-                            'Analyse terminée',
-                            'Page de succès pour l\'analyse (comme l\'image)',
-                            Icons.analytics,
-                            Colors.purple,
-                            '/success/analysis',
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          // Bouton Sauvegarde réussie
-                          _buildNavigationButton(
-                            context,
-                            'Sauvegarde réussie',
-                            'Page de succès pour la sauvegarde',
-                            Icons.save,
-                            Colors.teal,
-                            '/success/save',
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          // Instructions
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.1), // Fond semi-transparent
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: Colors.white.withOpacity(0.2),
-                                width: 1.5,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.3),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Instructions :',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Cliquez sur les boutons ci-dessus pour naviguer vers les différentes pages de l\'application. Utilisez le bouton retour de votre appareil pour revenir à cette page de navigation.',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 14,
-                                    color: Colors.white.withOpacity(0.7),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavigationButton(
-    BuildContext context,
-    String title,
-    String subtitle,
-    IconData icon,
-    Color color,
-    String route, {
-    Map<String, dynamic>? arguments,
-  }) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1), // Fond semi-transparent
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.2),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF1C1740), Color(0xFF2D1B69)],
           ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          if (route.startsWith('/meditation/start')) {
-            Navigator.pushNamed(
-              context,
-              '/meditation/start',
-              arguments: {
-                'planId': 'demo-plan',
-                'day': 3,
-                'ref': 'Jean 3:16',
-              },
-            );
-          } else {
-            Navigator.pushNamed(
-              context, 
-              route,
-              arguments: arguments,
-            );
-          }
-        },
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: color.withOpacity(0.3),
+                Text(
+                  'Tests de Navigation',
+                  style: GoogleFonts.inter(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Pages de Méditation
+                _TestCard(
+                  title: 'Méditation - Choix',
+                  subtitle: 'Page de choix de méditation',
+                  onTap: () => Navigator.pushNamed(context, '/meditation/chooser'),
+                ),
+                const SizedBox(height: 8),
+                
+                _TestCard(
+                  title: 'Méditation Libre',
+                  subtitle: 'Méditation avec 3 étapes (Demander, Chercher, Frapper)',
+                  onTap: () => Navigator.pushNamed(context, '/meditation/free'),
+                ),
+                const SizedBox(height: 8),
+                
+                _TestCard(
+                  title: 'Méditation QCM',
+                  subtitle: 'Méditation guidée avec QCM',
+                  onTap: () => Navigator.pushNamed(context, '/meditation/qcm'),
+                ),
+                const SizedBox(height: 8),
+                
+                _TestCard(
+                  title: 'Test Compréhension',
+                  subtitle: 'QCM automatique',
+                  onTap: () => Navigator.pushNamed(context, '/meditation/auto_qcm'),
+                ),
+                const SizedBox(height: 12),
+
+                // Pages de Prière
+                _TestCard(
+                  title: 'Carrousel de Prière',
+                  subtitle: 'Sélection des sujets de prière',
+                  onTap: () => _testPrayerCarousel(context),
+                ),
+                const SizedBox(height: 8),
+                
+                _TestCard(
+                  title: 'Générateur de Prière',
+                  subtitle: 'Génération automatique de prières',
+                  onTap: () => Navigator.pushNamed(context, '/prayer/generator'),
+                ),
+                const SizedBox(height: 12),
+
+                // Pages de Scan Bible
+                _TestCard(
+                  title: 'Scan Bible Simple',
+                  subtitle: 'Scanner une page de Bible',
+                  onTap: () => Navigator.pushNamed(context, '/scan/bible'),
+                ),
+                const SizedBox(height: 8),
+                
+                _TestCard(
+                  title: 'Scan Bible Avancé',
+                  subtitle: 'Scanner avec animations',
+                  onTap: () => Navigator.pushNamed(context, '/scan/bible/advanced'),
+                ),
+                const SizedBox(height: 12),
+
+                // Pages de Plans
+                _TestCard(
+                  title: 'Plans Prédéfinis',
+                  subtitle: 'Sélection de plans avec swipe',
+                  onTap: () => Navigator.pushNamed(context, '/goals'),
+                ),
+                const SizedBox(height: 8),
+                
+                _TestCard(
+                  title: 'Plan Personnalisé',
+                  subtitle: 'Créer un plan sur mesure',
+                  onTap: () => Navigator.pushNamed(context, '/custom_plan'),
+                ),
+                const SizedBox(height: 12),
+
+                // Pages Principales
+                _TestCard(
+                  title: 'Accueil',
+                  subtitle: 'Page d\'accueil de l\'application',
+                  onTap: () => Navigator.pushNamed(context, '/home'),
+                ),
+                const SizedBox(height: 8),
+                
+                _TestCard(
+                  title: 'Lecteur',
+                  subtitle: 'Lecteur de Bible moderne',
+                  onTap: () => Navigator.pushNamed(context, '/reader'),
+                ),
+                const SizedBox(height: 8),
+                
+                _TestCard(
+                  title: 'Journal',
+                  subtitle: 'Journal personnel',
+                  onTap: () => Navigator.pushNamed(context, '/journal'),
+                ),
+                const SizedBox(height: 8),
+                
+                _TestCard(
+                  title: 'Profil',
+                  subtitle: 'Profil utilisateur',
+                  onTap: () => Navigator.pushNamed(context, '/profile'),
+                ),
+                const SizedBox(height: 8),
+                
+                _TestCard(
+                  title: 'Paramètres',
+                  subtitle: 'Paramètres de l\'application',
+                  onTap: () => Navigator.pushNamed(context, '/settings'),
+                ),
+                const SizedBox(height: 8),
+                
+                _TestCard(
+                  title: 'Workflow Prière',
+                  subtitle: 'Démonstration du workflow',
+                  onTap: () => Navigator.pushNamed(context, '/prayer_workflow'),
+                ),
+                const SizedBox(height: 8),
+                
+                // _TestCard(
+                //   title: 'Payerpage - Carousel Flip Cards',
+                //   subtitle: 'Carousel de cartes de prière avec flip animation',
+                //   onTap: () => Navigator.pushNamed(context, '/payerpage'),
+                // ),
+                const SizedBox(height: 12),
+
+                // Pages d'Authentification
+                _TestCard(
+                  title: 'Connexion',
+                  subtitle: 'Page de connexion',
+                  onTap: () => Navigator.pushNamed(context, '/login'),
+                ),
+                const SizedBox(height: 8),
+                
+                _TestCard(
+                  title: 'Bienvenue',
+                  subtitle: 'Page d\'accueil initiale',
+                  onTap: () => Navigator.pushNamed(context, '/welcome'),
+                ),
+                const SizedBox(height: 8),
+                
+                _TestCard(
+                  title: 'Onboarding',
+                  subtitle: 'Introduction à l\'application',
+                  onTap: () => Navigator.pushNamed(context, '/onboarding'),
+                ),
+                const SizedBox(height: 8),
+                
+                _TestCard(
+                  title: 'Compléter Profil',
+                  subtitle: 'Finalisation du profil',
+                  onTap: () => Navigator.pushNamed(context, '/complete_profile'),
+                ),
+                const SizedBox(height: 8),
+                
+                _TestCard(
+                  title: 'Succès',
+                  subtitle: 'Page de confirmation',
+                  onTap: () => Navigator.pushNamed(context, '/success'),
+                ),
+                const SizedBox(height: 12),
+
+                // Pages Spécialisées
+                _TestCard(
+                  title: 'Vidéos Bible',
+                  subtitle: 'Contenu vidéo biblique',
+                  onTap: () => Navigator.pushNamed(context, '/bible_videos'),
+                ),
+                const SizedBox(height: 8),
+                
+                _TestCard(
+                  title: 'Analyse Passage',
+                  subtitle: 'Démonstration d\'analyse',
+                  onTap: () => Navigator.pushNamed(context, '/passage_analysis_demo'),
+                ),
+                const SizedBox(height: 8),
+                
+                _TestCard(
+                  title: 'Sujets Prière',
+                  subtitle: 'Sélection de sujets de prière',
+                  onTap: () => Navigator.pushNamed(context, '/prayer_subjects'),
+                ),
+                const SizedBox(height: 8),
+                
+                _TestCard(
+                  title: 'Sujets Prière (Bandes)',
+                  subtitle: 'Interface avec bandes colorées',
+                  onTap: () => Navigator.pushNamed(context, '/prayer_subjects_bands'),
+                ),
+                const SizedBox(height: 8),
+                
+                _TestCard(
+                  title: 'Paramètres Lecteur',
+                  subtitle: 'Configuration du lecteur',
+                  onTap: () => Navigator.pushNamed(context, '/reader_settings'),
+                ),
+                const SizedBox(height: 8),
+                
+                _TestCard(
+                  title: 'Splash',
+                  subtitle: 'Écran de démarrage',
+                  onTap: () => Navigator.pushNamed(context, '/splash'),
+                ),
+                
+                const SizedBox(height: 20),
+                
+                // Bouton de retour
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF1C1740),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: Icon(icon, color: color, size: 24),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: GoogleFonts.inter(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: Colors.white.withOpacity(0.7),
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    'Retour',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
                   ),
-                ),
-                Icon(
-                  Icons.arrow_forward_ios,
-                  color: Colors.white.withOpacity(0.6),
-                  size: 16,
                 ),
               ],
             ),
@@ -634,81 +264,109 @@ class TestNavigationPage extends StatelessWidget {
       ),
     );
   }
+
+  void _testPrayerCarousel(BuildContext context) async {
+    // Générer des sujets de test
+    final subjects = PrayerSubjectsBuilder.fromFree(
+      selectedTagsByField: {
+        'aboutGod': {'praise', 'gratitude'},
+        'applyToday': {'obedience'},
+      },
+      freeTexts: {
+        'aboutGod': 'Dieu est fidèle et bon',
+        'neighbor': 'Ma famille',
+        'applyToday': 'Prier plus régulièrement',
+        'verseHit': 'Psaume 23 - L\'Éternel est mon berger',
+      },
+    );
+
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PrayerCarouselPage(
+          subjects: subjects,
+          passageRef: 'Psaume 23',
+          memoryVerse: 'L\'Éternel est mon berger',
+        ),
+      ),
+    );
+
+    if (result != null && result is Map) {
+      final completed = result['completed'] as List<String>? ?? [];
+      final all = result['all'] as List<String>? ?? [];
+      
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Test Carrousel de Prière'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Sujets sélectionnés: ${completed.length}'),
+              Text('Total sujets: ${all.length}'),
+              const SizedBox(height: 8),
+              Text('Sélectionnés: ${completed.join(', ')}'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
 }
 
-class BackgroundShapesPainter extends CustomPainter {
+class _TestCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _TestCard({
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
   @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withOpacity(0.08)
-      ..style = PaintingStyle.fill;
-
-    // Formes géométriques dispersées
-    final shapes = [
-      // Cercle en bas à gauche
-      Offset(size.width * 0.1, size.height * 0.8),
-      // Cercle en haut à droite
-      Offset(size.width * 0.85, size.height * 0.15),
-      // Cercle au centre
-      Offset(size.width * 0.7, size.height * 0.6),
-      // Cercle en bas à droite
-      Offset(size.width * 0.9, size.height * 0.9),
-      // Cercle supplémentaire en haut à gauche
-      Offset(size.width * 0.15, size.height * 0.25),
-      // Cercle supplémentaire au centre gauche
-      Offset(size.width * 0.2, size.height * 0.6),
-    ];
-
-    for (final shape in shapes) {
-      canvas.drawCircle(shape, 30, paint);
-    }
-
-    // Lignes décoratives
-    final linePaint = Paint()
-      ..color = Colors.white.withOpacity(0.06)
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-
-    // Ligne diagonale
-    canvas.drawLine(
-      Offset(size.width * 0.2, size.height * 0.3),
-      Offset(size.width * 0.8, size.height * 0.7),
-      linePaint,
-    );
-
-    // Ligne horizontale
-    canvas.drawLine(
-      Offset(size.width * 0.1, size.height * 0.4),
-      Offset(size.width * 0.6, size.height * 0.4),
-      linePaint,
-    );
-
-    // Ligne verticale supplémentaire
-    canvas.drawLine(
-      Offset(size.width * 0.3, size.height * 0.2),
-      Offset(size.width * 0.3, size.height * 0.8),
-      linePaint,
-    );
-
-    // Formes supplémentaires
-    final crossPaint = Paint()
-      ..color = Colors.white.withOpacity(0.05)
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
-
-    // Croix en haut à droite
-    canvas.drawLine(
-      Offset(size.width * 0.75, size.height * 0.2),
-      Offset(size.width * 0.85, size.height * 0.3),
-      crossPaint,
-    );
-    canvas.drawLine(
-      Offset(size.width * 0.85, size.height * 0.2),
-      Offset(size.width * 0.75, size.height * 0.3),
-      crossPaint,
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1C1740),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
