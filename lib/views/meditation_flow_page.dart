@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:essai/views/meditation_chooser_page.dart';
+import 'package:essai/views/meditation_free_page.dart';
+import 'package:essai/views/meditation_qcm_page.dart';
+import 'package:essai/views/meditation_auto_qcm_page.dart';
+import 'package:essai/views/prayer_subjects_page.dart';
 
 class MeditationFlowPage extends StatefulWidget {
   final String? planId;
@@ -28,6 +33,7 @@ class _MeditationFlowPageState extends State<MeditationFlowPage>
   List<String> selectedAnswers = [];
   String freeText = '';
   List<String> selectedActions = [];
+  String? selectedMeditationType; // 'free', 'qcm', 'auto_qcm'
   
   final List<MeditationStep> _steps = [
     MeditationStep(
@@ -75,6 +81,12 @@ class _MeditationFlowPageState extends State<MeditationFlowPage>
   }
 
   void _nextStep() {
+    // Si on est à l'étape de sélection du mode, naviguer vers la page appropriée
+    if (currentStep == 1 && selectedMode.isNotEmpty) {
+      _navigateToMeditationType();
+      return;
+    }
+    
     if (currentStep < _steps.length - 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
@@ -82,6 +94,35 @@ class _MeditationFlowPageState extends State<MeditationFlowPage>
       );
     } else {
       _finishMeditation();
+    }
+  }
+  
+  void _navigateToMeditationType() {
+    switch (selectedMode) {
+      case 'free':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const MeditationFreePage(),
+          ),
+        );
+        break;
+      case 'qcm':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const MeditationQcmPage(),
+          ),
+        );
+        break;
+      case 'auto_qcm':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const MeditationAutoQcmPage(),
+          ),
+        );
+        break;
     }
   }
 
@@ -316,9 +357,9 @@ class _MeditationFlowPageState extends State<MeditationFlowPage>
 
   Widget _buildModeStep() {
     final modes = [
-      {'id': 'guided', 'title': 'Méditation Guidée', 'subtitle': 'Questions structurées pour vous accompagner'},
       {'id': 'free', 'title': 'Méditation Libre', 'subtitle': 'Réflexion personnelle et spontanée'},
       {'id': 'qcm', 'title': 'Méditation QCM', 'subtitle': 'Questions à choix multiples'},
+      {'id': 'auto_qcm', 'title': 'QCM Automatique', 'subtitle': 'Questions générées automatiquement'},
     ];
 
     return Padding(
