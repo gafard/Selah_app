@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../widgets/selah_logo.dart';
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
@@ -59,30 +61,39 @@ class WelcomePage extends StatelessWidget {
 
   Widget _buildAppIcon() {
     return Container(
-      width: 80,
-      height: 80,
+      width: 120,
+      height: 120,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: const Color(0xFFE53E3E), // Rouge exactement comme Superlist
+        borderRadius: BorderRadius.circular(28),
+        color: const Color(0xFF1553FF), // Bleu Selah
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFE53E3E).withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: const Color(0xFF1553FF).withOpacity(0.3),
+            blurRadius: 30,
+            offset: const Offset(0, 15),
           ),
         ],
       ),
       child: const Center(
-        child: Text(
-          'S',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 40,
-            fontWeight: FontWeight.bold,
-            fontFamily: 'Inter',
-          ),
+        child: SelahAppIcon(
+          size: 80,
+          useBlueBackground: false, // Pas de fond car on a déjà le container
         ),
       ),
+    )
+    .animate()
+    .fadeIn(duration: 800.ms, delay: 200.ms)
+    .scale(
+      begin: const Offset(0.8, 0.8),
+      end: const Offset(1.0, 1.0),
+      duration: 600.ms,
+      delay: 400.ms,
+      curve: Curves.elasticOut,
+    )
+    .shimmer(
+      duration: 2000.ms,
+      delay: 1000.ms,
+      color: Colors.white.withOpacity(0.3),
     );
   }
 
@@ -98,7 +109,11 @@ class WelcomePage extends StatelessWidget {
             height: 1.2,
           ),
           textAlign: TextAlign.center,
-        ),
+        )
+        .animate()
+        .fadeIn(duration: 600.ms, delay: 800.ms)
+        .slideY(begin: 0.3, end: 0, duration: 600.ms, delay: 800.ms),
+        
         Text(
           'Selah',
           style: GoogleFonts.inter(
@@ -108,6 +123,14 @@ class WelcomePage extends StatelessWidget {
             height: 1.2,
           ),
           textAlign: TextAlign.center,
+        )
+        .animate()
+        .fadeIn(duration: 600.ms, delay: 1000.ms)
+        .slideY(begin: 0.3, end: 0, duration: 600.ms, delay: 1000.ms)
+        .shimmer(
+          duration: 1500.ms,
+          delay: 1500.ms,
+          color: const Color(0xFF49C98D).withOpacity(0.5),
         ),
       ],
     );
@@ -123,7 +146,10 @@ class WelcomePage extends StatelessWidget {
         height: 1.5,
       ),
       textAlign: TextAlign.center,
-    );
+    )
+    .animate()
+    .fadeIn(duration: 800.ms, delay: 1200.ms)
+    .slideY(begin: 0.2, end: 0, duration: 600.ms, delay: 1200.ms);
   }
 
   Widget _buildAuthButtons(BuildContext context) {

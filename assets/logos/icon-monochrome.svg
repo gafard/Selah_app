@@ -1,0 +1,5 @@
+<svg width="1024" height="1024" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Selah mono">
+  <rect width="256" height="256" rx="28" fill="#FFFFFF"/>
+  <path d="M182 76c-10-18-33-28-58-24-22 3-39 16-39 32 0 40 98 12 98 64 0 28-27 48-64 48-26 0-48-10-58-26" fill="none" stroke="#0B2B7E" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="184" cy="84" r="14" fill="#0B2B7E"/>
+</svg>

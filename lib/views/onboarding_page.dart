@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/image_service.dart';
 
 class OnboardingFlow extends StatefulWidget {
   const OnboardingFlow({super.key});
@@ -38,7 +39,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         // Slide 1 (wedge en haut à droite)
         OnboardingSlide(
           topDecoration: const TopRightWedge(),
-          heroImage: const AssetImage('assets/images/onboarding_bible.png'),
+          heroImage: NetworkImage(ImageService.getImage('onboarding_bible')),
           title: "Choisis ton plan et engage-toi.",
           subtitle: "Commence aujourd'hui et avance pas à pas.",
           onNext: _next,
@@ -46,7 +47,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         // Slide 2 (arche en bas)
         OnboardingSlide(
           bottomDecoration: const BottomArch(),
-          heroImage: const AssetImage('assets/images/onboarding_tree.png'),
+          heroImage: NetworkImage(ImageService.getImage('onboarding_meditation')),
           title: "Marchons ensemble dans la Parole.",
           subtitle: "Partage, médite et prie avec la communauté.",
           onNext: _next,
@@ -54,7 +55,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         // Slide 3 (autre wedge)
         OnboardingSlide(
           topDecoration: const TopRightWedge(),
-          heroImage: const AssetImage('assets/images/onboarding_path.png'),
+          heroImage: NetworkImage(ImageService.getImage('onboarding_growth')),
           title: "Ta parole est une lampe à mes pieds.",
           subtitle: "Chaque jour, laisse la Parole éclairer ta route.",
           onNext: () {

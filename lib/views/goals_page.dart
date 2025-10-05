@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:go_router/go_router.dart';
-import 'package:swipable_stack/swipable_stack.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/plan_preset.dart';
+import 'package:fancy_stack_carousel/fancy_stack_carousel.dart';
 
 class GoalsPage extends StatefulWidget {
   const GoalsPage({super.key});
@@ -13,314 +10,373 @@ class GoalsPage extends StatefulWidget {
 }
 
 class _GoalsPageState extends State<GoalsPage> {
-  // Palette de couleurs de Selah
-  static const Color _darkBackground = Color(0xFF1C1C1E);
-  static const Color _goldAccent = Color(0xFF8B7355);
-  static const Color _softWhite = Color(0xFFF5F5F5);
-  static const Color _mediumGrey = Color(0xFF8E8E93);
-  static const Color _cardBackground = Color(0xFF2C2C2E);
-
-  late Future<List<PlanPreset>> _presetsFuture;
-  final _controller = SwipableStackController();
+  late Future<List<Map<String, dynamic>>> _presetsFuture;
+  int _currentSlide = 0;
+  late FancyStackCarouselController _carouselController;
+  List<FancyStackItem> _carouselItems = [];
 
   @override
   void initState() {
     super.initState();
     _presetsFuture = _fetchPresets();
+    _carouselController = FancyStackCarouselController();
   }
 
-  Future<List<PlanPreset>> _fetchPresets() async {
-    // Simulation de données pour les tests
+  Future<List<Map<String, dynamic>>> _fetchPresets() async {
     await Future.delayed(const Duration(milliseconds: 500));
-    return [
-      const PlanPreset(
-        id: 'new_testament',
-        title: 'Nouveau Testament',
-        subtitle: '90 jours · ~10 min/jour',
-        badge: 'Populaire',
-        icon: Icons.menu_book_rounded,
-        color: Color(0xFFF9A66C),
-      ),
-      const PlanPreset(
-        id: 'psalms',
-        title: 'Psaumes',
-        subtitle: '150 jours · ~5 min/jour',
-        badge: 'Méditation',
-        icon: Icons.music_note_rounded,
-        color: Color(0xFF6C5CE7),
-      ),
+    final presets = [
+      {
+        'title': 'Nouveau Testament',
+        'subtitle': '3 mois • ~15 min/jour',
+        'image': 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200',
+        'gradient': const LinearGradient(
+          colors: [Color(0xFF60A5FA), Color(0xFF93C5FD)],
+          begin: Alignment.topLeft, 
+          end: Alignment.bottomRight,
+        ),
+        'id': 'nt_3m',
+      },
+      {
+        'title': 'Bible entière',
+        'subtitle': '6 mois • ~25 min/jour',
+        'image': 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=1200',
+        'gradient': const LinearGradient(
+          colors: [Color(0xFFA78BFA), Color(0xFFC4B5FD)],
+          begin: Alignment.topLeft, 
+          end: Alignment.bottomRight,
+        ),
+        'id': 'bible_6m',
+      },
     ];
-  }
 
-  Future<void> _createPlanFromPreset(PlanPreset preset) async {
-    // Afficher un indicateur de chargement
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const _LoadingDialog(),
-    );
-
-    try {
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) throw Exception("Utilisateur non connecté.");
-
-      final response = await Supabase.instance.client.functions.invoke(
-        'create-custom-plan',
-        body: {
-          'userId': user.id,
-          'planName': preset.title,
-          'startDate': DateTime.now().toIso8601String().split('T')[0],
-          'totalDays': 90, // Valeur par défaut
-          'readingOrder': 'traditional',
-          'selectedBooks': ['NT'],
-          'selectedDays': [1, 2, 3, 4, 5, 6, 7],
-          'overlapOtNt': false,
-          'reverseOrder': false,
-          'showStats': true,
-        },
+    // Créer les FancyStackItem
+    _carouselItems = presets.asMap().entries.map((entry) {
+      final index = entry.key;
+      final preset = entry.value;
+      return FancyStackItem(
+        id: index + 1, // Utiliser l'index comme ID (commence à 1)
+        child: _buildPlanCard(preset),
       );
+    }).toList();
 
-      if (response.data != null) {
-        if (mounted) {
-          Navigator.of(context).pop(); // Fermer le loader
-          context.pushReplacement('/home');
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: ${e.toString()}'), backgroundColor: Colors.redAccent),
-        );
-      }
-    }
+    return presets;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _darkBackground,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text(
-          'Choisis ton plan',
-          style: GoogleFonts.playfairDisplay(color: _softWhite),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: _goldAccent),
-          onPressed: () => context.pop(),
-        ),
-      ),
-      body: FutureBuilder<List<PlanPreset>>(
-        future: _presetsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: _goldAccent));
-          }
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(
-              child: Text(
-                'Aucun plan trouvé.',
-                style: GoogleFonts.lato(color: _mediumGrey),
-              ),
-            );
-          }
-
-          final presets = snapshot.data!;
-          return SafeArea(
-            child: Stack(
-              children: [
-                // Le fond avec les cartes "fantômes"
-                ...List.generate(presets.length, (index) {
-                  if (index == 0) return const SizedBox.shrink();
-                  final topOffset = (presets.length - index - 1) * 10.0;
-                  final leftOffset = (presets.length - index - 1) * 5.0;
-                  return Positioned(
-                    top: topOffset,
-                    left: leftOffset,
-                    child: _buildGhostCard(presets[index]),
-                  );
-                }),
-                // Le SwipableStack avec les vraies cartes
-                SwipableStack(
-                  controller: _controller,
-                  stackClipBehaviour: Clip.none,
-                  onSwipeCompleted: (index, direction) {
-                    if (direction == SwipeDirection.right) {
-                      _createPlanFromPreset(presets[index]);
-                    }
-                  },
-                  onWillMoveNext: (index, direction) => true,
-                  builder: (context, properties) {
-                    final preset = presets[properties.index];
-                    return _buildPresetCard(preset, properties.swipeProgress);
-                  },
-                  itemCount: presets.length,
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: FutureBuilder<List<Map<String, dynamic>>>(
+          future: _presetsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Center(
+                child: Text(
+                  'Aucun plan trouvé.',
+                  style: GoogleFonts.inter(color: Colors.grey),
                 ),
-              ],
-            ),
-          );
-        },
+              );
+            }
+
+            final presets = snapshot.data!;
+            return _buildROIOnboardingPage(presets);
+          },
+        ),
       ),
     );
   }
 
-  // --- Widgets pour les cartes ---
-
-  // Carte "fantôme" pour l'effet de pile
-  Widget _buildGhostCard(PlanPreset preset) {
-    return Opacity(
-      opacity: 0.4,
-      child: Transform.scale(
-        scale: 0.95,
-        child: _buildPresetCardLayout(preset),
-      ),
+  Widget _buildROIOnboardingPage(List<Map<String, dynamic>> presets) {
+    return Column(
+      children: [
+        // Cards Section
+        Expanded(
+          flex: 3,
+          child: _buildCardsSection(presets),
+        ),
+        // Text Content
+        _buildTextContent(),
+        // Pagination Dots
+        _buildPaginationDots(presets.length),
+        // Bottom Navigation
+        _buildBottomNavigation(presets.length),
+      ],
     );
   }
 
-  // La carte principale, animée
-  Widget _buildPresetCard(PlanPreset preset, double progress) {
-    return Transform.scale(
-      scale: 0.9 + (0.1 * progress),
-      child: _buildPresetCardLayout(preset),
-    );
-  }
-
-  Widget _buildPresetCardLayout(PlanPreset preset) {
+  Widget _buildCardsSection(List<Map<String, dynamic>> presets) {
     return Container(
-      height: 550, // Hauteur fixe pour la carte
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            spreadRadius: 2,
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          // Image de fond (placeholder pour l'instant)
-          Container(
-            width: double.infinity,
-            height: 250,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [_goldAccent.withOpacity(0.7), _goldAccent],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Center(
-              child: Icon(Icons.auto_stories, size: 80, color: _darkBackground.withOpacity(0.7)),
-            ),
-          ),
-          // Contenu de la carte
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: 320,
-              padding: const EdgeInsets.all(24),
-              decoration: const BoxDecoration(
-                color: _cardBackground,
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(20),
-                  bottomRight: Radius.circular(20),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    preset.title,
-                    style: GoogleFonts.playfairDisplay(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      color: _softWhite,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    preset.subtitle ?? '',
-                    style: GoogleFonts.lato(
-                      color: _mediumGrey,
-                      fontSize: 16,
-                      height: 1.4,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    '90 jours', // Valeur par défaut
-                    style: GoogleFonts.lato(
-                      color: _goldAccent,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Boutons d'action
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {}, // Swipe left action
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: _mediumGrey),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          child: Text('Voir les détails', style: GoogleFonts.lato(color: _mediumGrey)),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => _createPlanFromPreset(preset),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _goldAccent,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          child: Text('Créer mon plan', style: GoogleFonts.lato(color: _darkBackground, fontWeight: FontWeight.w600)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+      height: 420,
+      child: FancyStackCarousel(
+        items: _carouselItems,
+        options: FancyStackCarouselOptions(
+          size: const Size(300, 420),
+          autoPlay: true,
+          autoPlayInterval: const Duration(seconds: 3),
+          autoplayDirection: AutoplayDirection.bothSide,
+          onPageChanged: (index, reason, direction) {
+            setState(() {
+              _currentSlide = index;
+            });
+            debugPrint('Page changed to index: $index, Reason: $reason, Direction: $direction');
+          },
+          pauseAutoPlayOnTouch: true,
+          pauseOnMouseHover: true,
+        ),
+        carouselController: _carouselController,
       ),
     );
   }
-}
 
-class _LoadingDialog extends StatelessWidget {
-  const _LoadingDialog();
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: const Color(0xFF2C2C2E),
-      content: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20.0),
-        child: Row(
-          children: [
-            const CircularProgressIndicator(color: Color(0xFF8B7355)),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Text(
-                'Création de votre plan en cours...',
-                style: GoogleFonts.lato(color: const Color(0xFFF5F5F5)),
-              ),
+  Widget _buildPlanCard(Map<String, dynamic> preset) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.pushReplacementNamed(context, '/home');
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        height: 380,
+        decoration: BoxDecoration(
+          gradient: preset['gradient'] as Gradient,
+          borderRadius: BorderRadius.circular(26),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(26),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Image de fond
+              Image.network(
+                preset['image'] as String, 
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    decoration: BoxDecoration(
+                      gradient: preset['gradient'] as Gradient,
+                    ),
+                  );
+                },
+              ),
+              // Voile pour lisibilité du texte
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.center,
+                    colors: [Colors.black.withOpacity(.65), Colors.transparent],
+                  ),
+                ),
+              ),
+              // Contenu
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Badge "Preset"
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(.18),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white.withOpacity(.25)),
+                      ),
+                      child: Text(
+                        'Preset',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      preset['title'] as String,
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        height: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      preset['subtitle'] as String,
+                      style: GoogleFonts.inter(
+                        color: Colors.white.withOpacity(.85),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    // CTA
+                    Container(
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Choisir ce plan',
+                          style: GoogleFonts.inter(
+                            color: const Color(0xFF111827),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Icône discrète en haut à droite
+              Positioned(
+                right: 14, 
+                top: 14,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(.18),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withOpacity(.25)),
+                  ),
+                  child: const Icon(
+                    Icons.menu_book_rounded, 
+                    color: Colors.white, 
+                    size: 18
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextContent() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Column(
+        children: [
+          Text(
+            'Choisis ton plan de lecture.',
+            style: GoogleFonts.inter(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Découvre des parcours de lecture biblique adaptés à ton rythme et tes objectifs spirituels.',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              color: Colors.grey[600],
+              height: 1.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaginationDots(int totalItems) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(totalItems, (index) {
+        final isActive = index == _currentSlide;
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          width: isActive ? 32 : 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: isActive ? Colors.black : Colors.grey[300],
+            borderRadius: BorderRadius.circular(4),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildBottomNavigation(int totalItems) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildNavButton(
+            icon: Icons.chevron_left,
+            onPressed: _currentSlide > 0 
+              ? () => _carouselController.animateToLeft()
+              : null,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.pushReplacementNamed(context, '/home');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                elevation: 0,
+              ),
+              child: Text(
+                'Commencer',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          _buildNavButton(
+            icon: Icons.chevron_right,
+            onPressed: _currentSlide < totalItems - 1 
+              ? () => _carouselController.animateToRight()
+              : null,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNavButton({required IconData icon, VoidCallback? onPressed}) {
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.grey[200]!),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: IconButton(
+        icon: Icon(
+          icon,
+          color: onPressed != null ? Colors.black : Colors.grey[400],
+        ),
+        onPressed: onPressed,
       ),
     );
   }

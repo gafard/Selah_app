@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-// import 'package:supabase_flutter/supabase_flutter.dart'; // Temporairement désactivé
 import 'package:intl/intl.dart';
+import '../widgets/selah_logo.dart';
 
 class JournalPage extends StatefulWidget {
   final Map<String, dynamic>? prefillData;
@@ -13,8 +13,8 @@ class JournalPage extends StatefulWidget {
   State<JournalPage> createState() => _JournalPageState();
 }
 
-class _JournalPageState extends State<JournalPage> {
-  // --- Variables d'état (Page State) ---
+class _JournalPageState extends State<JournalPage> with TickerProviderStateMixin {
+  // --- Variables d'état ---
   final _searchController = TextEditingController();
   String _searchQuery = '';
   String _tagFilter = 'tous';
@@ -34,12 +34,34 @@ class _JournalPageState extends State<JournalPage> {
   String? _editingNoteId;
 
   Timer? _debounceTimer;
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnimation;
+
+  // --- Couleurs modernes ---
+  static const Color _primaryBlue = Color(0xFF3B82F6);
+  static const Color _secondaryBlue = Color(0xFF60A5FA);
+  static const Color _accentGreen = Color(0xFF10B981);
+  static const Color _accentPurple = Color(0xFF8B5CF6);
+  static const Color _accentOrange = Color(0xFFF59E0B);
+  static const Color _lightBackground = Color(0xFFF8FAFC);
+  static const Color _textPrimary = Color(0xFF1E293B);
+  static const Color _textSecondary = Color(0xFF64748B);
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
     _fetchNotes();
+    
+    // Animation
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
+    );
+    _fadeController.forward();
     
     // Si des données de pré-remplissage sont fournies, ouvrir l'éditeur
     if (widget.prefillData != null) {
@@ -56,6 +78,7 @@ class _JournalPageState extends State<JournalPage> {
     _titleController.dispose();
     _contentController.dispose();
     _passageController.dispose();
+    _fadeController.dispose();
     super.dispose();
   }
 
@@ -64,7 +87,7 @@ class _JournalPageState extends State<JournalPage> {
     _debounceTimer = Timer(const Duration(milliseconds: 500), () {
       setState(() {
         _searchQuery = _searchController.text;
-        _currentPage = 0; // Reset to first page on search
+        _currentPage = 0;
       });
       _fetchNotes();
     });
@@ -75,29 +98,36 @@ class _JournalPageState extends State<JournalPage> {
     if (_isLoading) return;
     setState(() => _isLoading = true);
 
-    // Simulation de données pour les tests
     try {
       await Future.delayed(const Duration(milliseconds: 500));
       
-      // Données de test
+      // Données de test modernisées
       _notes = [
         {
           'id': '1',
           'title': 'Réflexion du jour',
-          'content': 'Aujourd\'hui, j\'ai lu le Psaume 23 et cela m\'a apporté beaucoup de paix...',
+          'content': 'Aujourd\'hui, j\'ai lu le Psaume 23 et cela m\'a apporté beaucoup de paix. Le Seigneur est vraiment mon berger...',
           'created_at': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
           'tags': ['réflexion', 'psaume'],
+          'passage_ref': 'Psaume 23:1-6',
         },
         {
           'id': '2',
           'title': 'Prière du matin',
-          'content': 'Seigneur, merci pour cette nouvelle journée. Guide-moi dans tes voies...',
+          'content': 'Seigneur, merci pour cette nouvelle journée. Guide-moi dans tes voies et aide-moi à être une bénédiction...',
           'created_at': DateTime.now().subtract(const Duration(days: 2)).toIso8601String(),
           'tags': ['prière', 'matin'],
         },
+        {
+          'id': '3',
+          'title': 'Gratitude',
+          'content': 'Je suis reconnaissant pour la famille que tu m\'as donnée et pour toutes tes bénédictions...',
+          'created_at': DateTime.now().subtract(const Duration(days: 3)).toIso8601String(),
+          'tags': ['gratitude', 'famille'],
+        },
       ];
       
-      // Appliquer les filtres sur les données de test
+      // Appliquer les filtres
       if (_onlyScripture) {
         _notes = _notes.where((note) => note['passage_ref'] != null).toList();
       }
@@ -116,7 +146,7 @@ class _JournalPageState extends State<JournalPage> {
 
       if (mounted) {
         setState(() {
-          _hasMore = false; // Pas de pagination pour les données de test
+          _hasMore = false;
           _isLoading = false;
         });
       }
@@ -137,21 +167,18 @@ class _JournalPageState extends State<JournalPage> {
   // --- Actions ---
   void _showNoteEditor({Map<String, dynamic>? note, Map<String, dynamic>? prefillData}) {
     if (note != null) {
-      // Édition d'une note existante
       _editingNoteId = note['id'];
       _titleController.text = note['title'] ?? '';
       _contentController.text = note['content'];
       _passageController.text = note['passage_ref'] ?? '';
       _selectedTags = Set<String>.from(note['tags'] ?? []);
     } else if (prefillData != null) {
-      // Pré-remplissage avec des données externes
       _editingNoteId = null;
       _titleController.text = prefillData['title'] ?? '';
       _contentController.text = prefillData['content'] ?? '';
       _passageController.text = prefillData['passage_ref'] ?? '';
       _selectedTags = Set<String>.from(prefillData['tags'] ?? []);
     } else {
-      // Nouvelle note vide
       _editingNoteId = null;
       _clearDrafts();
     }
@@ -175,7 +202,6 @@ class _JournalPageState extends State<JournalPage> {
     if (content.isEmpty) return;
 
     try {
-      // Simulation de sauvegarde pour les tests
       await Future.delayed(const Duration(milliseconds: 500));
       
       final newNote = {
@@ -207,9 +233,7 @@ class _JournalPageState extends State<JournalPage> {
 
   Future<void> _deleteNote(String noteId) async {
     try {
-      // Simulation de suppression pour les tests
       await Future.delayed(const Duration(milliseconds: 300));
-      
       _notes.removeWhere((note) => note['id'] == noteId);
       
       if (mounted) {
@@ -231,51 +255,142 @@ class _JournalPageState extends State<JournalPage> {
   // --- UI ---
   @override
   Widget build(BuildContext context) {
-    // On applique un thème clair pour cette page, comme suggéré
-    return Theme(
-      data: ThemeData.light().copyWith(
-        scaffoldBackgroundColor: const Color(0xFFF6F5F1),
-        appBarTheme: const AppBarTheme(backgroundColor: Color(0xFFF6F5F1), foregroundColor: Colors.black54, elevation: 0),
-        floatingActionButtonTheme: const FloatingActionButtonThemeData(backgroundColor: Color(0xFF5B6C9D)),
-      ),
-      child: Scaffold(
-        appBar: _buildAppBar(),
-        body: Column(
+    return Scaffold(
+      backgroundColor: _lightBackground,
+      appBar: _buildAppBar(),
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: Column(
           children: [
+            _buildHeader(),
             _buildFilterBar(),
             Expanded(child: _buildNoteList()),
           ],
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => _showNoteEditor(),
-          child: const Icon(Icons.add),
-        ),
       ),
+      floatingActionButton: _buildFloatingActionButton(),
     );
   }
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      title: const Text('Journal', style: TextStyle(color: Colors.black87)),
+      backgroundColor: _lightBackground,
       elevation: 0,
+      title: Row(
+        children: [
+          const SelahAppIcon(size: 32, useBlueBackground: false),
+          const SizedBox(width: 12),
+          Text(
+            'Journal Spirituel',
+            style: GoogleFonts.inter(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: _textPrimary,
+            ),
+          ),
+        ],
+      ),
+      centerTitle: true,
       actions: [
-        IconButton(icon: const Icon(Icons.refresh), onPressed: _refresh),
+        IconButton(
+          icon: Icon(Icons.refresh, color: _textSecondary),
+          onPressed: _refresh,
+        ),
       ],
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      margin: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [_primaryBlue, _secondaryBlue],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: _primaryBlue.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.book,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Vos réflexions',
+                      style: GoogleFonts.inter(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      '${_notes.length} notes enregistrées',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: Colors.white.withOpacity(0.8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildFilterBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
       child: Column(
         children: [
           TextField(
             controller: _searchController,
             decoration: InputDecoration(
               hintText: 'Rechercher une note...',
-              prefixIcon: const Icon(Icons.search),
+              hintStyle: GoogleFonts.inter(color: _textSecondary),
+              prefixIcon: Icon(Icons.search, color: _textSecondary),
               suffixIcon: PopupMenuButton<String>(
-                icon: const Icon(Icons.tune),
+                icon: Icon(Icons.tune, color: _textSecondary),
                 onSelected: (value) {
                   setState(() {
                     _sortBy = value;
@@ -289,9 +404,15 @@ class _JournalPageState extends State<JournalPage> {
                   const PopupMenuItem(value: 'title', child: Text('Titre (A-Z)')),
                 ],
               ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              filled: true,
+              fillColor: _lightBackground,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
@@ -303,7 +424,7 @@ class _JournalPageState extends State<JournalPage> {
                       return Padding(
                         padding: const EdgeInsets.only(right: 8.0),
                         child: FilterChip(
-                          label: Text(tag),
+                          label: Text(tag, style: GoogleFonts.inter(fontSize: 12)),
                           selected: isSelected,
                           onSelected: (selected) {
                             setState(() {
@@ -312,8 +433,9 @@ class _JournalPageState extends State<JournalPage> {
                             });
                             _fetchNotes();
                           },
-                          selectedColor: const Color(0xFF5B6C9D).withOpacity(0.2),
-                          labelStyle: TextStyle(color: isSelected ? const Color(0xFF5B6C9D) : Colors.black54),
+                          selectedColor: _primaryBlue.withOpacity(0.2),
+                          labelStyle: TextStyle(color: isSelected ? _primaryBlue : _textSecondary),
+                          backgroundColor: _lightBackground,
                         ),
                       );
                     }).toList(),
@@ -329,9 +451,10 @@ class _JournalPageState extends State<JournalPage> {
                   });
                   _fetchNotes();
                 },
+                activeColor: _primaryBlue,
               ),
               const SizedBox(width: 8),
-              const Text('Verset'),
+              Text('Verset', style: GoogleFonts.inter(color: _textSecondary, fontSize: 12)),
             ],
           ),
         ],
@@ -344,7 +467,42 @@ class _JournalPageState extends State<JournalPage> {
       return const Center(child: CircularProgressIndicator());
     }
     if (_notes.isEmpty) {
-      return const Center(child: Text('Aucune note pour l\'instant.\nAppuyez sur + pour en créer une.', textAlign: TextAlign.center));
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: _primaryBlue.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.note_add,
+                size: 48,
+                color: _primaryBlue,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Aucune note pour l\'instant',
+              style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: _textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Appuyez sur + pour en créer une',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: _textSecondary,
+              ),
+            ),
+          ],
+        ),
+      );
     }
     return NotificationListener<ScrollNotification>(
       onNotification: (scrollInfo) {
@@ -354,7 +512,7 @@ class _JournalPageState extends State<JournalPage> {
         return false;
       },
       child: ListView.builder(
-        padding: const EdgeInsets.only(bottom: 80.0), // Space for FAB
+        padding: const EdgeInsets.all(20),
         itemCount: _notes.length + (_hasMore ? 1 : 0),
         itemBuilder: (context, index) {
           if (index == _notes.length && _hasMore) {
@@ -367,6 +525,21 @@ class _JournalPageState extends State<JournalPage> {
             onDelete: () => _deleteNote(note['id']),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildFloatingActionButton() {
+    return FloatingActionButton.extended(
+      onPressed: () => _showNoteEditor(),
+      backgroundColor: _primaryBlue,
+      icon: const Icon(Icons.add, color: Colors.white),
+      label: Text(
+        'Nouvelle note',
+        style: GoogleFonts.inter(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -384,57 +557,129 @@ class _NoteCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tags = List<String>.from(note['tags'] ?? []);
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      note['title'] ?? 'Sans titre',
-                      style: GoogleFonts.lato(fontWeight: FontWeight.bold, fontSize: 16),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+    final hasPassage = note['passage_ref'] != null;
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        note['title'] ?? 'Sans titre',
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: const Color(0xFF1E293B),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
+                    if (hasPassage)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF3B82F6).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.menu_book, size: 14, color: Color(0xFF3B82F6)),
+                            const SizedBox(width: 4),
+                            Text(
+                              note['passage_ref'],
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: const Color(0xFF3B82F6),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  note['content'],
+                  style: GoogleFonts.inter(
+                    color: const Color(0xFF64748B),
+                    height: 1.5,
+                    fontSize: 14,
                   ),
-                  if (note['passage_ref'] != null)
-                    Chip(
-                      label: Text('📖 ${note['passage_ref']}', style: const TextStyle(fontSize: 12)),
-                      backgroundColor: Colors.blue.shade100,
-                    ),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (tags.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8.0,
+                    runSpacing: 8.0,
+                    children: tags.map((tag) => Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF8B5CF6).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        tag,
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: const Color(0xFF8B5CF6),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    )).toList(),
+                  )
                 ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                note['content'],
-                style: GoogleFonts.lato(color: Colors.black54, height: 1.4),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              if (tags.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 4.0,
-                  runSpacing: 4.0,
-                  children: tags.map((tag) => Chip(
-                    label: Text(tag, style: const TextStyle(fontSize: 10)),
-                    backgroundColor: Colors.grey.shade300,
-                  )).toList(),
-                )
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.access_time,
+                      size: 14,
+                      color: const Color(0xFF94A3B8),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      DateFormat('dd MMM yyyy').format(DateTime.parse(note['created_at'])),
+                      style: GoogleFonts.inter(
+                        color: const Color(0xFF94A3B8),
+                        fontSize: 12,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: onDelete,
+                      icon: const Icon(Icons.delete_outline, size: 18),
+                      color: const Color(0xFFEF4444),
+                    ),
+                  ],
+                ),
               ],
-              const SizedBox(height: 8),
-              Text(
-                DateFormat('dd MMM yyyy').format(DateTime.parse(note['created_at'])),
-                style: GoogleFonts.lato(color: Colors.grey.shade500, fontSize: 12),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -463,7 +708,7 @@ class _NoteEditorSheet extends StatelessWidget {
       expand: false,
       builder: (_, controller) => Container(
         decoration: const BoxDecoration(
-          color: Color(0xFFF6F5F1),
+          color: Color(0xFFF8FAFC),
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: SingleChildScrollView(
@@ -473,32 +718,122 @@ class _NoteEditorSheet extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Éditer la note', style: GoogleFonts.playfairDisplay(fontSize: 24)),
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE2E8F0),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Éditer la note',
+                style: GoogleFonts.inter(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1E293B),
+                ),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: titleController,
+                decoration: InputDecoration(
+                  labelText: 'Titre',
+                  labelStyle: GoogleFonts.inter(color: const Color(0xFF64748B)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF3B82F6)),
+                  ),
+                ),
+              ),
               const SizedBox(height: 16),
-              TextField(controller: titleController, decoration: const InputDecoration(labelText: 'Titre')),
+              TextField(
+                controller: contentController,
+                maxLines: 8,
+                decoration: InputDecoration(
+                  labelText: 'Contenu',
+                  labelStyle: GoogleFonts.inter(color: const Color(0xFF64748B)),
+                  alignLabelWithHint: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF3B82F6)),
+                  ),
+                ),
+              ),
               const SizedBox(height: 16),
-              TextField(controller: contentController, maxLines: 8, decoration: const InputDecoration(labelText: 'Contenu', alignLabelWithHint: true)),
+              TextField(
+                controller: passageController,
+                decoration: InputDecoration(
+                  labelText: 'Référence biblique (optionnel)',
+                  labelStyle: GoogleFonts.inter(color: const Color(0xFF64748B)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF3B82F6)),
+                  ),
+                ),
+              ),
               const SizedBox(height: 16),
-              TextField(controller: passageController, decoration: const InputDecoration(labelText: 'Référence biblique (optionnel)')),
-              const SizedBox(height: 16),
-              Text('Tags', style: GoogleFonts.lato(fontWeight: FontWeight.bold)),
+              Text(
+                'Tags',
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF1E293B),
+                ),
+              ),
+              const SizedBox(height: 8),
               Wrap(
+                spacing: 8.0,
+                runSpacing: 8.0,
                 children: ['prière', 'promesse', 'gratitude', 'repentance'].map((tag) {
                   final isSelected = selectedTags.contains(tag);
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: FilterChip(
-                      label: Text(tag),
-                      selected: isSelected,
-                      onSelected: (selected) => selected ? selectedTags.add(tag) : selectedTags.remove(tag),
+                  return FilterChip(
+                    label: Text(tag, style: GoogleFonts.inter(fontSize: 12)),
+                    selected: isSelected,
+                    onSelected: (selected) => selected ? selectedTags.add(tag) : selectedTags.remove(tag),
+                    selectedColor: const Color(0xFF3B82F6).withOpacity(0.2),
+                    labelStyle: TextStyle(
+                      color: isSelected ? const Color(0xFF3B82F6) : const Color(0xFF64748B),
                     ),
+                    backgroundColor: const Color(0xFFF1F5F9),
                   );
                 }).toList(),
               ),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(onPressed: onSave, child: const Text('Enregistrer')),
+                child: ElevatedButton(
+                  onPressed: onSave,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF3B82F6),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'Enregistrer',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
               )
             ],
           ),

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 // import 'package:supabase_flutter/supabase_flutter.dart'; // Temporairement désactivé
 import 'package:provider/provider.dart';
 import '../services/app_state.dart';
+import '../widgets/selah_logo.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -15,7 +16,13 @@ class ProfilePage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Text('Mon parcours', style: GoogleFonts.playfairDisplay(color: const Color(0xFFF5F5F5))),
+        title: Row(
+          children: [
+            const SelahAppIcon(size: 28, useBlueBackground: false),
+            const SizedBox(width: 12),
+            Text('Mon parcours', style: GoogleFonts.playfairDisplay(color: const Color(0xFFF5F5F5))),
+          ],
+        ),
         leading: IconButton(icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF8B7355)), onPressed: () => context.pop()),
       ),
       body: FutureBuilder<Map<String, dynamic>>(

@@ -16,6 +16,7 @@ dependencies:
   intl: ^0.20.2
   font_awesome_flutter: ^10.7.0
   url_launcher: ^6.3.1
+  flutter_svg: ^2.0.9
 
   # Images / cache
   cached_network_image: ^3.4.1
@@ -46,8 +47,14 @@ dependencies:
   # Swipeable stack
   swipable_stack: ^2.0.0
   
+  # Fancy stack carousel
+  fancy_stack_carousel: ^0.0.3
+  
   # Flip card
   flip_card: ^0.6.0
+  
+  # Circle navigation bar
+  circle_nav_bar: ^1.0.0
   simple_gradient_text: ^1.0.0
   flutter_card_swiper: ^7.0.2
   
@@ -72,3 +79,4 @@ flutter:
     - assets/rive_animations/
     - assets/pdfs/
     - assets/jsons/
+    - assets/logos/

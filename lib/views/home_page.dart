@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:circle_nav_bar/circle_nav_bar.dart';
 import '../models/home_page_model.dart';
+import '../services/image_service.dart';
+import '../widgets/selah_logo.dart';
+import 'reader_page_modern.dart';
+import 'spiritual_wall_page.dart';
+import 'bible_quiz_page.dart';
+import 'coming_soon_page.dart';
+import 'pre_meditation_prayer_page.dart';
 
 class HomePageWidget extends StatefulWidget {
   const HomePageWidget({super.key});
@@ -13,56 +21,37 @@ class _HomePageWidgetState extends State<HomePageWidget> with TickerProviderStat
   late HomePageModel model;
   late PageController _pageController;
   int _currentIndex = 0;
+  int _navIndex = 1; // Index pour la navigation bar (1 = Home par défaut)
 
-  final weekDays = [
-    {'day': 'Dim', 'date': '26', 'isToday': false},
-    {'day': 'Lun', 'date': '27', 'isToday': false},
-    {'day': 'Mar', 'date': '28', 'isToday': false},
-    {'day': 'Mer', 'date': '29', 'isToday': true},
-    {'day': 'Jeu', 'date': '30', 'isToday': false},
-    {'day': 'Ven', 'date': '31', 'isToday': false},
-  ];
+  late List<Map<String, dynamic>> weekDays;
 
   final activities = [
     {
       'id': 1,
       'name': 'Lecture',
       'badge': 'Quotidien',
-      'image': 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiaWJsZSUyMGJvb2t8ZW58MXx8fHwxNzU5NDg0MjQ3fDA&ixlib=rb-4.1.0&q=80&w=1080',
+      'image': ImageService.getImage('bible_reading'),
       'gradient': [const Color(0xFFC6F830), const Color(0xFFD4FA4D), const Color(0xFFC6F830)],
       'patternColor': const Color(0xFFA8D91F),
+      'route': '/pre_meditation_prayer',
     },
     {
       'id': 2,
-      'name': 'Prière',
-      'badge': '3x/semaine',
-      'image': 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcmF5ZXIlMjBjaGFwZWx8ZW58MXx8fHwxNzU5NDg0MjQ4fDA&ixlib=rb-4.1.0&q=80&w=1080',
-      'gradient': [const Color(0xFFA78BFA), const Color(0xFFC4B5FD), const Color(0xFFA78BFA)],
-      'patternColor': const Color(0xFF8B5CF6),
+      'name': 'Quiz Biblique',
+      'badge': 'Avancé',
+      'image': ImageService.getImage('bible_study'),
+      'gradient': [const Color(0xFFF87171), const Color(0xFFFCA5A5), const Color(0xFFF87171)],
+      'patternColor': const Color(0xFFEF4444),
+      'route': '/bible_quiz',
     },
     {
       'id': 3,
-      'name': 'Méditation',
-      'badge': '2x/semaine',
-      'image': 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpdGF0aW9uJTIwcGVhY2VmdWx8ZW58MXx8fHwxNzU5NDg0MjQ5fDA&ixlib=rb-4.1.0&q=80&w=1080',
-      'gradient': [const Color(0xFF60A5FA), const Color(0xFF93C5FD), const Color(0xFF60A5FA)],
-      'patternColor': const Color(0xFF3B82F6),
-    },
-    {
-      'id': 4,
-      'name': 'Mur Spirituel',
-      'badge': 'Historique',
-      'image': 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcmF5ZXIlMjBjaGFwZWx8ZW58MXx8fHwxNzU5NDg0MjQ4fDA&ixlib=rb-4.1.0&q=80&w=1080',
-      'gradient': [const Color(0xFFF59E0B), const Color(0xFFFBBF24), const Color(0xFFF59E0B)],
-      'patternColor': const Color(0xFFD97706),
-    },
-    {
-      'id': 5,
-      'name': 'Étude',
-      'badge': '4x/semaine',
-      'image': 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdHVkeSUyMGJpYmxlJTIwbm90ZXN8ZW58MXx8fHwxNzU5NDg0MjUwfDA&ixlib=rb-4.1.0&q=80&w=1080',
-      'gradient': [const Color(0xFFF87171), const Color(0xFFFCA5A5), const Color(0xFFF87171)],
-      'patternColor': const Color(0xFFEF4444),
+      'name': 'Communauté',
+      'badge': 'Partage',
+      'image': ImageService.getImage('community_fellowship'),
+      'gradient': [const Color(0xFF06B6D4), const Color(0xFF67E8F9), const Color(0xFF06B6D4)],
+      'patternColor': const Color(0xFF0891B2),
+      'route': '/community/new-post',
     },
   ];
 
@@ -70,7 +59,36 @@ class _HomePageWidgetState extends State<HomePageWidget> with TickerProviderStat
   void initState() {
     super.initState();
     model = HomePageModel()..initState(context);
-    _pageController = PageController(viewportFraction: 0.8);
+    _pageController = PageController(viewportFraction: 0.82);
+    weekDays = _generateCurrentWeek(); // mêmes clés: day / date / isToday
+    
+    // Vérification du contexte de passage
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final hasContext = true; // Pour la page d'accueil, on a toujours le contexte
+      if (!hasContext) {
+        Navigator.of(context).pushReplacementNamed('/reader');
+      }
+    });
+  }
+
+  List<Map<String, dynamic>> _generateCurrentWeek() {
+    final now = DateTime.now();
+
+    // Semaine commençant le dimanche (Dim, Lun, …) pour coller à ton UI
+    final weekday0to6 = (now.weekday % 7); // Dim=0, Lun=1, …, Sam=6
+    final startOfWeek = now.subtract(Duration(days: weekday0to6));
+
+    const dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+
+    return List.generate(7, (i) {
+      final d = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day + i);
+      final isToday = d.day == now.day && d.month == now.month && d.year == now.year;
+      return {
+        'day': dayNames[i],
+        'date': '${d.day}',
+        'isToday': isToday,
+      };
+    });
   }
 
   @override
@@ -79,6 +97,27 @@ class _HomePageWidgetState extends State<HomePageWidget> with TickerProviderStat
     _pageController.dispose();
     super.dispose();
   }
+
+  // Gestion de la navigation
+  void _handleNavigation(int index) {
+    switch (index) {
+      case 0: // Paramètres
+        Navigator.pushNamed(context, '/coming_soon');
+        break;
+      case 1: // Accueil (déjà sur cette page)
+        // Ne rien faire, on est déjà sur la page d'accueil
+        break;
+      case 2: // Étude
+        Navigator.pushNamed(context, '/bible_quiz');
+        break;
+    }
+  }
+
+  // Navigation vers la lecture avec prière préalable
+  void _navigateToReading() {
+    Navigator.pushNamed(context, '/pre_meditation_prayer');
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -204,6 +243,9 @@ class _HomePageWidgetState extends State<HomePageWidget> with TickerProviderStat
   }
 
   Widget _buildHeader() {
+    // Prénom utilisateur (temporairement Justin, à brancher sur Supabase plus tard)
+    final userFirstName = 'Justin'; // TODO: à brancher sur Supabase (users.display_name)
+    
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -211,43 +253,20 @@ class _HomePageWidgetState extends State<HomePageWidget> with TickerProviderStat
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Bonjour, Justin',
+              'Shalom, $userFirstName',
               style: GoogleFonts.inter(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: const Color(0xFF1F2937),
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              '29.01.2023',
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                color: const Color(0xFF9CA3AF),
-              ),
-            ),
+            // SUPPRIMER le Text() de la date ici
           ],
         ),
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0xFFE5E7EB), width: 2),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(22),
-            child: Image.network(
-              'https://images.unsplash.com/photo-1531299102504-fc718f23c100?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9maWxlJTIwbWFuJTIwY2FzdWFsfGVufDF8fHx8MTc1OTQ4MzM0Nnww&ixlib=rb-4.1.0&q=80&w=1080',
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: const Color(0xFFE5E7EB),
-                  child: const Icon(Icons.person, color: Color(0xFF9CA3AF)),
-                );
-              },
-            ),
-          ),
+        // Logo Selah à la place de l'avatar
+        const SelahAppIcon(
+          size: 48,
+          useBlueBackground: false,
         ),
       ],
     );
@@ -262,7 +281,7 @@ class _HomePageWidgetState extends State<HomePageWidget> with TickerProviderStat
             margin: const EdgeInsets.symmetric(horizontal: 2),
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
             decoration: BoxDecoration(
-              color: isToday ? const Color(0xFFC6F830) : Colors.white,
+              color: isToday ? const Color(0xFF8B5CF6) : Colors.white,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
@@ -342,9 +361,7 @@ class _HomePageWidgetState extends State<HomePageWidget> with TickerProviderStat
   }
 
   Widget _buildActivityCard(Map<String, dynamic> activity, bool isActive) {
-    return GestureDetector(
-      onTap: () => _navigateToActivity(activity),
-      child: Container(
+    return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: activity['gradient'] as List<Color>,
@@ -379,12 +396,16 @@ class _HomePageWidgetState extends State<HomePageWidget> with TickerProviderStat
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      activity['name'] as String,
-                      style: GoogleFonts.inter(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1F2937),
+                    Expanded(
+                      child: Text(
+                        activity['name'] as String,
+                        style: GoogleFonts.inter(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF1F2937),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                     ),
                     Container(
@@ -445,70 +466,23 @@ class _HomePageWidgetState extends State<HomePageWidget> with TickerProviderStat
                 const SizedBox(height: 20),
                 
                 // Go To Button
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1F2937),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Commencer',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.arrow_forward_ios, size: 12, color: Colors.white),
-                          SizedBox(width: 2),
-                          Icon(Icons.arrow_forward_ios, size: 12, color: Colors.white),
-                          SizedBox(width: 2),
-                          Icon(Icons.arrow_forward_ios, size: 12, color: Colors.white),
-                        ],
-                      ),
-                    ],
-                  ),
+                Builder(
+                  builder: (context) {
+                    final route = activity['route'] as String?;
+                    return _AnimatedStartButton(
+                      route: route,
+                      onTap: route == null ? null : () => _navigateWithAnimation(context, route),
+                    );
+                  },
                 ),
               ],
             ),
           ),
         ],
       ),
-    ),
     );
   }
 
-  void _navigateToActivity(Map<String, dynamic> activity) {
-    final activityId = activity['id'] as int;
-    final activityName = activity['name'] as String;
-    
-    switch (activityId) {
-      case 1: // Lecture
-        Navigator.pushNamed(context, '/reader');
-        break;
-      case 2: // Prière
-        Navigator.pushNamed(context, '/prayer_subjects');
-        break;
-      case 3: // Méditation
-        Navigator.pushNamed(context, '/reader');
-        break;
-      case 4: // Mur Spirituel
-        Navigator.pushNamed(context, '/spiritual_wall');
-        break;
-      case 5: // Étude
-        Navigator.pushNamed(context, '/reader');
-        break;
-      default:
-        print('Navigation non définie pour: $activityName (ID: $activityId)');
-    }
-  }
 
   Widget _buildProgressCard() {
     return Container(
@@ -544,35 +518,41 @@ class _HomePageWidgetState extends State<HomePageWidget> with TickerProviderStat
           ),
           
           // Circular progress
-          SizedBox(
-            width: 48,
-            height: 48,
-            child: Stack(
-              children: [
-                // Background circle
-                const SizedBox(
-                  width: 48,
-                  height: 48,
-                  child: CircularProgressIndicator(
-                    value: 5/6,
-                    strokeWidth: 4,
-                    backgroundColor: Color(0xFF374151),
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC6F830)),
-                  ),
-                ),
-                // Percentage text
-                Center(
-                  child: Text(
-                    '83%',
-                    style: GoogleFonts.inter(
-                      fontSize: 10,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
+          Builder(
+            builder: (context) {
+              final tasksDone = 5;
+              final tasksTotal = 6;
+              final progress = tasksDone / tasksTotal;
+              
+              return SizedBox(
+                width: 48,
+                height: 48,
+                child: Stack(
+                  children: [
+                    SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: CircularProgressIndicator(
+                        value: progress,
+                        strokeWidth: 4,
+                        backgroundColor: const Color(0xFF374151),
+                        valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFC6F830)),
+                      ),
                     ),
-                  ),
+                    Center(
+                      child: Text(
+                        '${(progress * 100).round()}%',
+                        style: GoogleFonts.inter(
+                          fontSize: 10,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              );
+            },
           ),
         ],
       ),
@@ -613,4 +593,176 @@ class _PatternPainter extends CustomPainter {
   
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// Navigation avec animation simple
+void _navigateWithAnimation(BuildContext context, String route) {
+  Navigator.pushNamed(context, route);
+}
+
+// Widget pour le bouton animé
+class _AnimatedStartButton extends StatefulWidget {
+  final String? route;
+  final VoidCallback? onTap;
+
+  const _AnimatedStartButton({
+    required this.route,
+    required this.onTap,
+  });
+
+  @override
+  State<_AnimatedStartButton> createState() => _AnimatedStartButtonState();
+}
+
+class _AnimatedStartButtonState extends State<_AnimatedStartButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _opacityAnimation;
+  bool _isPressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+    
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.95,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    ));
+    
+    _opacityAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.8,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _onTapDown(TapDownDetails details) {
+    setState(() {
+      _isPressed = true;
+    });
+    _animationController.forward();
+  }
+
+  void _onTapUp(TapUpDetails details) {
+    setState(() {
+      _isPressed = false;
+    });
+    _animationController.reverse();
+  }
+
+  void _onTapCancel() {
+    setState(() {
+      _isPressed = false;
+    });
+    _animationController.reverse();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: widget.onTap != null ? _onTapDown : null,
+      onTapUp: widget.onTap != null ? _onTapUp : null,
+      onTapCancel: widget.onTap != null ? _onTapCancel : null,
+      onTap: widget.onTap,
+      child: AnimatedBuilder(
+        animation: _animationController,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: Opacity(
+              opacity: _opacityAnimation.value,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: _isPressed 
+                      ? const Color(0xFF374151) // Couleur plus claire quand pressé
+                      : const Color(0xFF1F2937),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: _isPressed
+                      ? [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Commencer',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 100),
+                          transform: Matrix4.translationValues(
+                            _isPressed ? 2.0 : 0.0,
+                            0.0,
+                            0.0,
+                          ),
+                          child: const Icon(Icons.arrow_forward_ios, size: 12, color: Colors.white),
+                        ),
+                        const SizedBox(width: 2),
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 100),
+                          transform: Matrix4.translationValues(
+                            _isPressed ? 2.0 : 0.0,
+                            0.0,
+                            0.0,
+                          ),
+                          child: const Icon(Icons.arrow_forward_ios, size: 12, color: Colors.white),
+                        ),
+                        const SizedBox(width: 2),
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 100),
+                          transform: Matrix4.translationValues(
+                            _isPressed ? 2.0 : 0.0,
+                            0.0,
+                            0.0,
+                          ),
+                          child: const Icon(Icons.arrow_forward_ios, size: 12, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 }

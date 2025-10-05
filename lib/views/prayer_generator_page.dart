@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:go_router/go_router.dart';
+import '../widgets/selah_logo.dart';
 
 class PrayerGeneratorPage extends StatefulWidget {
   const PrayerGeneratorPage({super.key});
@@ -36,13 +36,19 @@ class _PrayerGeneratorPageState extends State<PrayerGeneratorPage> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          'Générateur de Prière',
-          style: GoogleFonts.inter(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
+        title: Row(
+          children: [
+            const SelahAppIcon(size: 28, useBlueBackground: false),
+            const SizedBox(width: 12),
+            Text(
+              'Générateur de Prière',
+              style: GoogleFonts.inter(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ],
         ),
       ),
       body: SingleChildScrollView(

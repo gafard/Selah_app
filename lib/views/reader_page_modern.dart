@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:circle_nav_bar/circle_nav_bar.dart';
 import '../services/reader_settings_service.dart';
 import '../widgets/highlightable_text.dart';
 import '../widgets/circular_audio_progress.dart';
@@ -35,6 +36,21 @@ class _ReaderPageModernState extends State<ReaderPageModern>
   void dispose() {
     _buttonAnimationController.dispose();
     super.dispose();
+  }
+
+  // Gestion de la navigation
+  void _handleNavigation(int index) {
+    switch (index) {
+      case 0: // Paramètres
+        Navigator.pushReplacementNamed(context, '/coming_soon');
+        break;
+      case 1: // Accueil
+        Navigator.pushReplacementNamed(context, '/home');
+        break;
+      case 2: // Étude
+        Navigator.pushReplacementNamed(context, '/bible_quiz');
+        break;
+    }
   }
 
   void _toggleAudio() {

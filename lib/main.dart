@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:provider/provider.dart' as provider;
 import 'package:essai/router.dart';
 import 'services/reader_settings_service.dart';
+import 'views/reader_page_modern.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,8 +13,8 @@ void main() async {
   GoogleFonts.config.allowRuntimeFetching = true;
   
   runApp(
-    ProviderScope(
-      child: const SelahApp(),
+    const ProviderScope(
+      child: SelahApp(),
     ),
   );
 }
@@ -33,7 +34,36 @@ class SelahApp extends StatelessWidget {
                 fontFamily: 'Inter',
               ),
               initialRoute: '/test',
-              routes: AppRouter.routes,
+              onGenerateRoute: (settings) {
+                // Protection pour les pages de méditation
+                if (settings.name == '/meditation/qcm') {
+                  final args = settings.arguments as Map?;
+                  if (args == null || (args['passageRef'] ?? '').isEmpty) {
+                    return MaterialPageRoute(builder: (_) => const ReaderPageModern());
+                  }
+                }
+                
+                if (settings.name == '/meditation/free') {
+                  final args = settings.arguments as Map?;
+                  if (args == null || (args['passageRef'] ?? '').isEmpty) {
+                    return MaterialPageRoute(builder: (_) => const ReaderPageModern());
+                  }
+                }
+                
+                // Routes normales
+                final routeBuilder = AppRouter.routes[settings.name];
+                if (routeBuilder != null) {
+                  return MaterialPageRoute(
+                    builder: routeBuilder,
+                    settings: settings,
+                  );
+                }
+                
+                // Route par défaut
+                return MaterialPageRoute(
+                  builder: (_) => const ReaderPageModern(),
+                );
+              },
             ),
           );
   }

@@ -26,10 +26,13 @@ import 'package:essai/views/verse_poster_page.dart';
 import 'package:essai/views/spiritual_wall_page.dart';
 import 'package:essai/views/gratitude_page.dart';
 import 'package:essai/views/coming_soon_page.dart';
+import 'package:essai/views/bible_quiz_page.dart';
 import 'package:essai/views/scan_bible_page.dart';
 import 'package:essai/views/advanced_scan_bible_page.dart';
 import 'package:essai/views/profile_page.dart';
 import 'package:essai/views/splash_page.dart';
+import 'package:essai/views/pre_meditation_prayer_page.dart';
+import 'package:essai/views/main_navigation_wrapper.dart';
 // import 'package:essai/views/payerpage_widget.dart'; // Temporairement désactivé
 import 'package:essai/test_navigation.dart';
 
@@ -49,11 +52,12 @@ class AppRouter {
     '/custom_plan': (context) => const CustomPlanPage(),
     
     // Pages principales
-    '/home': (context) => const HomePageWidget(),
-    '/reader': (context) => const ReaderPageModern(),
-    '/reader_modern': (context) => const ReaderPageModern(),
+    '/home': (context) => const MainNavigationWrapper(initialIndex: 1),
+    '/pre_meditation_prayer': (context) => const PreMeditationPrayerPage(),
+    '/reader': (context) => const MainNavigationWrapper(initialIndex: 1, initialRoute: '/reader'),
+    '/reader_modern': (context) => const MainNavigationWrapper(initialIndex: 1, initialRoute: '/reader'),
     '/reader_settings': (context) => const ReaderSettingsPage(),
-    '/journal': (context) => const JournalPage(),
+    '/journal': (context) => const MainNavigationWrapper(initialIndex: 2, initialRoute: '/journal'),
     '/bible_videos': (context) => const BibleVideosPage(),
     '/settings': (context) => const SettingsPage(),
     
@@ -129,12 +133,16 @@ class AppRouter {
         '/verse_poster': (context) => const VersePosterPage(),
         
         // Spiritual Wall - Mur spirituel avec historique des méditations
-        '/spiritual_wall': (context) => const SpiritualWallPage(),
+        '/spiritual_wall': (context) => const MainNavigationWrapper(initialIndex: 1, initialRoute: '/spiritual_wall'),
         
         // Gratitude Page - Page de gratitude après partage/sauvegarde
         '/gratitude': (context) => const GratitudePage(),
         
         // Coming Soon Page - Page temporaire pour fonctionnalités à venir
         '/community/new-post': (context) => const ComingSoonPage(),
+        '/coming_soon': (context) => const ComingSoonPage(),
+        
+        // Bible Quiz Page - Quiz biblique avancé basé sur l'historique
+        '/bible_quiz': (context) => const BibleQuizPage(),
   };
 }

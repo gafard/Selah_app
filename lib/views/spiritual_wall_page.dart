@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:circle_nav_bar/circle_nav_bar.dart';
 import '../services/meditation_journal_service.dart';
 import '../models/meditation_journal_entry.dart';
+import '../widgets/selah_logo.dart';
 
 class SpiritualWallPage extends StatefulWidget {
   const SpiritualWallPage({super.key});
@@ -19,6 +21,21 @@ class _SpiritualWallPageState extends State<SpiritualWallPage> {
   void initState() {
     super.initState();
     _loadEntries();
+  }
+
+  // Gestion de la navigation
+  void _handleNavigation(int index) {
+    switch (index) {
+      case 0: // Paramètres
+        Navigator.pushReplacementNamed(context, '/coming_soon');
+        break;
+      case 1: // Accueil
+        Navigator.pushReplacementNamed(context, '/home');
+        break;
+      case 2: // Étude
+        Navigator.pushReplacementNamed(context, '/bible_quiz');
+        break;
+    }
   }
 
   Future<void> _loadEntries() async {
@@ -63,13 +80,19 @@ class _SpiritualWallPageState extends State<SpiritualWallPage> {
       appBar: AppBar(
         backgroundColor: const Color(0xFFF8F9FA),
         elevation: 0,
-        title: Text(
-          'Mur Spirituel',
-          style: GoogleFonts.inter(
-            color: Colors.black87,
-            fontWeight: FontWeight.w600,
-            fontSize: 20,
-          ),
+        title: Row(
+          children: [
+            const SelahAppIcon(size: 32, useBlueBackground: false),
+            const SizedBox(width: 12),
+            Text(
+              'Mur Spirituel',
+              style: GoogleFonts.inter(
+                color: Colors.black87,
+                fontWeight: FontWeight.w600,
+                fontSize: 20,
+              ),
+            ),
+          ],
         ),
         actions: [
           PopupMenuButton<String>(

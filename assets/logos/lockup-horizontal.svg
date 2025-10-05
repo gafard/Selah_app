@@ -1,0 +1,8 @@
+<svg width="960" height="240" viewBox="0 0 960 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Selah horizontal lockup">
+  <rect x="0" y="24" width="192" height="192" rx="28" fill="#1553FF"/>
+  <path d="M144 90c-9-16-30-24-52-21-19 3-34 14-34 28 0 33 82 10 82 54 0 24-23 41-55 41-22 0-40-8-49-21" fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round"/>
+  <path d="M146 84c12 2 24 12 26 26-14 2-22-6-32-16 2-5 3-8 6-10z" fill="#49C98D"/>
+  <g transform="translate(232,132)">
+    <text x="0" y="0" font-family="'Outfit','Manrope','Nunito Sans',system-ui" font-size="112" font-weight="700" fill="#0B2B7E" dominant-baseline="middle">selah</text>
+  </g>
+</svg>

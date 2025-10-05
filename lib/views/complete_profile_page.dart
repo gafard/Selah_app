@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:go_router/go_router.dart';
 
 class CompleteProfilePage extends StatefulWidget {
   const CompleteProfilePage({super.key});
@@ -10,496 +9,762 @@ class CompleteProfilePage extends StatefulWidget {
 }
 
 class _CompleteProfilePageState extends State<CompleteProfilePage> {
-  final _formKey = GlobalKey<FormState>();
-  final _firstNameController = TextEditingController();
-  final _lastNameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _ageController = TextEditingController();
-  final _locationController = TextEditingController();
-  
-  String _selectedGender = '';
-  String _selectedDenomination = '';
-  String _selectedExperience = '';
-  List<String> _selectedInterests = [];
+  // Variables pour les paramètres de méditation
+  String _selectedBibleVersion = 'Louis Segond';
+  TimeOfDay _reminderTime = const TimeOfDay(hour: 8, minute: 0);
+  double _meditationDuration = 15.0;
+  String _timeMode = 'Single time';
+  String _selectedClockTime = '8:00 am';
+  String _selectedMeditationType = 'Méditation guidée';
+  String _selectedAmbiance = 'Nature';
 
-  final List<String> _genders = [
-    'Homme',
-    'Femme',
-    'Préfère ne pas dire',
+  final List<String> _bibleVersions = [
+    'Louis Segond',
+    'Bible de Jérusalem',
+    'Traduction Œcuménique',
+    'Bible en français courant',
+    'Parole de Vie',
+    'Semeur',
+    'King James (Anglais)',
   ];
 
-  final List<String> _denominations = [
-    'Catholique',
-    'Protestant',
-    'Évangélique',
-    'Orthodoxe',
-    'Autre',
-    'Non affilié',
+  final List<String> _meditationTypes = [
+    'Méditation guidée',
+    'Méditation silencieuse',
+    'Méditation de pleine conscience',
+    'Méditation chrétienne',
+    'Méditation de gratitude',
+    'Méditation de respiration',
   ];
 
-  final List<String> _experienceLevels = [
-    'Débutant',
-    'Intermédiaire',
-    'Avancé',
-    'Érudit',
+  final List<String> _ambiances = [
+    'Nature',
+    'Pluie',
+    'Océan',
+    'Forêt',
+    'Silence',
+    'Musique douce',
   ];
 
-  final List<String> _interests = [
-    'Étude biblique',
-    'Prière',
-    'Méditation',
-    'Évangélisation',
-    'Service communautaire',
-    'Musique chrétienne',
-    'Histoire biblique',
-    'Théologie',
-    'Apologétique',
-    'Ministère',
-  ];
+  final List<String> _timeOptions = ['6:00 am', '7:00 am', '8:00 am', '9:00 am'];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1A1D29),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1A1D29),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Compléter le Profil',
-          style: GoogleFonts.inter(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
+      backgroundColor: const Color(0xFF111827), // gray-900
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(maxWidth: 384), // max-w-sm
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Column(
+            children: [
+              // Header
+                _buildHeader(),
+                
+                const SizedBox(height: 16),
+                
+                // Version de la Bible
+                _buildSettingCard(
+                  icon: Icons.menu_book,
+                  title: 'Version de la Bible',
+                  child: _buildBibleVersionContent(),
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Durée de méditation
+                _buildSettingCard(
+                  icon: Icons.timer,
+                  title: 'Durée de méditation',
+                  child: _buildDurationContent(),
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Rappel
+                _buildSettingCard(
+                  icon: Icons.access_time,
+                  title: 'Me rappeler',
+                  child: _buildReminderContent(),
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Type de méditation
+                _buildSettingCard(
+                  icon: Icons.self_improvement,
+                  title: 'Type de méditation',
+                  child: _buildMeditationTypeContent(),
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Ambiance sonore
+                _buildSettingCard(
+                  icon: Icons.music_note,
+                  title: 'Ambiance sonore',
+                  child: _buildSoundContent(),
+              ),
+              
+              const SizedBox(height: 24),
+              
+                // Bottom Actions
+                _buildBottomActions(),
+              ],
+            ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: _saveProfile,
-            child: Text(
-              'Sauvegarder',
-              style: GoogleFonts.inter(
-                color: const Color(0xFF8B7355),
-                fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 24, bottom: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+              Text(
+            'Personnalise ta méditation',
+                style: GoogleFonts.inter(
+                  fontSize: 18,
+              fontWeight: FontWeight.w500,
+                  color: Colors.white,
+                ),
+          ),
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1F2937), // gray-800
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(
+                Icons.close,
+                size: 16,
+                color: Color(0xFF9CA3AF), // gray-400
               ),
             ),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFF8B7355).withOpacity(0.1),
-                      const Color(0xFF8B7355).withOpacity(0.05),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFF8B7355).withOpacity(0.3),
-                    width: 1,
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.person_add_alt_1_rounded,
-                      size: 48,
-                      color: const Color(0xFF8B7355),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Complétez votre profil',
-                      style: GoogleFonts.inter(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Ces informations nous aideront à personnaliser votre expérience',
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        color: Colors.white70,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // Personal Information Section
-              _buildSection(
-                'Informations personnelles',
-                Icons.person_rounded,
-                [
-                  _buildNameFields(),
-                  const SizedBox(height: 16),
-                  _buildEmailField(),
-                  const SizedBox(height: 16),
-                  _buildAgeField(),
-                  const SizedBox(height: 16),
-                  _buildLocationField(),
-                  const SizedBox(height: 16),
-                  _buildGenderDropdown(),
-                ],
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // Spiritual Information Section
-              _buildSection(
-                'Informations spirituelles',
-                Icons.church_rounded,
-                [
-                  _buildDenominationDropdown(),
-                  const SizedBox(height: 16),
-                  _buildExperienceDropdown(),
-                ],
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // Interests Section
-              _buildSection(
-                'Centres d\'intérêt',
-                Icons.favorite_rounded,
-                [
-                  _buildInterestsSelector(),
-                ],
-              ),
-              
-              const SizedBox(height: 32),
-              
-              // Save Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _saveProfile,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF8B7355),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text(
-                    'Compléter le Profil',
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-              
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
-  Widget _buildSection(String title, IconData icon, List<Widget> children) {
+  Widget _buildSettingCard({
+    required IconData icon,
+    required String title,
+    required Widget child,
+  }) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF2C2C2E),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFF8B7355).withOpacity(0.2),
-          width: 1,
-        ),
+        color: const Color(0xFF1F2937), // gray-800
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                icon,
-                color: const Color(0xFF8B7355),
-                size: 24,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                title,
-                style: GoogleFonts.inter(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ...children,
-        ],
-      ),
+      child: child,
     );
   }
 
-  Widget _buildNameFields() {
-    return Row(
+  Widget _buildBibleVersionContent() {
+    return Column(
       children: [
-        Expanded(
-          child: _buildTextField(
-            'Prénom',
-            _firstNameController,
-            Icons.person_outline,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Veuillez saisir votre prénom';
-              }
-              return null;
-            },
-          ),
+        Row(
+          children: [
+            Icon(
+              Icons.menu_book,
+              size: 20,
+              color: const Color(0xFF9CA3AF), // gray-400
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Version de la Bible',
+              style: GoogleFonts.inter(
+                color: const Color(0xFF9CA3AF), // gray-400
+                fontSize: 16,
+              ),
+            ),
+            const Spacer(),
+            Row(
+              children: [
+                Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3B82F6), // blue-500
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Icon(
+                    Icons.menu_book,
+                    size: 12,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _selectedBibleVersion,
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildTextField(
-            'Nom',
-            _lastNameController,
-            Icons.person_outline,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Veuillez saisir votre nom';
+        const SizedBox(height: 12),
+        // Dropdown pour la version de la Bible
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0xFF374151), // gray-700
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: const Color(0xFF4B5563), // gray-600
+              width: 1,
+            ),
+          ),
+          child: DropdownButton<String>(
+            value: _selectedBibleVersion,
+            dropdownColor: const Color(0xFF374151), // gray-700
+            style: GoogleFonts.inter(
+              color: Colors.white,
+              fontSize: 14,
+            ),
+            underline: Container(),
+            icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white),
+            isExpanded: true,
+            onChanged: (String? newValue) {
+              if (newValue != null) {
+                setState(() {
+                  _selectedBibleVersion = newValue;
+                });
               }
-              return null;
             },
+            items: _bibleVersions.map<DropdownMenuItem<String>>((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value),
+              );
+            }).toList(),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildEmailField() {
-    return _buildTextField(
-      'Email',
-      _emailController,
-      Icons.email_outlined,
-      keyboardType: TextInputType.emailAddress,
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Veuillez saisir votre email';
-        }
-        if (!value.contains('@')) {
-          return 'Veuillez saisir un email valide';
-        }
-        return null;
-      },
-    );
-  }
-
-  Widget _buildAgeField() {
-    return _buildTextField(
-      'Âge',
-      _ageController,
-      Icons.cake_outlined,
-      keyboardType: TextInputType.number,
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Veuillez saisir votre âge';
-        }
-        final age = int.tryParse(value);
-        if (age == null || age < 1 || age > 120) {
-          return 'Veuillez saisir un âge valide';
-        }
-        return null;
-      },
-    );
-  }
-
-  Widget _buildLocationField() {
-    return _buildTextField(
-      'Ville/Pays',
-      _locationController,
-      Icons.location_on_outlined,
-    );
-  }
-
-  Widget _buildGenderDropdown() {
-    return _buildDropdown(
-      'Genre',
-      _selectedGender,
-      _genders,
-      (value) => setState(() => _selectedGender = value!),
-    );
-  }
-
-  Widget _buildDenominationDropdown() {
-    return _buildDropdown(
-      'Dénomination',
-      _selectedDenomination,
-      _denominations,
-      (value) => setState(() => _selectedDenomination = value!),
-    );
-  }
-
-  Widget _buildExperienceDropdown() {
-    return _buildDropdown(
-      'Niveau d\'expérience biblique',
-      _selectedExperience,
-      _experienceLevels,
-      (value) => setState(() => _selectedExperience = value!),
-    );
-  }
-
-  Widget _buildInterestsSelector() {
+  Widget _buildDurationContent() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Centres d\'intérêt (sélectionnez plusieurs)',
-          style: GoogleFonts.inter(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: Colors.white,
+        Row(
+          children: [
+            Icon(
+              Icons.timer,
+              size: 20,
+              color: const Color(0xFF9CA3AF), // gray-400
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Durée de méditation',
+              style: GoogleFonts.inter(
+                color: const Color(0xFF9CA3AF), // gray-400
+                fontSize: 16,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '${_meditationDuration.round()} min',
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        // Slider
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: const Color(0xFF3B82F6), // blue-500
+              inactiveTrackColor: const Color(0xFF374151), // gray-700
+              thumbColor: const Color(0xFF3B82F6), // blue-500
+              overlayColor: const Color(0xFF3B82F6).withOpacity(0.2),
+              trackHeight: 4,
+            ),
+            child: Slider(
+              value: _meditationDuration,
+              min: 5,
+              max: 60,
+              divisions: 11,
+              onChanged: (double value) {
+                setState(() {
+                  _meditationDuration = value;
+                });
+              },
+            ),
           ),
         ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: _interests.map((interest) {
-            final isSelected = _selectedInterests.contains(interest);
-            return GestureDetector(
-              onTap: () => _toggleInterest(interest),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isSelected 
-                      ? const Color(0xFF8B7355) 
-                      : const Color(0xFF3A3A3C),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: isSelected 
-                        ? const Color(0xFF8B7355) 
-                        : const Color(0xFF5A5A5C),
-                    width: 1,
-                  ),
+      ],
+    );
+  }
+
+  Widget _buildReminderContent() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.access_time,
+              size: 20,
+              color: const Color(0xFF9CA3AF), // gray-400
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Me rappeler',
+              style: GoogleFonts.inter(
+                color: const Color(0xFF9CA3AF), // gray-400
+                fontSize: 16,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              _formatTime(_reminderTime),
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        // Heure scrollable
+        Container(
+          height: 120,
+          decoration: BoxDecoration(
+            color: const Color(0xFF374151), // gray-700
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: const Color(0xFF4B5563), // gray-600
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              // Heures
+              Expanded(
+                child: _buildTimeScrollable(
+                  'Heures',
+                  _reminderTime.hour,
+                  0,
+                  23,
+                  (value) {
+                    setState(() {
+                      _reminderTime = TimeOfDay(hour: value, minute: _reminderTime.minute);
+                    });
+                  },
                 ),
-                child: Text(
-                  interest,
+              ),
+              Container(
+                width: 1,
+                color: const Color(0xFF4B5563),
+              ),
+              // Minutes
+              Expanded(
+                child: _buildTimeScrollable(
+                  'Minutes',
+                  _reminderTime.minute,
+                  0,
+                  59,
+                  (value) {
+                    setState(() {
+                      _reminderTime = TimeOfDay(hour: _reminderTime.hour, minute: value);
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Bouton pour créer l'alarme
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: _createAlarm,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF3B82F6), // blue-500
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              elevation: 0,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.alarm, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Créer l\'alarme',
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: isSelected ? Colors.white : Colors.white70,
                   ),
                 ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTimeModeButton(String mode) {
+    final isSelected = _timeMode == mode;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _timeMode = mode;
+        });
+      },
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: isSelected ? const Color(0xFF3B82F6) : const Color(0xFF4B5563),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            mode,
+            style: GoogleFonts.inter(
+              color: isSelected ? const Color(0xFF3B82F6) : const Color(0xFF9CA3AF),
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildClockWidget() {
+    return Container(
+      width: 80,
+      height: 80,
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFF4B5563), width: 2),
+        borderRadius: BorderRadius.circular(40),
+      ),
+      child: Stack(
+        children: [
+          // Clock hands
+          Center(
+            child: Container(
+              width: 32,
+              height: 2,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(1),
               ),
+              transform: Matrix4.identity()..rotateZ(-0.785), // -45 degrees
+            ),
+          ),
+          Center(
+            child: Container(
+              width: 24,
+              height: 2,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(1),
+              ),
+              transform: Matrix4.identity()..rotateZ(1.57), // 90 degrees
+            ),
+          ),
+          // Center dot
+          Center(
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+          // Clock numbers
+          Positioned(
+            top: 4,
+            left: 0,
+            right: 0,
+            child: Text(
+              '12',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                color: const Color(0xFF6B7280),
+                fontSize: 10,
+              ),
+            ),
+          ),
+          Positioned(
+            right: 4,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: Text(
+                '3',
+                style: GoogleFonts.inter(
+                  color: const Color(0xFF6B7280),
+                  fontSize: 10,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 4,
+            left: 0,
+            right: 0,
+            child: Text(
+              '6',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                color: const Color(0xFF6B7280),
+                fontSize: 10,
+              ),
+            ),
+          ),
+          Positioned(
+            left: 4,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: Text(
+                '9',
+                style: GoogleFonts.inter(
+                  color: const Color(0xFF6B7280),
+                  fontSize: 10,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimeOption(String time) {
+    final isSelected = _selectedClockTime == time;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _selectedClockTime = time;
+          });
+        },
+        child: Text(
+          time,
+          style: GoogleFonts.inter(
+            color: isSelected ? Colors.white : const Color(0xFF6B7280),
+            fontSize: 14,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMeditationTypeContent() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.self_improvement,
+              size: 20,
+              color: const Color(0xFF9CA3AF), // gray-400
+            ),
+            const SizedBox(width: 12),
+        Text(
+              'Type de méditation',
+          style: GoogleFonts.inter(
+                color: const Color(0xFF9CA3AF), // gray-400
+            fontSize: 16,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              _selectedMeditationType,
+              style: GoogleFonts.inter(
+            color: Colors.white,
+                fontSize: 16,
+              ),
+          ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        // Dropdown pour le type de méditation
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+            color: const Color(0xFF374151), // gray-700
+            borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+              color: const Color(0xFF4B5563), // gray-600
+                    width: 1,
+                  ),
+                ),
+          child: DropdownButton<String>(
+            value: _selectedMeditationType,
+            dropdownColor: const Color(0xFF374151), // gray-700
+                  style: GoogleFonts.inter(
+              color: Colors.white,
+                    fontSize: 14,
+            ),
+            underline: Container(),
+            icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white),
+            isExpanded: true,
+            onChanged: (String? newValue) {
+              if (newValue != null) {
+                setState(() {
+                  _selectedMeditationType = newValue;
+                });
+              }
+            },
+            items: _meditationTypes.map<DropdownMenuItem<String>>((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value),
             );
           }).toList(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTextField(
-    String label,
-    TextEditingController controller,
-    IconData icon, {
-    TextInputType? keyboardType,
-    String? Function(String?)? validator,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          validator: validator,
-          style: GoogleFonts.inter(color: Colors.white),
-          decoration: InputDecoration(
-            hintText: 'Entrez $label',
-            hintStyle: GoogleFonts.inter(color: Colors.white54),
-            prefixIcon: Icon(icon, color: Colors.white54),
-            filled: true,
-            fillColor: const Color(0xFF3A3A3C),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildDropdown(
-    String label,
-    String value,
-    List<String> items,
-    Function(String?) onChanged,
-  ) {
+  Widget _buildSoundContent() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF3A3A3C),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: value.isEmpty ? null : value,
-              isExpanded: true,
-              dropdownColor: const Color(0xFF3A3A3C),
-              style: GoogleFonts.inter(color: Colors.white),
-              hint: Text(
-                'Sélectionnez $label',
-                style: GoogleFonts.inter(color: Colors.white54),
+        Row(
+          children: [
+            Icon(
+              Icons.music_note,
+              size: 20,
+              color: const Color(0xFF9CA3AF), // gray-400
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Ambiance sonore',
+              style: GoogleFonts.inter(
+                color: const Color(0xFF9CA3AF), // gray-400
+                fontSize: 16,
               ),
-              onChanged: onChanged,
-              items: items.map<DropdownMenuItem<String>>((String item) {
-                return DropdownMenuItem<String>(
-                  value: item,
-                  child: Text(item),
-                );
-              }).toList(),
+            ),
+            const Spacer(),
+        Text(
+              _selectedAmbiance,
+          style: GoogleFonts.inter(
+            color: Colors.white,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        // Dropdown pour l'ambiance sonore
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0xFF374151), // gray-700
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: const Color(0xFF4B5563), // gray-600
+              width: 1,
+            ),
+          ),
+          child: DropdownButton<String>(
+            value: _selectedAmbiance,
+            dropdownColor: const Color(0xFF374151), // gray-700
+            style: GoogleFonts.inter(
+              color: Colors.white,
+              fontSize: 14,
+            ),
+            underline: Container(),
+            icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white),
+            isExpanded: true,
+            onChanged: (String? newValue) {
+              if (newValue != null) {
+                setState(() {
+                  _selectedAmbiance = newValue;
+                });
+              }
+            },
+            items: _ambiances.map<DropdownMenuItem<String>>((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBottomActions() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        TextButton(
+          onPressed: () {
+            // Reset all settings
+            setState(() {
+              _selectedBibleVersion = 'Louis Segond';
+              _reminderTime = const TimeOfDay(hour: 8, minute: 0);
+              _meditationDuration = 15.0;
+              _timeMode = 'Single time';
+              _selectedClockTime = '8:00 am';
+              _selectedMeditationType = 'Méditation guidée';
+              _selectedAmbiance = 'Nature';
+            });
+          },
+          child: Text(
+            'Reset all',
+          style: GoogleFonts.inter(
+              color: const Color(0xFF9CA3AF), // gray-400
+              fontSize: 16,
+            ),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: _saveSettings,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF2563EB), // blue-600
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            elevation: 0,
+          ),
+          child: Text(
+            'Continue',
+            style: GoogleFonts.inter(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ),
@@ -507,38 +772,81 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     );
   }
 
-  void _toggleInterest(String interest) {
-    setState(() {
-      if (_selectedInterests.contains(interest)) {
-        _selectedInterests.remove(interest);
-      } else {
-        _selectedInterests.add(interest);
-      }
-    });
+  Widget _buildTimeScrollable(String label, int value, int min, int max, Function(int) onChanged) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.inter(
+            color: const Color(0xFF9CA3AF),
+            fontSize: 12,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: ListView.builder(
+            itemCount: max - min + 1,
+            itemBuilder: (context, index) {
+              final itemValue = min + index;
+              final isSelected = itemValue == value;
+              return GestureDetector(
+                onTap: () => onChanged(itemValue),
+                child: Container(
+                  height: 32,
+                  alignment: Alignment.center,
+          decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFF3B82F6) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    itemValue.toString().padLeft(2, '0'),
+                    style: GoogleFonts.inter(
+                      color: isSelected ? Colors.white : const Color(0xFF9CA3AF),
+                      fontSize: 14,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
   }
 
-  void _saveProfile() {
-    if (_formKey.currentState!.validate()) {
-      // Save profile data (simulation)
+  void _createAlarm() {
+    // Simule la création d'une alarme
+    // Dans une vraie app, vous utiliseriez flutter_alarm_clock
+    // FlutterAlarmClock.createAlarm(hour: _reminderTime.hour, minutes: _reminderTime.minute);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Alarme créée pour ${_formatTime(_reminderTime)}'),
+        backgroundColor: const Color(0xFF10B981), // emerald-500
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  String _formatTime(TimeOfDay time) {
+    final hour = time.hour;
+    final minute = time.minute;
+    final period = hour >= 12 ? 'pm' : 'am';
+    final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+    return '${displayHour}:${minute.toString().padLeft(2, '0')} $period';
+  }
+
+  void _saveSettings() {
+    // Sauvegarder les paramètres
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Profil complété avec succès !'),
-          backgroundColor: Color(0xFF4CAF50),
-        ),
-      );
-      
-      // Navigate to home
-      context.pushReplacement('/home');
-    }
-  }
-
-  @override
-  void dispose() {
-    _firstNameController.dispose();
-    _lastNameController.dispose();
-    _emailController.dispose();
-    _ageController.dispose();
-    _locationController.dispose();
-    super.dispose();
+        content: Text('Paramètres de méditation sauvegardés !'),
+        backgroundColor: Color(0xFF10B981), // emerald-500
+      ),
+    );
+    
+    // Naviguer vers la page d'accueil
+    Navigator.pushReplacementNamed(context, '/home');
   }
 }
