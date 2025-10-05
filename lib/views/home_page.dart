@@ -50,6 +50,14 @@ class _HomePageWidgetState extends State<HomePageWidget> with TickerProviderStat
     },
     {
       'id': 4,
+      'name': 'Mur Spirituel',
+      'badge': 'Historique',
+      'image': 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcmF5ZXIlMjBjaGFwZWx8ZW58MXx8fHwxNzU5NDg0MjQ4fDA&ixlib=rb-4.1.0&q=80&w=1080',
+      'gradient': [const Color(0xFFF59E0B), const Color(0xFFFBBF24), const Color(0xFFF59E0B)],
+      'patternColor': const Color(0xFFD97706),
+    },
+    {
+      'id': 5,
       'name': 'Étude',
       'badge': '4x/semaine',
       'image': 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdHVkeSUyMGJpYmxlJTIwbm90ZXN8ZW58MXx8fHwxNzU5NDg0MjUwfDA&ixlib=rb-4.1.0&q=80&w=1080',
@@ -334,7 +342,9 @@ class _HomePageWidgetState extends State<HomePageWidget> with TickerProviderStat
   }
 
   Widget _buildActivityCard(Map<String, dynamic> activity, bool isActive) {
-    return Container(
+    return GestureDetector(
+      onTap: () => _navigateToActivity(activity),
+      child: Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: activity['gradient'] as List<Color>,
@@ -471,7 +481,33 @@ class _HomePageWidgetState extends State<HomePageWidget> with TickerProviderStat
           ),
         ],
       ),
+    ),
     );
+  }
+
+  void _navigateToActivity(Map<String, dynamic> activity) {
+    final activityId = activity['id'] as int;
+    final activityName = activity['name'] as String;
+    
+    switch (activityId) {
+      case 1: // Lecture
+        Navigator.pushNamed(context, '/reader');
+        break;
+      case 2: // Prière
+        Navigator.pushNamed(context, '/prayer_subjects');
+        break;
+      case 3: // Méditation
+        Navigator.pushNamed(context, '/reader');
+        break;
+      case 4: // Mur Spirituel
+        Navigator.pushNamed(context, '/spiritual_wall');
+        break;
+      case 5: // Étude
+        Navigator.pushNamed(context, '/reader');
+        break;
+      default:
+        print('Navigation non définie pour: $activityName (ID: $activityId)');
+    }
   }
 
   Widget _buildProgressCard() {
@@ -514,10 +550,10 @@ class _HomePageWidgetState extends State<HomePageWidget> with TickerProviderStat
             child: Stack(
               children: [
                 // Background circle
-                SizedBox(
+                const SizedBox(
                   width: 48,
                   height: 48,
-                  child: const CircularProgressIndicator(
+                  child: CircularProgressIndicator(
                     value: 5/6,
                     strokeWidth: 4,
                     backgroundColor: Color(0xFF374151),

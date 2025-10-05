@@ -21,6 +21,11 @@ import 'package:essai/views/meditation_qcm_page.dart';
 import 'package:essai/views/meditation_auto_qcm_page.dart';
 import 'package:essai/views/passage_analysis_demo.dart';
 import 'package:essai/views/prayer_subjects_page.dart';
+import 'package:essai/views/prayer_carousel_page.dart';
+import 'package:essai/views/verse_poster_page.dart';
+import 'package:essai/views/spiritual_wall_page.dart';
+import 'package:essai/views/gratitude_page.dart';
+import 'package:essai/views/coming_soon_page.dart';
 import 'package:essai/views/scan_bible_page.dart';
 import 'package:essai/views/advanced_scan_bible_page.dart';
 import 'package:essai/views/profile_page.dart';
@@ -117,7 +122,19 @@ class AppRouter {
       nextRoute: '/home',
     ),
     
-    // Payerpage - Carousel de cartes de prière (temporairement désactivé)
-    // '/payerpage': (context) => const PayerpageWidget(),
+        // Payerpage - Carousel de cartes de prière (VOTRE DESIGN)
+        '/payerpage': (context) => const PrayerCarouselPage(),
+        
+        // Verse Poster - Création de poster de verset
+        '/verse_poster': (context) => const VersePosterPage(),
+        
+        // Spiritual Wall - Mur spirituel avec historique des méditations
+        '/spiritual_wall': (context) => const SpiritualWallPage(),
+        
+        // Gratitude Page - Page de gratitude après partage/sauvegarde
+        '/gratitude': (context) => const GratitudePage(),
+        
+        // Coming Soon Page - Page temporaire pour fonctionnalités à venir
+        '/community/new-post': (context) => const ComingSoonPage(),
   };
 }

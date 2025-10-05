@@ -5,22 +5,43 @@ class FlutterFlowTheme {
     return FlutterFlowTheme();
   }
 
-  Color get accent3 => const Color(0xFFF3F4F6);
+  Color get accent3 => Colors.grey[100]!;
   Color get secondaryBackground => Colors.white;
-  Color get tertiary => const Color(0xFF8B5CF6);
-  Color get error => const Color(0xFFEF4444);
-  Color get success => const Color(0xFF10B981);
-  Color get accent2 => const Color(0xFF06B6D4);
-  Color get info => const Color(0xFF3B82F6);
-  Color get lightMutedColor => Colors.white;
-  Color get darkMutedColor => const Color(0xFF374151);
+  Color get tertiary => Colors.purple;
+  Color get error => Colors.red;
+  Color get success => Colors.green;
+  Color get accent2 => Colors.orange;
+  Color get info => Colors.blue;
+  Color get lightMutedColor => Colors.white70;
+  Color get darkMutedColor => Colors.black87;
+  Color get textColor => Colors.black;
   Color get primaryBackground => Colors.white;
-  Color get secondaryText => const Color(0xFF6B7280);
-  Color get textColor => const Color(0xFF1F2937);
+  Color get secondaryText => Colors.grey;
 
-  TextStyle get bodyMedium => const TextStyle(
+  TextStyle get bodyMedium => TextStyle(
     fontSize: 14,
     fontWeight: FontWeight.normal,
-    color: Color(0xFF374151),
+    fontStyle: FontStyle.normal,
   );
+
+  TextStyle bodyMediumOverride({
+    required TextStyle font,
+    required Color color,
+    required double fontSize,
+    required double letterSpacing,
+    required FontWeight fontWeight,
+    required FontStyle fontStyle,
+    double? lineHeight,
+    List<Shadow>? shadows,
+  }) {
+    return font.copyWith(
+      color: color,
+      fontSize: fontSize,
+      letterSpacing: letterSpacing,
+      fontWeight: fontWeight,
+      fontStyle: fontStyle,
+      height: lineHeight,
+      shadows: shadows,
+    );
+  }
 }

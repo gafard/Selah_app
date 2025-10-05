@@ -46,6 +46,16 @@ dependencies:
   # Swipeable stack
   swipable_stack: ^2.0.0
   
+  # Flip card
+  flip_card: ^0.6.0
+  simple_gradient_text: ^1.0.0
+  flutter_card_swiper: ^7.0.2
+  
+  # Share and save
+  share_plus: ^10.0.0
+  image_gallery_saver: ^2.0.3
+  permission_handler: ^11.3.1
+  
 dev_dependencies:
   flutter_lints: ^4.0.0
   lints: ^4.0.0

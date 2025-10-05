@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/prayer_subjects_builder.dart';
 import 'prayer_carousel_page.dart';
+import '../utils/prayer_subjects_mapper.dart';
 
 class MeditationFreePage extends StatefulWidget {
   final String passageRef;
@@ -23,6 +24,7 @@ class _MeditationFreePageState extends State<MeditationFreePage> {
 
   // Contrôleurs pour toutes les questions
   final Map<String, TextEditingController> _controllers = {};
+  final Map<String, Set<String>> _selectedTagsByField = {}; // fieldId -> selected tags
 
   @override
   void initState() {
@@ -51,6 +53,11 @@ class _MeditationFreePageState extends State<MeditationFreePage> {
     _controllers['convictions_passe'] = TextEditingController();
     _controllers['corrections'] = TextEditingController();
     _controllers['dispositions'] = TextEditingController();
+
+    // Initialiser les sets de tags pour chaque champ
+    for (final key in _controllers.keys) {
+      _selectedTagsByField[key] = <String>{};
+    }
   }
 
   @override
@@ -86,36 +93,111 @@ class _MeditationFreePageState extends State<MeditationFreePage> {
     }
   }
 
-  void _finish() async {
-    // Collecter toutes les réponses
-    final Map<String, String> allAnswers = {};
-    for (var entry in _controllers.entries) {
-      if (entry.value.text.trim().isNotEmpty) {
-        allAnswers[entry.key] = entry.value.text.trim();
+  void _finish() {
+    // Extraire des tags à partir des réponses textuelles
+    _extractTagsFromText();
+    
+    // Collecter les réponses écrites pour chaque champ
+    final selectedAnswersByField = <String, Set<String>>{};
+    final freeTextResponses = <String, String>{};
+    
+    // Initialiser les maps pour tous les champs
+    for (final field in _selectedTagsByField.keys) {
+      selectedAnswersByField[field] = <String>{};
+      freeTextResponses[field] = '';
+    }
+    
+    // Collecter les réponses écrites depuis les TextField
+    _controllers.forEach((fieldId, controller) {
+      final text = controller.text.trim();
+      if (text.isNotEmpty) {
+        freeTextResponses[fieldId] = text;
       }
+    });
+    
+    print('🔍 RÉPONSES DE MÉDITATION LIBRE:');
+    _selectedTagsByField.forEach((field, tags) {
+      print('🔍 $field - Tags: $tags');
+      print('🔍 $field - Réponse écrite: "${freeTextResponses[field]}"');
+    });
+
+    // Utiliser la nouvelle fonction de synthèse intelligente
+    final items = buildPrayerItemsFromMeditation(
+      selectedTagsByField: _selectedTagsByField,
+      selectedAnswersByField: selectedAnswersByField,
+      freeTextResponses: freeTextResponses,
+      passageText: widget.passageText,
+      passageRef: widget.passageRef,
+    );
+    
+    print('🔍 SUJETS DE PRIÈRE GÉNÉRÉS: ${items.length}');
+    for (int i = 0; i < items.length; i++) {
+      print('🔍 Item $i: ${items[i].theme} - ${items[i].subject}');
     }
 
-    // Générer les sujets de prière à partir des réponses
-    final subjects = PrayerSubjectsBuilder.fromFree(
-      selectedTagsByField: {},
-      freeTexts: allAnswers,
-    );
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PrayerCarouselPage(),
+                settings: RouteSettings(arguments: {
+                  'items': items,
+                  'memoryVerse': '', // Sera rempli par le bottom sheet
+                  'passageRef': widget.passageRef,
+                  'passageText': widget.passageText,
+                  'selectedTagsByField': _selectedTagsByField,
+                  'selectedAnswersByField': selectedAnswersByField,
+                  'freeTextResponses': freeTextResponses,
+                }),
+              ),
+            );
+  }
 
-    // Extraire les labels des sujets pour les passer à la page de workflow
-    final subjectLabels = subjects.map((s) => s.label).toList();
-
-    // Naviguer vers la page de workflow de prière avec les sujets
-    final result = await Navigator.pushNamed(
-      context,
-      '/prayer_workflow',
-      arguments: {
-        'subjects': subjectLabels,
-      },
-    );
-
-    if (result != null && mounted) {
-      Navigator.pop(context, result);
-    }
+  void _extractTagsFromText() {
+    // Analyser le texte saisi pour extraire des tags pertinents
+    _controllers.forEach((fieldId, controller) {
+      final text = controller.text.toLowerCase().trim();
+      if (text.isNotEmpty) {
+        final tags = <String>{};
+        
+        // Analyser le contenu du texte pour extraire des tags
+        if (text.contains('dieu') || text.contains('seigneur') || text.contains('jésus')) {
+          tags.add('praise');
+        }
+        if (text.contains('merci') || text.contains('gratitude') || text.contains('reconnaissant')) {
+          tags.add('gratitude');
+        }
+        if (text.contains('pardon') || text.contains('repentir') || text.contains('péché')) {
+          tags.add('repentance');
+        }
+        if (text.contains('aide') || text.contains('force') || text.contains('soutien')) {
+          tags.add('trust');
+        }
+        if (text.contains('sagesse') || text.contains('comprendre') || text.contains('connaissance')) {
+          tags.add('guidance');
+        }
+        if (text.contains('famille') || text.contains('amis') || text.contains('prochain')) {
+          tags.add('intercession');
+        }
+        if (text.contains('obéir') || text.contains('suivre') || text.contains('commande')) {
+          tags.add('obedience');
+        }
+        if (text.contains('promesse') || text.contains('bénédiction') || text.contains('espoir')) {
+          tags.add('promise');
+        }
+        if (text.contains('avertissement') || text.contains('attention') || text.contains('danger')) {
+          tags.add('warning');
+        }
+        if (text.contains('responsabilité') || text.contains('devoir') || text.contains('mission')) {
+          tags.add('responsibility');
+        }
+        if (text.contains('crainte') || text.contains('respect') || text.contains('majesté')) {
+          tags.add('awe');
+        }
+        
+        // Ajouter les tags extraits
+        _selectedTagsByField[fieldId]!.addAll(tags);
+      }
+    });
   }
 
   @override

@@ -283,11 +283,7 @@ class TestNavigationPage extends StatelessWidget {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PrayerCarouselPage(
-          subjects: subjects,
-          passageRef: 'Psaume 23',
-          memoryVerse: 'L\'Éternel est mon berger',
-        ),
+        builder: (context) => PrayerCarouselPage(),
       ),
     );
 

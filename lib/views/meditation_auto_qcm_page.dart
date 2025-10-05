@@ -12,7 +12,7 @@ class MeditationAutoQcmPage extends StatefulWidget {
 }
 
 class _MeditationAutoQcmPageState extends State<MeditationAutoQcmPage> {
-  late List<QcmQuestion> _questions;
+  List<QcmQuestion> _questions = [];
   final Map<String, Set<String>> _answers = {}; // questionId -> selected options
   final Map<String, TextEditingController> _freeByQuestion = {};
   bool _isLoading = true;

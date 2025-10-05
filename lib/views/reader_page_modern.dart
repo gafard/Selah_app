@@ -20,7 +20,7 @@ class _ReaderPageModernState extends State<ReaderPageModern>
   bool _isMarkedAsRead = false;
   double _audioProgress = 0.0;
   late AnimationController _buttonAnimationController;
-  late Animation<double> _buttonScaleAnimation;
+  String _notedVerse = ''; // Verset noté par l'utilisateur
 
   @override
   void initState() {
@@ -29,13 +29,6 @@ class _ReaderPageModernState extends State<ReaderPageModern>
       duration: const Duration(milliseconds: 200),
       vsync: this,
     );
-    _buttonScaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 0.95,
-    ).animate(CurvedAnimation(
-      parent: _buttonAnimationController,
-      curve: Curves.easeInOut,
-    ));
   }
 
   @override
@@ -86,55 +79,74 @@ class _ReaderPageModernState extends State<ReaderPageModern>
       _isMarkedAsRead = !_isMarkedAsRead;
     });
     HapticFeedback.mediumImpact();
-    _showSnackBar(
-      _isMarkedAsRead ? 'Marqué comme lu !' : 'Marqué comme non lu',
-      _isMarkedAsRead ? Icons.check_circle : Icons.radio_button_unchecked,
-      _isMarkedAsRead ? Colors.green : Colors.grey,
-    );
+    
+    if (_isMarkedAsRead) {
+      // Afficher le bottom sheet pour noter le verset marquant
+      _showVerseNoteBottomSheet();
+    } else {
+      _showSnackBar(
+        'Marqué comme non lu',
+        Icons.radio_button_unchecked,
+        Colors.grey,
+      );
+    }
   }
 
   void _goToMeditation() {
+    // Vérifier si le texte est marqué comme lu
+    if (!_isMarkedAsRead) {
+      _showSnackBar(
+        'Veuillez d\'abord marquer le texte comme lu',
+        Icons.info,
+        Colors.orange,
+      );
+      return;
+    }
+    
     HapticFeedback.mediumImpact();
     Navigator.pushNamed(
       context,
       '/meditation/chooser', // page avec 2 options
       arguments: {
-        'passageRef': 'Ézéchiel 33:1-18',
-        'passageText': '''1 La parole de l'Éternel me fut adressée, en ces mots :
+        'passageRef': 'Jean 14:1-19',
+        'passageText': '''Que votre cœur ne se trouble point. Croyez en Dieu, et croyez en moi.
 
-2 Fils de l'homme, parle aux enfants de ton peuple, et dis-leur : Lorsque je fais venir l'épée sur un pays, et que le peuple du pays prend dans son sein un homme et l'établit comme sentinelle,
+Il y a plusieurs demeures dans la maison de mon Père. Si cela n'était pas, je vous l'aurais dit. Je vais vous préparer une place.
 
-3 si cet homme voit venir l'épée sur le pays, sonne de la trompette, et avertit le peuple ;
+Et, lorsque je m'en serai allé, et que je vous aurai préparé une place, je reviendrai, et je vous prendrai avec moi, afin que là où je suis vous y soyez aussi.
 
-4 et si celui qui entend le son de la trompette ne se laisse pas avertir, et que l'épée vienne le surprendre, son sang sera sur sa tête.
+Vous savez où je vais, et vous en savez le chemin.
 
-5 Il a entendu le son de la trompette, et ne s'est pas laissé avertir : son sang sera sur lui. S'il se laisse avertir, il sauvera son âme.
+Thomas lui dit: Seigneur, nous ne savons où tu vas; comment pouvons-nous en savoir le chemin?
 
-6 Si la sentinelle voit venir l'épée, et ne sonne pas de la trompette ; si le peuple n'est pas averti, et que l'épée vienne enlever à quelqu'un la vie, celui-ci périra à cause de son iniquité, mais je redemanderai son sang à la sentinelle.
+Jésus lui dit: Je suis le chemin, la vérité, et la vie. Nul ne vient au Père que par moi.
 
-7 Toi, fils de l'homme, je t'ai établi comme sentinelle sur la maison d'Israël. Tu dois écouter la parole qui sort de ma bouche, et les avertir de ma part.
+Si vous me connaissiez, vous connaîtriez aussi mon Père. Et dès maintenant vous le connaissez, et vous l'avez vu.
 
-8 Quand je dis au méchant : Méchant, tu mourras ! si tu ne parles pas pour détourner le méchant de sa voie, ce méchant mourra dans son iniquité, et je redemanderai son sang à ta main.
+Philippe lui dit: Seigneur, montre-nous le Père, et cela nous suffit.
 
-9 Mais si tu avertis le méchant pour le détourner de sa voie et qu'il ne s'en détourne pas, il mourra dans son iniquité, et toi tu sauveras ton âme.
+Jésus lui dit: Il y a si longtemps que je suis avec vous, et tu ne m'as pas connu, Philippe! Celui qui m'a vu a vu le Père; comment dis-tu: Montre-nous le Père?
 
-10 Et toi, fils de l'homme, dis à la maison d'Israël : Vous dites : Nos transgressions et nos péchés sont sur nous, et c'est à cause d'eux que nous sommes frappés de langueur ; comment pourrions-nous vivre ?
+Ne crois-tu pas que je suis dans le Père, et que le Père est en moi? Les paroles que je vous dis, je ne les dis pas de moi-même; et le Père qui demeure en moi, c'est lui qui fait les œuvres.
 
-11 Dis-leur : Je suis vivant ! dit le Seigneur, l'Éternel, ce que je désire, ce n'est pas que le méchant meure, c'est qu'il change de conduite et qu'il vive. Revenez, revenez de votre mauvaise voie ; et pourquoi mourriez-vous, maison d'Israël ?
+Croyez-moi, je suis dans le Père, et le Père est en moi; croyez du moins à cause de ces œuvres.
 
-12 Et toi, fils de l'homme, dis aux enfants de ton peuple : La justice du juste ne le sauvera pas au jour de sa transgression ; et le méchant ne tombera pas par sa méchanceté le jour où il s'en détournera, de même que le juste ne pourra pas vivre par sa justice au jour où il péchera.
+En vérité, en vérité, je vous le dis, celui qui croit en moi fera aussi les œuvres que je fais, et il en fera de plus grandes, parce que je m'en vais au Père;
 
-13 Lorsque je dis au juste qu'il vivra, -s'il se confie dans sa justice et commet l'iniquité, toute sa justice sera oubliée, et il mourra à cause de l'iniquité qu'il a commise.
+et tout ce que vous demanderez en mon nom, je le ferai, afin que le Père soit glorifié dans le Fils.
 
-14 Lorsque je dis au méchant : Tu mourras ! -s'il revient de son péché et pratique la droiture et la justice,
+Si vous demandez quelque chose en mon nom, je le ferai.
 
-15 s'il rend le gage, s'il restitue ce qu'il a ravi, s'il suit les préceptes qui donnent la vie, sans commettre l'iniquité, il vivra, il ne mourra pas.
+Si vous m'aimez, gardez mes commandements.
 
-16 Tous les péchés qu'il a commis seront oubliés ; il pratique la droiture et la justice, il vivra.
+Et moi, je prierai le Père, et il vous donnera un autre consolateur, afin qu'il demeure éternellement avec vous,
 
-17 Les enfants de ton peuple disent : La voie du Seigneur n'est pas droite. C'est leur voie qui n'est pas droite.
+l'Esprit de vérité, que le monde ne peut recevoir, parce qu'il ne le voit point et ne le connaît point; mais vous, vous le connaissez, car il demeure avec vous, et il sera en vous.
 
-18 Si le juste se détourne de sa justice et commet l'iniquité, il mourra à cause de cela.''',
+Je ne vous laisserai pas orphelins, je viendrai à vous.
+
+Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez, car je vis, et vous vivrez aussi.''',
+        'memoryVerse': _notedVerse, // Verset noté par l'utilisateur
       },
     );
   }
@@ -155,6 +167,271 @@ class _ReaderPageModernState extends State<ReaderPageModern>
         margin: const EdgeInsets.all(16),
         duration: const Duration(seconds: 2),
       ),
+    );
+  }
+
+  String _findExactVerse(String userText) {
+    // Texte complet du passage Jean 14:1-19
+    const fullPassage = '''Que votre cœur ne se trouble point. Croyez en Dieu, et croyez en moi.
+
+Il y a plusieurs demeures dans la maison de mon Père. Si cela n'était pas, je vous l'aurais dit. Je vais vous préparer une place.
+
+Et, lorsque je m'en serai allé, et que je vous aurai préparé une place, je reviendrai, et je vous prendrai avec moi, afin que là où je suis vous y soyez aussi.
+
+Vous savez où je vais, et vous en savez le chemin.
+
+Thomas lui dit: Seigneur, nous ne savons où tu vas; comment pouvons-nous en savoir le chemin?
+
+Jésus lui dit: Je suis le chemin, la vérité, et la vie. Nul ne vient au Père que par moi.
+
+Si vous me connaissiez, vous connaîtriez aussi mon Père. Et dès maintenant vous le connaissez, et vous l'avez vu.
+
+Philippe lui dit: Seigneur, montre-nous le Père, et cela nous suffit.
+
+Jésus lui dit: Il y a si longtemps que je suis avec vous, et tu ne m'as pas connu, Philippe! Celui qui m'a vu a vu le Père; comment dis-tu: Montre-nous le Père?
+
+Ne crois-tu pas que je suis dans le Père, et que le Père est en moi? Les paroles que je vous dis, je ne les dis pas de moi-même; et le Père qui demeure en moi, c'est lui qui fait les œuvres.
+
+Croyez-moi, je suis dans le Père, et le Père est en moi; croyez du moins à cause de ces œuvres.
+
+En vérité, en vérité, je vous le dis, celui qui croit en moi fera aussi les œuvres que je fais, et il en fera de plus grandes, parce que je m'en vais au Père;
+
+et tout ce que vous demanderez en mon nom, je le ferai, afin que le Père soit glorifié dans le Fils.
+
+Si vous demandez quelque chose en mon nom, je le ferai.
+
+Si vous m'aimez, gardez mes commandements.
+
+Et moi, je prierai le Père, et il vous donnera un autre consolateur, afin qu'il demeure éternellement avec vous,
+
+l'Esprit de vérité, que le monde ne peut recevoir, parce qu'il ne le voit point et ne le connaît point; mais vous, vous le connaissez, car il demeure avec vous, et il sera en vous.
+
+Je ne vous laisserai pas orphelins, je viendrai à vous.
+
+Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez, car je vis, et vous vivrez aussi.''';
+
+    // Normaliser le texte utilisateur (supprimer espaces, ponctuation, majuscules)
+    final normalizedUserText = userText
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^\w\s]'), '')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+
+    // Diviser le passage en phrases/versets
+    final sentences = fullPassage.split(RegExp(r'[.!?]'))
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+
+    // Chercher la correspondance la plus proche
+    String bestMatch = '';
+    int bestScore = 0;
+
+    for (final sentence in sentences) {
+      final normalizedSentence = sentence
+          .toLowerCase()
+          .replaceAll(RegExp(r'[^\w\s]'), '')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+
+      // Calculer un score de similarité basique
+      int score = 0;
+      final userWords = normalizedUserText.split(' ');
+      final sentenceWords = normalizedSentence.split(' ');
+
+      for (final userWord in userWords) {
+        if (userWord.length > 2) { // Ignorer les mots trop courts
+          for (final sentenceWord in sentenceWords) {
+            if (sentenceWord.contains(userWord) || userWord.contains(sentenceWord)) {
+              score += userWord.length; // Plus le mot est long, plus il compte
+            }
+          }
+        }
+      }
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = sentence;
+      }
+    }
+
+    // Si on trouve une correspondance significative, la retourner
+    if (bestScore > 10 && bestMatch.isNotEmpty) {
+      return bestMatch;
+    }
+
+    // Sinon, retourner le texte utilisateur tel quel
+    return userText;
+  }
+
+  void _showVerseNoteBottomSheet() {
+    final TextEditingController verseController = TextEditingController(text: _notedVerse);
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.4,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 20,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Handle bar
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                
+                // Titre
+                Text(
+                  'Notez le verset qui vous a marqué',
+                  style: GoogleFonts.inter(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                
+                Text(
+                  'Recopiez simplement le texte qui vous a touché. Il sera utilisé pour créer votre poster.',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                
+                // Zone de texte
+                Expanded(
+                  child: TextField(
+                    controller: verseController,
+                    maxLines: null,
+                    expands: true,
+                    textAlignVertical: TextAlignVertical.top,
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      color: Colors.black87,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Écrivez le verset qui vous a marqué...',
+                      hintStyle: GoogleFonts.inter(
+                        fontSize: 16,
+                        color: Colors.grey[400],
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Colors.blue, width: 2),
+                      ),
+                      contentPadding: const EdgeInsets.all(16),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                
+                // Boutons
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey[200],
+                          foregroundColor: Colors.black87,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          'Passer',
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          final userText = verseController.text.trim();
+                          if (userText.isNotEmpty) {
+                            // Analyser le texte pour trouver le verset exact
+                            final exactVerse = _findExactVerse(userText);
+                            setState(() {
+                              _notedVerse = exactVerse;
+                            });
+                            Navigator.of(context).pop();
+                            _showSnackBar(
+                              'Verset analysé et noté !',
+                              Icons.check_circle,
+                              Colors.green,
+                            );
+                          } else {
+                            Navigator.of(context).pop();
+                            _showSnackBar(
+                              'Aucun texte saisi',
+                              Icons.info,
+                              Colors.orange,
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          'Sauvegarder',
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -222,7 +499,7 @@ class _ReaderPageModernState extends State<ReaderPageModern>
                   ),
                 ),
                 Text(
-                  'Jean 4:10-12',
+                  'Jean 14:1-19',
                   style: GoogleFonts.inter(
                     color: Colors.grey.shade600,
                     fontSize: 14,
@@ -286,7 +563,7 @@ class _ReaderPageModernState extends State<ReaderPageModern>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Jean 4:10-12',
+                'Jean 14:1-19',
                 style: GoogleFonts.playfairDisplay(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -295,9 +572,43 @@ class _ReaderPageModernState extends State<ReaderPageModern>
               ),
               const SizedBox(height: 16),
               HighlightableText(
-                text: '''10 Jésus lui répondit : « Si tu connaissais le don de Dieu et qui est celui qui te dit : "Donne-moi à boire", tu lui aurais toi-même demandé à boire, et il t'aurait donné de l'eau vive. »
+                text: '''Que votre cœur ne se trouble point. Croyez en Dieu, et croyez en moi.
 
-11 « Seigneur, lui dit la femme, tu n'as rien pour puiser, et le puits est profond. D'où aurais-tu donc cette eau vive ? 12 Es-tu plus grand que notre père Jacob, qui nous a donné ce puits, et qui en a bu lui-même, ainsi que ses fils et ses troupeaux ? »''',
+Il y a plusieurs demeures dans la maison de mon Père. Si cela n'était pas, je vous l'aurais dit. Je vais vous préparer une place.
+
+Et, lorsque je m'en serai allé, et que je vous aurai préparé une place, je reviendrai, et je vous prendrai avec moi, afin que là où je suis vous y soyez aussi.
+
+Vous savez où je vais, et vous en savez le chemin.
+
+Thomas lui dit: Seigneur, nous ne savons où tu vas; comment pouvons-nous en savoir le chemin?
+
+Jésus lui dit: Je suis le chemin, la vérité, et la vie. Nul ne vient au Père que par moi.
+
+Si vous me connaissiez, vous connaîtriez aussi mon Père. Et dès maintenant vous le connaissez, et vous l'avez vu.
+
+Philippe lui dit: Seigneur, montre-nous le Père, et cela nous suffit.
+
+Jésus lui dit: Il y a si longtemps que je suis avec vous, et tu ne m'as pas connu, Philippe! Celui qui m'a vu a vu le Père; comment dis-tu: Montre-nous le Père?
+
+Ne crois-tu pas que je suis dans le Père, et que le Père est en moi? Les paroles que je vous dis, je ne les dis pas de moi-même; et le Père qui demeure en moi, c'est lui qui fait les œuvres.
+
+Croyez-moi, je suis dans le Père, et le Père est en moi; croyez du moins à cause de ces œuvres.
+
+En vérité, en vérité, je vous le dis, celui qui croit en moi fera aussi les œuvres que je fais, et il en fera de plus grandes, parce que je m'en vais au Père;
+
+et tout ce que vous demanderez en mon nom, je le ferai, afin que le Père soit glorifié dans le Fils.
+
+Si vous demandez quelque chose en mon nom, je le ferai.
+
+Si vous m'aimez, gardez mes commandements.
+
+Et moi, je prierai le Père, et il vous donnera un autre consolateur, afin qu'il demeure éternellement avec vous,
+
+l'Esprit de vérité, que le monde ne peut recevoir, parce qu'il ne le voit point et ne le connaît point; mais vous, vous le connaissez, car il demeure avec vous, et il sera en vous.
+
+Je ne vous laisserai pas orphelins, je viendrai à vous.
+
+Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez, car je vis, et vous vivrez aussi.''',
                 style: settings.getFontStyle(),
                 textAlign: settings.getTextAlign(),
               ),
@@ -419,7 +730,7 @@ class _ReaderPageModernState extends State<ReaderPageModern>
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
               decoration: BoxDecoration(
-                color: Colors.black,
+                color: _isMarkedAsRead ? Colors.black : Colors.grey[400],
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
@@ -428,7 +739,7 @@ class _ReaderPageModernState extends State<ReaderPageModern>
                   Text(
                     'Méditation',
                     style: GoogleFonts.inter(
-                      color: Colors.white,
+                      color: _isMarkedAsRead ? Colors.white : Colors.grey[600],
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),

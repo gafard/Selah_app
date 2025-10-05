@@ -1,519 +1,781 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../services/prayer_subjects_builder.dart';
+import 'package:flutter_card_swiper/flutter_card_swiper.dart';
+import 'dart:math' show Random;
+import '../utils/prayer_subjects_mapper.dart';
+import '../utils/verse_analyzer.dart';
 
 class PrayerCarouselPage extends StatefulWidget {
-  final List<PrayerSubject> subjects;
-  final String? passageRef;   // ex: "Jean 4:10–12"
-  final String? memoryVerse;  // si tu veux l'afficher
-
-  const PrayerCarouselPage({
-    super.key,
-    required this.subjects,
-    this.passageRef,
-    this.memoryVerse,
-  });
+  const PrayerCarouselPage({super.key});
 
   @override
   State<PrayerCarouselPage> createState() => _PrayerCarouselPageState();
 }
 
 class _PrayerCarouselPageState extends State<PrayerCarouselPage> {
-  late final PageController _page;
-  int _index = 0;
-  late final List<_UIItem> _items;
-
-  static const Map<String, List<Color>> _catGradients = {
-    'gratitude':   [Color(0xFFFF6B9D), Color(0xFFC44569)],
-    'repentance':  [Color(0xFFFF8A65), Color(0xFFD84315)],
-    'obedience':   [Color(0xFF4FC3F7), Color(0xFF0277BD)],
-    'promise':     [Color(0xFFBA68C8), Color(0xFF7B1FA2)],
-    'intercession':[Color(0xFF66BB6A), Color(0xFF2E7D32)],
-    'praise':      [Color(0xFFFFB74D), Color(0xFFE65100)],
-    'trust':       [Color(0xFF4DB6AC), Color(0xFF00695C)],
-    'guidance':    [Color(0xFF26C6DA), Color(0xFF00838F)],
-    'warning':     [Color(0xFFEF5350), Color(0xFFC62828)],
-    'other':       [Color(0xFF90A4AE), Color(0xFF455A64)],
-  };
+  List<PrayerItem> _items = [];
+  int _currentIndex = 0;
+  String _memoryVerse = ''; // Verset noté par l'utilisateur
 
   @override
   void initState() {
     super.initState();
-    _page = PageController(viewportFraction: .88);
-    _items = widget.subjects.map((s) => _UIItem(s)).toList();
+    
+    // Récupérer les arguments passés lors de la navigation
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      print('🔍 ARGUMENTS REÇUS: $args');
+      print('🔍 TYPE: ${args.runtimeType}');
+      
+      if (args is List) {
+        print('🔍 NOMBRE D\'ITEMS: ${args.length}');
+        setState(() {
+          _items = args.cast<PrayerItem>();
+        });
+        print('🔍 ITEMS FINAUX: ${_items.length}');
+        for (int i = 0; i < _items.length; i++) {
+          print('🔍 Item $i: ${_items[i].theme} - ${_items[i].subject}');
+        }
+      } else if (args is Map && args.containsKey('items')) {
+        final itemsList = args['items'] as List;
+        _memoryVerse = (args['memoryVerse'] as String?)?.trim() ?? '';
+        print('🔍 NOMBRE D\'ITEMS (Map): ${itemsList.length}');
+        print('🔍 MEMORY VERSE: "$_memoryVerse"');
+        setState(() {
+          _items = itemsList.cast<PrayerItem>();
+        });
+        print('🔍 ITEMS FINAUX (Map): ${_items.length}');
+        for (int i = 0; i < _items.length; i++) {
+          print('🔍 Item $i: ${_items[i].theme} - ${_items[i].subject}');
+        }
+      }
+    });
   }
-
-  @override
-  void dispose() {
-    _page.dispose();
-    super.dispose();
-  }
-
-  int get _done => _items.where((e) => e.done).length;
 
   @override
   Widget build(BuildContext context) {
+    if (_items.isEmpty) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
             colors: [
-              Color(0xFF1A1B3A),
-              Color(0xFF2D1B69),
-              Color(0xFF1C1740),
+              Color(0xFF1a1a2e),
+              Color(0xFF16213e),
+              Color(0xFF0f3460),
             ],
-            stops: [0.0, 0.6, 1.0],
           ),
         ),
         child: SafeArea(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _topBar(),
-              if (widget.passageRef != null) _passageChip(widget.passageRef!),
-              const SizedBox(height: 6),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Text(
-                  'Sélectionne tes sujets de prière\npuis glisse pour passer au suivant.',
-                  style: GoogleFonts.inter(
-                    color: Colors.white.withOpacity(0.7), 
-                    fontSize: 14, 
-                    height: 1.3,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // CAROUSEL
-              Expanded(
-                child: PageView.builder(
-                  controller: _page,
-                  onPageChanged: (i) => setState(() => _index = i),
-                  itemCount: _items.length,
-                  itemBuilder: (_, i) => _card(_items[i], i),
-                ),
-              ),
-
-              // dots
-              const SizedBox(height: 6),
-              _dots(),
-              const SizedBox(height: 20),
-
-              // lecteur + terminer
-              _bottomBar(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _topBar() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-      child: Row(
-        children: [
-          Text(
-            'Sujets de prière', 
-            style: GoogleFonts.inter(
-              color: Colors.white, 
-              fontSize: 28, 
-              fontWeight: FontWeight.w700,
-              height: 1.1,
-            ),
-          ),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.white.withOpacity(0.15),
-                  Colors.white.withOpacity(0.05),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.2),
-                width: 1,
-              ),
-            ),
-            child: Text(
-              '$_done/${_items.length}', 
-              style: GoogleFonts.inter(
-                color: Colors.white, 
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _passageChip(String ref) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Colors.white.withOpacity(0.15),
-              Colors.white.withOpacity(0.05),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.white.withOpacity(0.2),
-            width: 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: const Color(0xFF6366F1),
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Icon(Icons.menu_book_outlined, color: Colors.white70, size: 18),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                ref, 
-                style: GoogleFonts.inter(
-                  color: Colors.white, 
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _card(_UIItem ui, int i) {
-    final g = _catGradients[ui.subject.category] ?? _catGradients['other']!;
-    return AnimatedBuilder(
-      animation: _page,
-      builder: (_, child) {
-        double t = 0.0;
-        if (_page.position.haveDimensions) {
-          t = (_page.page ?? _page.initialPage.toDouble()) - i;
-        }
-        final scale = (1 - (t.abs() * .06)).clamp(.92, 1.0);
-        final translate = (t * 14);
-        return Transform.translate(
-          offset: Offset(0, translate),
-          child: Transform.scale(scale: scale, child: child),
-        );
-      },
-      child: GestureDetector(
-        onTap: () {
-          HapticFeedback.lightImpact();
-          setState(() => ui.done = !ui.done);
-        },
-        onLongPress: () async {
-          final c = TextEditingController(text: ui.subject.label);
-          final res = await showDialog<String>(
-            context: context,
-            builder: (_) => AlertDialog(
-              backgroundColor: const Color(0xFF1C1740),
-              title: Text(
-                'Modifier le sujet',
-                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600),
-              ),
-              content: TextField(
-                controller: c, 
-                maxLines: 3,
-                style: GoogleFonts.inter(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Nouveau sujet de prière...',
-                  hintStyle: GoogleFonts.inter(color: Colors.white.withOpacity(0.5)),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF6366F1)),
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context), 
-                  child: Text(
-                    'Annuler',
-                    style: GoogleFonts.inter(color: Colors.white.withOpacity(0.7)),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context, c.text.trim()), 
-                  child: Text(
-                    'Enregistrer',
-                    style: GoogleFonts.inter(color: const Color(0xFF6366F1), fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ],
-            ),
-          );
-          if (res != null && res.isNotEmpty) setState(() => ui.subject = PrayerSubject(res, ui.subject.category));
-        },
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
-          decoration: BoxDecoration(
-            gradient: ui.done 
-                ? LinearGradient(
-                    colors: [
-                      Colors.white.withOpacity(0.1),
-                      Colors.white.withOpacity(0.05),
-                    ],
-                  )
-                : LinearGradient(
-                    colors: g, 
-                    begin: Alignment.topLeft, 
-                    end: Alignment.bottomRight,
-                  ),
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: ui.done 
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ]
-                : [
-                    BoxShadow(
-                      color: g.last.withOpacity(0.4), 
-                      blurRadius: 24, 
-                      offset: const Offset(0, 12),
-                    ),
-                  ],
-            border: ui.done 
-                ? Border.all(color: Colors.white.withOpacity(0.2), width: 1.5) 
-                : null,
-          ),
-          child: Row(
-            children: [
-              // pastille
+              // En-tête
               Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: ui.done ? Colors.white.withOpacity(0.6) : Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: ui.done 
-                      ? null 
-                      : [
-                          BoxShadow(
-                            color: Colors.white.withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                  child: Text(
-                    ui.subject.label,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: ui.done ? Colors.white.withOpacity(0.6) : Colors.white,
-                    decoration: ui.done ? TextDecoration.lineThrough : TextDecoration.none,
-                    decorationThickness: 2,
-                    decorationColor: Colors.white.withOpacity(0.6),
-                    height: 1.2,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Icon(
-                ui.done ? Icons.check_circle_rounded : Icons.circle_outlined,
-                color: ui.done ? Colors.white.withOpacity(0.6) : Colors.white.withOpacity(0.8),
-                size: 24,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _dots() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(_items.length, (i) {
-        final on = i == _index;
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          width: on ? 28 : 8,
-          height: 8,
-          decoration: BoxDecoration(
-            color: on ? Colors.white : Colors.white.withOpacity(0.3),
-            borderRadius: BorderRadius.circular(4),
-            boxShadow: on 
-                ? [
-                    BoxShadow(
-                      color: Colors.white.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : null,
-          ),
-        );
-      }),
-    );
-  }
-
-  Widget _bottomBar() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-      child: Row(
-        children: [
-          // mini lecteur (cosmétique, prêt pour brancher un player)
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.white.withOpacity(0.15),
-                    Colors.white.withOpacity(0.05),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.2),
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.music_note_rounded, color: Colors.white70, size: 20),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Instrumental calme',
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
-                        color: Colors.white, 
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    Text(
+                      'Sujets de Prière',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Cliquez pour griser • Glissez pour passer à la suivante',
+                      style: GoogleFonts.inter(
+                        color: Colors.white70,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Cartes avec CardSwiper
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                  child: Center(
+                    child: CardSwiper(
+                      cardsCount: _items.length,
+                      isLoop: false, // Pas de boucle - finir quand toutes les cartes sont swipées
+                      cardBuilder: (context, index, percentThresholdX, percentThresholdY) {
+                        return _buildPrayerCard(_items[index], index);
+                      },
+                      onSwipe: _onCardSwiped,
+                      onEnd: () {
+                        // Quand toutes les cartes sont swipées, afficher la page de succès
+                        debugPrint('Toutes les cartes ont été swipées - Prière terminée !');
+                        _showSuccessPage();
+                        return true;
+                      },
+                    ),
                   ),
-                  _PlayBtn(),
-                ],
+                ),
               ),
-            ),
+              
+              // Indicateurs de pagination
+              if (_items.length > 1) _buildPageIndicators(),
+            ],
           ),
-          const SizedBox(width: 12),
-          Container(
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPrayerCard(PrayerItem item, int index) {
+    final isValidated = item.validated;
+    
+    // Couleurs vives de papier postiche
+    final paperColors = [
+      Colors.pink[100]!,
+      Colors.blue[100]!,
+      Colors.green[100]!,
+      Colors.yellow[100]!,
+      Colors.orange[100]!,
+      Colors.purple[100]!,
+      Colors.cyan[100]!,
+      Colors.lime[100]!,
+    ];
+    
+    final cardColor = paperColors[index % paperColors.length];
+    
+    return Container(
+      child: GestureDetector(
+        onTap: () => _toggleValidate(index),
+        child: Container(
+            width: 300,
+            height: 400,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-              ),
+              color: isValidated ? Colors.grey[200] : cardColor,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF6366F1).withOpacity(0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 6,
+                  offset: const Offset(2, 4),
+                ),
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 2,
+                  offset: const Offset(1, 2),
                 ),
               ],
             ),
-            child: ElevatedButton(
-              onPressed: () {
-                HapticFeedback.mediumImpact();
-                final completed = _items.where((e) => e.done).map((e) => e.subject.label).toList();
-                Navigator.pop(context, {
-                  'completed': completed,
-                  'all': _items.map((e) => e.subject.label).toList(),
-                });
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                foregroundColor: Colors.white,
-                shadowColor: Colors.transparent,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              ),
-              child: Text(
-                'Terminer', 
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
+            child: Stack(
+              children: [
+                // Texture papier de fond
+                _buildPaperTexture(),
+                
+                // Contenu de la carte
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // En-tête avec icône
+                      Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: isValidated ? Colors.grey[400] : item.color,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              isValidated ? Icons.check : Icons.touch_app,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              item.theme.toUpperCase(),
+                              style: GoogleFonts.caveat(
+                                color: Colors.black,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.5,
+                                decoration: isValidated ? TextDecoration.lineThrough : TextDecoration.none,
+                                decorationColor: Colors.black,
+                                decorationThickness: 2.0,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Sujet de prière
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.subject,
+                              style: GoogleFonts.kalam(
+                                color: Colors.black,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w400,
+                                decoration: isValidated ? TextDecoration.lineThrough : TextDecoration.none,
+                                decorationColor: Colors.black,
+                                decorationThickness: 2.0,
+                              ),
+                            ),
+                            
+                            // Afficher les notes si elles existent
+                            if (item.notes.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: Colors.blue.withOpacity(0.3),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Ce que Dieu me dit:',
+                                      style: GoogleFonts.caveat(
+                                        color: Colors.blue[800],
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      item.notes,
+                                      style: GoogleFonts.kalam(
+                                        color: Colors.black87,
+                                        fontSize: 14,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      
+                      // Zone action avec boutons
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            // Bouton Écrire
+                            GestureDetector(
+                              onTap: () => _showNotesDialog(index),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: item.notes.isNotEmpty ? Colors.green : Colors.blue,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      item.notes.isNotEmpty ? 'MODIFIER' : 'ÉCRIRE',
+                                      style: GoogleFonts.caveat(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    if (item.notes.isNotEmpty) ...[
+                                      const SizedBox(width: 4),
+                                      const Icon(
+                                        Icons.edit,
+                                        color: Colors.white,
+                                        size: 12,
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                            
+                            // Statut de validation
+                            Text(
+                              isValidated ? 'VALIDÉ' : 'TAPER POUR VALIDER',
+                              style: GoogleFonts.caveat(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
-        ],
+        ),
+      );
+  }
+
+  Widget _buildPaperTexture() {
+    return Positioned.fill(
+      child: CustomPaint(
+        painter: PaperTexturePainter(),
+        size: const Size(300, 400),
       ),
     );
   }
-}
 
-class _UIItem {
-  PrayerSubject subject;
-  bool done = false;
-  _UIItem(this.subject);
-}
+  Widget _buildPageIndicators() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: _items.asMap().entries.map((entry) {
+          final index = entry.key;
+          final item = entry.value;
+          return Container(
+            width: 12,
+            height: 12,
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: item.validated 
+                ? Colors.green 
+                : (index == _currentIndex ? Colors.white : Colors.white30),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
 
-class _PlayBtn extends StatefulWidget {
-  @override
-  State<_PlayBtn> createState() => _PlayBtnState();
-}
+  void _toggleValidate(int index) {
+    setState(() {
+      _items[index].validated = !_items[index].validated;
+    });
+  }
 
-class _PlayBtnState extends State<_PlayBtn> {
-  bool play = false;
-  
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => setState(() => play = !play),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.2), 
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: Colors.white.withOpacity(0.3),
-            width: 1,
+  Future<bool> _onCardSwiped(int previousIndex, int? currentIndex, CardSwiperDirection direction) async {
+    if (previousIndex >= _items.length) return true;
+    
+    final item = _items[previousIndex];
+    
+    // Vérifier si la carte est validée avant de permettre le swipe
+    if (!item.validated) {
+      // Si la carte n'est pas validée, on empêche le swipe
+      // L'utilisateur doit d'abord cliquer pour griser
+      return false;
+    }
+    
+    debugPrint('Carte swipée: ${item.theme}, $direction');
+    return true;
+  }
+
+  void _showSuccessPage() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            width: 350,
+            padding: const EdgeInsets.all(30),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF1a1a2e),
+                  Color(0xFF16213e),
+                  Color(0xFF0f3460),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icône de succès
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.green,
+                      width: 3,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.check,
+                    color: Colors.green,
+                    size: 40,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                
+                // Titre
+                Text(
+                  'Prière Terminée !',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                
+                // Message
+                Text(
+                  'Vous avez terminé tous vos sujets de prière. Que Dieu vous bénisse !',
+                  style: GoogleFonts.inter(
+                    color: Colors.white70,
+                    fontSize: 16,
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 30),
+                
+                // Bouton Terminer
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Fermer le dialog
+                      _finishPrayer(); // Appeler la nouvelle méthode
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 5,
+                    ),
+                    child: Text(
+                      'Terminer',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        child: Icon(
-          play ? Icons.pause_rounded : Icons.play_arrow_rounded, 
-          color: Colors.white,
-          size: 16,
-        ),
-      ),
+        );
+      },
     );
   }
+
+  void _showNotesDialog(int index) {
+    final item = _items[index];
+    final TextEditingController notesController = TextEditingController(text: item.notes);
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            width: 350,
+            padding: const EdgeInsets.all(30),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF1a1a2e),
+                  Color(0xFF16213e),
+                  Color(0xFF0f3460),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Titre
+                Text(
+                  'Ce que Dieu me dit',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                
+                // Sujet de prière
+                Text(
+                  item.subject,
+                  style: GoogleFonts.kalam(
+                    color: Colors.white70,
+                    fontSize: 16,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                
+                // Zone de texte
+                Container(
+                  height: 120,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withOpacity(0.3)),
+                  ),
+                  child: TextField(
+                    controller: notesController,
+                    maxLines: null,
+                    expands: true,
+                    textAlignVertical: TextAlignVertical.top,
+                    style: GoogleFonts.kalam(
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Écrivez ce que Dieu vous révèle...',
+                      hintStyle: GoogleFonts.kalam(
+                        color: Colors.white60,
+                        fontSize: 16,
+                      ),
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                
+                // Boutons
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey[600],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          'Annuler',
+                          style: GoogleFonts.poppins(fontSize: 14),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            _items[index].notes = notesController.text;
+                          });
+                          Navigator.of(context).pop();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          'Sauvegarder',
+                          style: GoogleFonts.poppins(fontSize: 14),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+
+  void _finishPrayer() async {
+    // 1) Sauvegarde (ex: Supabase) — pseudo-code
+    // await supabase.from('prayers').insert({
+    //   'user_id': userId,
+    //   'plan_id': planId,
+    //   'day_number': dayNumber,
+    //   'content': _prayerController.text.trim(),
+    //   'subjects': _selectedSubjects, // si tu les enregistres
+    // });
+
+    // 2) Récupère le verset à mémoriser depuis la méditation
+    final args = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};
+    final passageRef = (args['passageRef'] as String?)?.trim() ?? '';
+    final passageText = (args['passageText'] as String?)?.trim() ?? '';
+    final selectedTagsByField = (args['selectedTagsByField'] as Map<String, Set<String>>?) ?? {};
+    final selectedAnswersByField = (args['selectedAnswersByField'] as Map<String, Set<String>>?) ?? {};
+    final freeTextResponses = (args['freeTextResponses'] as Map<String, String>?) ?? {};
+
+    // 3) Utiliser la fonction intelligente pour déterminer le verset final
+    Map<String, String> finalVerse;
+    
+    if (_memoryVerse.isNotEmpty) {
+      // Si l'utilisateur a saisi du texte, analyser pour trouver le verset exact
+      finalVerse = VerseAnalyzer.analyzeUserText(_memoryVerse);
+      print('🔍 VERSET ANALYSÉ depuis le texte saisi: "${finalVerse['text']}" (${finalVerse['ref']})');
+    } else {
+      // Si l'utilisateur a passé, utiliser les réponses de méditation pour choisir intelligemment
+      finalVerse = VerseAnalyzer.chooseVerseFromMeditation(
+        selectedTagsByField: selectedTagsByField,
+        selectedAnswersByField: selectedAnswersByField,
+        freeTextResponses: freeTextResponses,
+        passageRef: passageRef,
+        passageText: passageText,
+      );
+      print('🔍 VERSET CHOISI depuis la méditation: "${finalVerse['text']}" (${finalVerse['ref']})');
+    }
+
+    // 4) Enchaîne vers le poster avec le verset final et toutes les données
+    Navigator.pushReplacementNamed(
+      context,
+      '/verse_poster',
+      arguments: {
+        'text': finalVerse['text']!,
+        'ref': finalVerse['ref']!,
+        'passageRef': passageRef,
+        'passageText': passageText,
+        'selectedTagsByField': selectedTagsByField,
+        'selectedAnswersByField': selectedAnswersByField,
+        'freeTextResponses': freeTextResponses,
+        'prayerItems': _items.map((item) => {
+          'theme': item.theme,
+          'subject': item.subject,
+          'notes': item.notes,
+        }).toList(),
+      },
+    );
+  }
+
+}
+
+class PaperTexturePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.black.withOpacity(0.03)
+      ..strokeWidth = 0.5
+      ..style = PaintingStyle.stroke;
+
+    // Lignes de texture papier horizontales
+    for (double y = 0; y < size.height; y += 8) {
+      canvas.drawLine(
+        Offset(0, y),
+        Offset(size.width, y),
+        paint,
+      );
+    }
+
+    // Lignes de texture papier verticales
+    for (double x = 0; x < size.width; x += 12) {
+      canvas.drawLine(
+        Offset(x, 0),
+        Offset(x, size.height),
+        paint,
+      );
+    }
+
+    // Points de texture aléatoires
+    final random = Random(42); // Seed fixe pour cohérence
+    for (int i = 0; i < 50; i++) {
+      final x = random.nextDouble() * size.width;
+      final y = random.nextDouble() * size.height;
+      final opacity = random.nextDouble() * 0.05;
+      
+      canvas.drawCircle(
+        Offset(x, y),
+        0.5,
+        Paint()..color = Colors.black.withOpacity(opacity),
+      );
+    }
+
+    // Ombres de pliure
+    final shadowPaint = Paint()
+      ..color = Colors.black.withOpacity(0.08)
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+
+    // Ligne de pliure diagonale
+    canvas.drawLine(
+      Offset(size.width * 0.1, size.height * 0.1),
+      Offset(size.width * 0.9, size.height * 0.9),
+      shadowPaint,
+    );
+
+    // Ligne de pliure horizontale
+    canvas.drawLine(
+      Offset(size.width * 0.2, size.height * 0.3),
+      Offset(size.width * 0.8, size.height * 0.3),
+      shadowPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

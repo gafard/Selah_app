@@ -167,23 +167,6 @@ class MeditationChooserPage extends StatelessWidget {
                           },
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      _ModernOptionTile(
-                        title: 'Test de compréhension (optionnel)',
-                        subtitle: 'QCM auto pour vérifier la compréhension',
-                        icon: Icons.school_rounded,
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
-                        ),
-                        onTap: () => Navigator.pushNamed(
-                          context, 
-                          '/meditation/auto_qcm',
-                          arguments: {
-                            'passageRef': passageRef,
-                            'passageText': passageText,
-                          },
-                        ),
-                      ),
                     ],
                   ),
                 ),

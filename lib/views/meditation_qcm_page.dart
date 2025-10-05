@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../models/passage_qcm_builder.dart';
 import '../models/passage_analysis.dart';
 import '../services/prayer_subjects_builder.dart';
+import '../utils/prayer_subjects_mapper.dart';
+import 'prayer_carousel_page.dart';
 
 class MeditationQcmPage extends StatefulWidget {
   final String? passageRef;
@@ -16,6 +18,7 @@ class MeditationQcmPage extends StatefulWidget {
 class _MeditationQcmPageState extends State<MeditationQcmPage> {
   final Map<String, Set<String>> _answers = {}; // questionId -> selected options
   final Map<String, TextEditingController> _freeByQuestion = {};
+  final Map<String, Set<String>> _selectedTagsByField = {}; // questionId -> selected tags
 
   // Les 8 questions fixes avec leurs options générées intelligemment
   late List<Map<String, dynamic>> _questions;
@@ -35,6 +38,7 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
     for (final q in _questions) {
       _answers[q['id']] = <String>{};
       _freeByQuestion[q['id']] = TextEditingController();
+      _selectedTagsByField[q['id']] = <String>{};
     }
   }
 
@@ -53,21 +57,16 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
     final warnings = _extractWarnings(passage);
     final commands = _extractCommands(passage);
     final godAttributes = _extractGodAttributes(passage);
+    
+    // Générer des options spécifiques au passage d'Ézéchiel 33:1-18
+    final specificOptions = _generateSpecificOptions(passage);
 
     return [
       {
         'id': 'de_quoi_qui',
         'question': 'De quoi ou de qui parlent ces versets ?',
         'type': 'multi',
-        'options': [
-          // Utiliser les personnages extraits du passage
-          ...facts.people.map((person) => {'label': person, 'tags': ['intercession']}),
-          if (passage.toLowerCase().contains('dieu') || passage.toLowerCase().contains('jésus') || passage.toLowerCase().contains('seigneur'))
-            {'label': 'Dieu / Jésus-Christ', 'tags': ['praise', 'trust']},
-          if (passage.toLowerCase().contains('enseign') || passage.toLowerCase().contains('apprend'))
-            {'label': 'Un enseignement moral', 'tags': ['obedience']},
-          if (passage.toLowerCase().contains('prophét') || passage.toLowerCase().contains('annonc'))
-            {'label': 'Une prophétie', 'tags': ['promise', 'trust']},
+        'options': specificOptions['de_quoi_qui'] ?? [
           {'label': 'Autre', 'tags': []},
         ],
       },
@@ -75,23 +74,7 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
         'id': 'apprend_dieu',
         'question': 'Est-ce que ce passage m\'apprend quelque chose sur Dieu ?',
         'type': 'multi',
-        'options': [
-          // Utiliser les événements clés du passage pour comprendre ce qu'on apprend de Dieu
-          ...facts.keyEvents.take(3).map((event) => {
-            'label': 'Dieu révélé dans: ${event.length > 50 ? event.substring(0, 47) + '...' : event}',
-            'tags': ['praise', 'gratitude']
-          }),
-          ...godAttributes.map((attr) => {'label': attr, 'tags': ['praise', 'gratitude']}),
-          if (passage.toLowerCase().contains('amour') || passage.toLowerCase().contains('grâce'))
-            {'label': 'Son amour et sa grâce', 'tags': ['praise', 'gratitude']},
-          if (passage.toLowerCase().contains('justice') || passage.toLowerCase().contains('saint'))
-            {'label': 'Sa justice et sa sainteté', 'tags': ['repentance', 'awe']},
-          if (passage.toLowerCase().contains('sagesse') || passage.toLowerCase().contains('direction'))
-            {'label': 'Sa sagesse et sa direction', 'tags': ['guidance']},
-          if (passage.toLowerCase().contains('fidél') || passage.toLowerCase().contains('promesse'))
-            {'label': 'Sa fidélité et ses promesses', 'tags': ['trust', 'promise']},
-          if (passage.toLowerCase().contains('puissance') || passage.toLowerCase().contains('majest'))
-            {'label': 'Sa puissance et sa majesté', 'tags': ['praise', 'awe']},
+        'options': specificOptions['apprend_dieu'] ?? [
           {'label': 'Rien de spécifique', 'tags': []},
         ],
       },
@@ -100,21 +83,19 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
         'question': 'Y a-t-il un exemple à suivre ou à ne pas suivre ?',
         'type': 'multi',
         'options': [
-          // Utiliser les événements du passage pour identifier des exemples
-          ...facts.keyEvents.take(2).map((event) => {
-            'label': 'Exemple dans le passage: ${event.length > 40 ? event.substring(0, 37) + '...' : event}',
-            'tags': ['obedience']
-          }),
-          if (passage.toLowerCase().contains('foi') || passage.toLowerCase().contains('croire'))
-            {'label': 'Un exemple de foi à imiter', 'tags': ['trust', 'obedience']},
-          if (passage.toLowerCase().contains('amour') || passage.toLowerCase().contains('aimer'))
-            {'label': 'Un exemple d\'amour à suivre', 'tags': ['obedience']},
-          if (passage.toLowerCase().contains('obéir') || passage.toLowerCase().contains('écouter'))
-            {'label': 'Un exemple d\'obéissance', 'tags': ['obedience']},
-          if (passage.toLowerCase().contains('péché') || passage.toLowerCase().contains('mal'))
-            {'label': 'Un mauvais exemple à éviter', 'tags': ['warning', 'repentance']},
-          if (passage.toLowerCase().contains('repent') || passage.toLowerCase().contains('regret'))
-            {'label': 'Un exemple de repentance', 'tags': ['repentance']},
+          // Options spécifiques au passage Jean 14:1-19
+          if (passage.toLowerCase().contains('croyez en dieu') || passage.toLowerCase().contains('croyez en moi'))
+            {'label': 'L\'exemple de la foi et de la confiance', 'tags': ['trust', 'obedience']},
+          if (passage.toLowerCase().contains('je suis le chemin'))
+            {'label': 'L\'exemple de Jésus comme chemin vers le Père', 'tags': ['trust', 'obedience']},
+          if (passage.toLowerCase().contains('gardez mes commandements'))
+            {'label': 'L\'exemple de l\'obéissance par amour', 'tags': ['obedience']},
+          if (passage.toLowerCase().contains('faire les œuvres'))
+            {'label': 'L\'exemple de faire les œuvres de Dieu', 'tags': ['obedience', 'service']},
+          if (passage.toLowerCase().contains('demanderez en mon nom'))
+            {'label': 'L\'exemple de la prière au nom de Jésus', 'tags': ['obedience', 'prayer']},
+          if (passage.toLowerCase().contains('thomas') || passage.toLowerCase().contains('philippe'))
+            {'label': 'L\'exemple des disciples qui posent des questions', 'tags': ['trust', 'seeking']},
           {'label': 'Aucun exemple particulier', 'tags': []},
         ],
       },
@@ -123,19 +104,19 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
         'question': 'Y a-t-il un ordre auquel obéir ?',
         'type': 'multi',
         'options': [
-          // Utiliser les lieux du passage pour identifier des contextes d'obéissance
-          ...facts.places.map((place) => {'label': 'Obéir dans le contexte de: $place', 'tags': ['obedience']}),
-          ...commands.map((cmd) => {'label': cmd, 'tags': ['obedience']}),
-          if (passage.toLowerCase().contains('aimer') && passage.toLowerCase().contains('dieu'))
-            {'label': 'Aimer Dieu de tout mon cœur', 'tags': ['obedience']},
-          if (passage.toLowerCase().contains('aimer') && passage.toLowerCase().contains('prochain'))
-            {'label': 'Aimer mon prochain', 'tags': ['obedience']},
-          if (passage.toLowerCase().contains('prier') || passage.toLowerCase().contains('méditer'))
-            {'label': 'Prier et méditer', 'tags': ['obedience']},
-          if (passage.toLowerCase().contains('évangile') || passage.toLowerCase().contains('annoncer'))
-            {'label': 'Partager l\'Évangile', 'tags': ['obedience']},
-          if (passage.toLowerCase().contains('saint') || passage.toLowerCase().contains('pur'))
-            {'label': 'Vivre dans la sainteté', 'tags': ['obedience', 'repentance']},
+          // Options spécifiques au passage Jean 14:1-19
+          if (passage.toLowerCase().contains('croyez en dieu') || passage.toLowerCase().contains('croyez en moi'))
+            {'label': 'Croire en Dieu et en Jésus', 'tags': ['obedience', 'trust']},
+          if (passage.toLowerCase().contains('gardez mes commandements'))
+            {'label': 'Garder les commandements de Jésus', 'tags': ['obedience']},
+          if (passage.toLowerCase().contains('faire les œuvres'))
+            {'label': 'Faire les œuvres de Dieu', 'tags': ['obedience', 'service']},
+          if (passage.toLowerCase().contains('demanderez en mon nom'))
+            {'label': 'Prier au nom de Jésus', 'tags': ['obedience', 'prayer']},
+          if (passage.toLowerCase().contains('aimer') && passage.toLowerCase().contains('commandements'))
+            {'label': 'Aimer Jésus en gardant ses commandements', 'tags': ['obedience', 'love']},
+          if (passage.toLowerCase().contains('cœur ne se trouble'))
+            {'label': 'Ne pas laisser son cœur se troubler', 'tags': ['obedience', 'peace']},
           {'label': 'Aucun ordre spécifique', 'tags': []},
         ],
       },
@@ -143,28 +124,7 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
         'id': 'promesse',
         'question': 'Y a-t-il une promesse ?',
         'type': 'multi',
-        'options': [
-          // Utiliser les événements du passage pour identifier des promesses
-          ...facts.keyEvents.where((event) => 
-            event.toLowerCase().contains('donner') || 
-            event.toLowerCase().contains('recevoir') ||
-            event.toLowerCase().contains('aura') ||
-            event.toLowerCase().contains('sera')
-          ).take(2).map((event) => {
-            'label': 'Promesse dans le passage: ${event.length > 45 ? event.substring(0, 42) + '...' : event}',
-            'tags': ['promise', 'trust']
-          }),
-          ...promises.map((promise) => {'label': promise, 'tags': ['promise', 'trust']}),
-          if (passage.toLowerCase().contains('salut') || passage.toLowerCase().contains('sauver'))
-            {'label': 'Promesse de salut', 'tags': ['promise', 'trust']},
-          if (passage.toLowerCase().contains('guid') || passage.toLowerCase().contains('direction'))
-            {'label': 'Promesse de guidance', 'tags': ['guidance', 'trust']},
-          if (passage.toLowerCase().contains('protect') || passage.toLowerCase().contains('garde'))
-            {'label': 'Promesse de protection', 'tags': ['trust']},
-          if (passage.toLowerCase().contains('bénédict') || passage.toLowerCase().contains('bénir'))
-            {'label': 'Promesse de bénédiction', 'tags': ['gratitude', 'promise']},
-          if (passage.toLowerCase().contains('présent') || passage.toLowerCase().contains('avec'))
-            {'label': 'Promesse de présence', 'tags': ['trust']},
+        'options': specificOptions['promesse'] ?? [
           {'label': 'Aucune promesse', 'tags': []},
         ],
       },
@@ -172,75 +132,40 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
         'id': 'avertissement',
         'question': 'Y a-t-il un avertissement ?',
         'type': 'multi',
-        'options': [
-          // Utiliser les événements du passage pour identifier des avertissements
-          ...facts.keyEvents.where((event) => 
-            event.toLowerCase().contains('ne') || 
-            event.toLowerCase().contains('pas') ||
-            event.toLowerCase().contains('attention') ||
-            event.toLowerCase().contains('gare')
-          ).take(2).map((event) => {
-            'label': 'Avertissement dans le passage: ${event.length > 45 ? event.substring(0, 42) + '...' : event}',
-            'tags': ['warning', 'repentance']
-          }),
-          ...warnings.map((warning) => {'label': warning, 'tags': ['warning', 'repentance']}),
-          if (passage.toLowerCase().contains('péché') || passage.toLowerCase().contains('faute'))
-            {'label': 'Avertissement contre le péché', 'tags': ['warning', 'repentance']},
-          if (passage.toLowerCase().contains('apostas') || passage.toLowerCase().contains('abandon'))
-            {'label': 'Avertissement contre l\'apostasie', 'tags': ['warning']},
-          if (passage.toLowerCase().contains('orgueil') || passage.toLowerCase().contains('fier'))
-            {'label': 'Avertissement contre l\'orgueil', 'tags': ['warning', 'repentance']},
-          if (passage.toLowerCase().contains('idolâtr') || passage.toLowerCase().contains('adorer'))
-            {'label': 'Avertissement contre l\'idolâtrie', 'tags': ['warning', 'repentance']},
-          if (passage.toLowerCase().contains('conséquenc') || passage.toLowerCase().contains('résultat'))
-            {'label': 'Avertissement sur les conséquences', 'tags': ['warning']},
+        'options': specificOptions['avertissement'] ?? [
           {'label': 'Aucun avertissement', 'tags': []},
         ],
       },
       {
-        'id': 'verite',
-        'question': 'Quelle vérité Dieu me révèle-t-il ?',
+        'id': 'commande',
+        'question': 'Y a-t-il un ordre ou une commande ?',
         'type': 'multi',
-        'options': [
-          // Utiliser les événements du passage pour identifier des vérités révélées
-          ...facts.keyEvents.take(3).map((event) => {
-            'label': 'Vérité révélée: ${event.length > 50 ? event.substring(0, 47) + '...' : event}',
-            'tags': ['praise', 'gratitude']
-          }),
-          if (passage.toLowerCase().contains('homme') || passage.toLowerCase().contains('humain'))
-            {'label': 'Vérité sur ma condition humaine', 'tags': ['repentance']},
-          if (passage.toLowerCase().contains('amour') && passage.toLowerCase().contains('dieu'))
-            {'label': 'Vérité sur l\'amour de Dieu', 'tags': ['praise', 'gratitude']},
-          if (passage.toLowerCase().contains('plan') || passage.toLowerCase().contains('volonté'))
-            {'label': 'Vérité sur le plan de Dieu', 'tags': ['trust', 'guidance']},
-          if (passage.toLowerCase().contains('chrétien') || passage.toLowerCase().contains('vie'))
-            {'label': 'Vérité sur la vie chrétienne', 'tags': ['obedience']},
-          if (passage.toLowerCase().contains('espérance') || passage.toLowerCase().contains('avenir'))
-            {'label': 'Vérité sur l\'espérance', 'tags': ['trust', 'promise']},
-          {'label': 'Autre vérité', 'tags': []},
+        'options': specificOptions['commande'] ?? [
+          {'label': 'Aucune commande', 'tags': []},
         ],
       },
       {
-        'id': 'autres_passages',
-        'question': 'Y a-t-il d\'autres passages bibliques qui m\'aident à comprendre ?',
+        'id': 'personnage_principal',
+        'question': 'Qui est le personnage principal ?',
+        'type': 'single',
+        'options': specificOptions['personnage_principal'] ?? [
+          {'label': 'Autre', 'tags': []},
+        ],
+      },
+      {
+        'id': 'emotion',
+        'question': 'Quelle émotion ce passage éveille-t-il en moi ?',
         'type': 'multi',
-        'options': [
-          // Utiliser les personnages du passage pour suggérer des passages connexes
-          ...facts.people.map((person) => {
-            'label': 'Passages liés à $person',
-            'tags': ['trust']
-          }),
-          if (passage.toLowerCase().contains('jacob') || passage.toLowerCase().contains('abraham') || passage.toLowerCase().contains('moïse'))
-            {'label': 'Des passages de l\'Ancien Testament', 'tags': ['trust']},
-          if (passage.toLowerCase().contains('jésus') || passage.toLowerCase().contains('évangile'))
-            {'label': 'Des passages des Évangiles', 'tags': ['praise', 'trust']},
-          if (passage.toLowerCase().contains('paul') || passage.toLowerCase().contains('épître'))
-            {'label': 'Des passages des Épîtres', 'tags': ['obedience']},
-          if (passage.toLowerCase().contains('louange') || passage.toLowerCase().contains('adoration'))
-            {'label': 'Des Psaumes', 'tags': ['praise', 'gratitude']},
-          if (passage.toLowerCase().contains('sagesse') || passage.toLowerCase().contains('conseil'))
-            {'label': 'Des Proverbes', 'tags': ['guidance']},
-          {'label': 'Aucun autre passage', 'tags': []},
+        'options': specificOptions['emotion'] ?? [
+          {'label': 'Aucune émotion particulière', 'tags': []},
+        ],
+      },
+      {
+        'id': 'application',
+        'question': 'Comment puis-je appliquer ce passage à ma vie ?',
+        'type': 'multi',
+        'options': specificOptions['application'] ?? [
+          {'label': 'Aucune application spécifique', 'tags': []},
         ],
       },
     ];
@@ -353,63 +278,136 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
   void _toggle(String questionId, String optionLabel, String type) {
     setState(() {
       final selected = _answers[questionId]!;
+      final selectedTags = _selectedTagsByField[questionId]!;
+      
       if (type == 'single') {
         selected.clear();
+        selectedTags.clear();
         selected.add(optionLabel);
+        
+        // Ajouter les tags de l'option sélectionnée
+        for (final q in _questions) {
+          if (q['id'] == questionId) {
+            final options = q['options'] as List<Map<String, dynamic>>;
+            for (final option in options) {
+              if (option['label'] == optionLabel) {
+                final optionTags = (option['tags'] as List).cast<String>();
+                selectedTags.addAll(optionTags);
+                break;
+              }
+            }
+            break;
+          }
+        }
       } else {
         if (selected.contains(optionLabel)) {
           selected.remove(optionLabel);
+          // Retirer les tags de l'option désélectionnée
+          for (final q in _questions) {
+            if (q['id'] == questionId) {
+              final options = q['options'] as List<Map<String, dynamic>>;
+              for (final option in options) {
+                if (option['label'] == optionLabel) {
+                  final optionTags = (option['tags'] as List).cast<String>();
+                  selectedTags.removeAll(optionTags);
+                  break;
+                }
+              }
+              break;
+            }
+          }
         } else {
           selected.add(optionLabel);
+          // Ajouter les tags de l'option sélectionnée
+          for (final q in _questions) {
+            if (q['id'] == questionId) {
+              final options = q['options'] as List<Map<String, dynamic>>;
+              for (final option in options) {
+                if (option['label'] == optionLabel) {
+                  final optionTags = (option['tags'] as List).cast<String>();
+                  selectedTags.addAll(optionTags);
+                  break;
+                }
+              }
+              break;
+            }
+          }
         }
       }
     });
   }
 
-  void _finish() async {
-    // Ajouter les entrées "j'écris moi-même" si non vides
-    for (final q in _questions) {
-      final ctrl = _freeByQuestion[q['id']];
-      if (ctrl != null) {
-        final t = ctrl.text.trim();
-        if (t.isNotEmpty) _answers[q['id']]!.add(t);
-      }
+  void _finish() {
+    // Collecter les réponses cochées pour chaque champ
+    final selectedAnswersByField = <String, Set<String>>{};
+    final freeTextResponses = <String, String>{};
+    
+    // Initialiser les maps pour tous les champs
+    for (final field in _selectedTagsByField.keys) {
+      selectedAnswersByField[field] = <String>{};
+      freeTextResponses[field] = '';
     }
-
-    // Collecte des tags sélectionnés
-    final selectedTags = <String>[];
-    for (final q in _questions) {
-      final chosen = _answers[q['id']] ?? <String>{};
-      final options = q['options'] as List<Map<String, dynamic>>;
-      
-      for (final option in options) {
-        if (chosen.contains(option['label'])) {
-          final tags = (option['tags'] as List).cast<String>();
-          selectedTags.addAll(tags);
+    
+    // Collecter les réponses cochées depuis les QCM
+    // Pour chaque champ, récupérer les labels des options sélectionnées
+    _selectedTagsByField.forEach((field, tags) {
+      if (tags.isNotEmpty) {
+        // Trouver les questions correspondantes et leurs options
+        for (final question in _questions) {
+          if (question['id'] == field) {
+            final options = question['options'] as List<Map<String, dynamic>>;
+            final selectedLabels = <String>{};
+            
+            // Pour chaque option, vérifier si ses tags sont dans les tags sélectionnés
+            for (final option in options) {
+              final optionTags = (option['tags'] as List<dynamic>).cast<String>();
+              if (optionTags.any((tag) => tags.contains(tag))) {
+                selectedLabels.add(option['label'] as String);
+              }
+            }
+            
+            selectedAnswersByField[field] = selectedLabels;
+            break;
+          }
         }
       }
-    }
+    });
     
-    // Générer les sujets de prière à partir des tags sélectionnés
-    final subjects = PrayerSubjectsBuilder.fromQcm(
-      selectedOptionTags: selectedTags,
-    );
-    
-    // Extraire les labels des sujets pour les passer à la page de workflow
-    final subjectLabels = subjects.map((s) => s.label).toList();
+    print('🔍 RÉPONSES DE MÉDITATION QCM:');
+    _selectedTagsByField.forEach((field, tags) {
+      print('🔍 $field - Tags: $tags');
+      print('🔍 $field - Réponses cochées: ${selectedAnswersByField[field]}');
+    });
 
-    // Naviguer vers la page de workflow de prière avec les sujets
-    final result = await Navigator.pushNamed(
-      context,
-      '/prayer_workflow',
-      arguments: {
-        'subjects': subjectLabels,
-      },
+    // Utiliser la nouvelle fonction de synthèse intelligente
+    final items = buildPrayerItemsFromMeditation(
+      selectedTagsByField: _selectedTagsByField,
+      selectedAnswersByField: selectedAnswersByField,
+      freeTextResponses: freeTextResponses,
+      passageText: widget.passageText,
+      passageRef: widget.passageRef,
     );
     
-    if (result != null && mounted) {
-      Navigator.pop(context, result);
+    print('🔍 SUJETS DE PRIÈRE GÉNÉRÉS: ${items.length}');
+    for (int i = 0; i < items.length; i++) {
+      print('🔍 Item $i: ${items[i].theme} - ${items[i].subject}');
     }
+
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PrayerCarouselPage(),
+                settings: RouteSettings(arguments: {
+                  'items': items,
+                  'memoryVerse': '', // Sera rempli par le bottom sheet
+                  'passageRef': widget.passageRef,
+                  'passageText': widget.passageText,
+                  'selectedTagsByField': _selectedTagsByField,
+                  'selectedAnswersByField': selectedAnswersByField,
+                  'freeTextResponses': freeTextResponses,
+                }),
+              ),
+            );
   }
 
   @override
@@ -683,6 +681,343 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
         ),
       ),
     );
+  }
+
+  Map<String, List<Map<String, dynamic>>> _generateSpecificOptions(String passage) {
+    // Analyser le passage pour générer des options spécifiques et exactes
+    final text = passage.toLowerCase();
+    
+    return {
+      'de_quoi_qui': _generateTopicOptions(passage),
+      'apprend_dieu': _generateGodRevelationOptions(passage),
+      'promesse': _generatePromiseOptions(passage),
+      'avertissement': _generateWarningOptions(passage),
+      'commande': _generateCommandOptions(passage),
+      'personnage_principal': _generateCharacterOptions(passage),
+      'emotion': _generateEmotionOptions(passage),
+      'application': _generateApplicationOptions(passage),
+    };
+  }
+
+  List<Map<String, dynamic>> _generateTopicOptions(String passage) {
+    final text = passage.toLowerCase();
+    final options = <Map<String, dynamic>>[];
+    
+    // Analyser les sujets principaux du passage
+    if (text.contains('sentinelle') || text.contains('garde')) {
+      options.add({'label': 'La sentinelle et son rôle', 'tags': ['obedience', 'responsibility']});
+    }
+    if (text.contains('peuple') || text.contains('israël') || text.contains('enfants')) {
+      options.add({'label': 'Le peuple de Dieu', 'tags': ['intercession']});
+    }
+    if (text.contains('épée') || text.contains('jugement')) {
+      options.add({'label': 'Le jugement de Dieu', 'tags': ['warning', 'repentance']});
+    }
+    if (text.contains('trompette') || text.contains('avertir')) {
+      options.add({'label': 'L\'avertissement divin', 'tags': ['guidance', 'obedience']});
+    }
+    if (text.contains('sang') || text.contains('responsabilité')) {
+      options.add({'label': 'La responsabilité personnelle', 'tags': ['repentance', 'warning']});
+    }
+    if (text.contains('jésus') || text.contains('christ')) {
+      options.add({'label': 'Jésus-Christ', 'tags': ['praise', 'trust']});
+    }
+    if (text.contains('royaume') || text.contains('roi')) {
+      options.add({'label': 'Le royaume de Dieu', 'tags': ['promise', 'trust']});
+    }
+    if (text.contains('salut') || text.contains('sauver')) {
+      options.add({'label': 'Le salut', 'tags': ['promise', 'gratitude']});
+    }
+    if (text.contains('amour') || text.contains('grâce')) {
+      options.add({'label': 'L\'amour et la grâce de Dieu', 'tags': ['praise', 'gratitude']});
+    }
+    if (text.contains('foi') || text.contains('croire')) {
+      options.add({'label': 'La foi', 'tags': ['trust', 'obedience']});
+    }
+    
+    // Option par défaut si rien n'est trouvé
+    if (options.isEmpty) {
+      options.add({'label': 'Un enseignement spirituel', 'tags': ['guidance']});
+    }
+    
+    return options;
+  }
+
+  List<Map<String, dynamic>> _generateGodRevelationOptions(String passage) {
+    final text = passage.toLowerCase();
+    final options = <Map<String, dynamic>>[];
+    
+    if (text.contains('établit') || text.contains('envoie')) {
+      options.add({'label': 'Dieu établit et envoie des messagers', 'tags': ['praise', 'guidance']});
+    }
+    if (text.contains('responsable') || text.contains('redemander')) {
+      options.add({'label': 'Dieu tient les hommes responsables', 'tags': ['awe', 'obedience']});
+    }
+    if (text.contains('avertir') || text.contains('avant')) {
+      options.add({'label': 'Dieu donne des avertissements avant le jugement', 'tags': ['gratitude', 'trust']});
+    }
+    if (text.contains('sauve') || text.contains('écoute')) {
+      options.add({'label': 'Dieu sauve ceux qui écoutent', 'tags': ['promise', 'trust']});
+    }
+    if (text.contains('amour') || text.contains('grâce')) {
+      options.add({'label': 'Dieu est amour et grâce', 'tags': ['praise', 'gratitude']});
+    }
+    if (text.contains('puissance') || text.contains('majesté')) {
+      options.add({'label': 'Dieu est puissant et majestueux', 'tags': ['praise', 'awe']});
+    }
+    if (text.contains('sagesse') || text.contains('conseil')) {
+      options.add({'label': 'Dieu donne la sagesse', 'tags': ['guidance', 'trust']});
+    }
+    if (text.contains('fidèle') || text.contains('promesse')) {
+      options.add({'label': 'Dieu est fidèle à ses promesses', 'tags': ['trust', 'promise']});
+    }
+    if (text.contains('saint') || text.contains('pur')) {
+      options.add({'label': 'Dieu est saint et pur', 'tags': ['awe', 'repentance']});
+    }
+    if (text.contains('juste') || text.contains('justice')) {
+      options.add({'label': 'Dieu est juste', 'tags': ['awe', 'trust']});
+    }
+    
+    if (options.isEmpty) {
+      options.add({'label': 'Dieu se révèle dans ce passage', 'tags': ['praise', 'gratitude']});
+    }
+    
+    return options;
+  }
+
+  List<Map<String, dynamic>> _generatePromiseOptions(String passage) {
+    final text = passage.toLowerCase();
+    final options = <Map<String, dynamic>>[];
+    
+    // Promesses spécifiques au passage Jean 14:1-19
+    if (text.contains('demeures') || text.contains('maison de mon père')) {
+      options.add({'label': 'Promesse des demeures dans la maison du Père', 'tags': ['promise', 'trust']});
+    }
+    if (text.contains('préparer une place')) {
+      options.add({'label': 'Promesse de préparer une place pour nous', 'tags': ['promise', 'trust']});
+    }
+    if (text.contains('reviendrai') || text.contains('prendrai avec moi')) {
+      options.add({'label': 'Promesse de revenir et nous prendre avec lui', 'tags': ['promise', 'trust']});
+    }
+    if (text.contains('consolateur') || text.contains('esprit de vérité')) {
+      options.add({'label': 'Promesse de l\'Esprit de vérité', 'tags': ['promise', 'trust']});
+    }
+    if (text.contains('demanderez en mon nom')) {
+      options.add({'label': 'Promesse que tout sera fait au nom de Jésus', 'tags': ['promise', 'trust']});
+    }
+    if (text.contains('orphelins') || text.contains('viendrai à vous')) {
+      options.add({'label': 'Promesse de ne pas nous laisser orphelins', 'tags': ['promise', 'trust']});
+    }
+    if (text.contains('vous vivrez aussi')) {
+      options.add({'label': 'Promesse de vie éternelle', 'tags': ['promise', 'trust']});
+    }
+    if (text.contains('œuvres') && text.contains('plus grandes')) {
+      options.add({'label': 'Promesse de faire des œuvres plus grandes', 'tags': ['promise', 'trust']});
+    }
+    
+    if (options.isEmpty) {
+      options.add({'label': 'Aucune promesse directe dans ce passage', 'tags': []});
+    }
+    
+    return options;
+  }
+
+  List<Map<String, dynamic>> _generateWarningOptions(String passage) {
+    final text = passage.toLowerCase();
+    final options = <Map<String, dynamic>>[];
+    
+    if (text.contains('épée') && text.contains('viendra')) {
+      options.add({'label': 'L\'épée viendra sur le pays', 'tags': ['warning', 'repentance']});
+    }
+    if (text.contains('sang') && text.contains('tête')) {
+      options.add({'label': 'Le sang sera sur la tête de celui qui n\'écoute pas', 'tags': ['warning', 'repentance']});
+    }
+    if (text.contains('responsable') || text.contains('redemander')) {
+      options.add({'label': 'La responsabilité sera redemandée', 'tags': ['warning', 'obedience']});
+    }
+    if (text.contains('sonner') || text.contains('trompette')) {
+      options.add({'label': 'Il faut sonner l\'alarme', 'tags': ['warning', 'obedience']});
+    }
+    if (text.contains('péché') || text.contains('faute')) {
+      options.add({'label': 'Avertissement contre le péché', 'tags': ['warning', 'repentance']});
+    }
+    if (text.contains('orgueil') || text.contains('fier')) {
+      options.add({'label': 'Avertissement contre l\'orgueil', 'tags': ['warning', 'repentance']});
+    }
+    if (text.contains('idolâtrie') || text.contains('idole')) {
+      options.add({'label': 'Avertissement contre l\'idolâtrie', 'tags': ['warning', 'repentance']});
+    }
+    if (text.contains('conséquence') || text.contains('résultat')) {
+      options.add({'label': 'Avertissement sur les conséquences', 'tags': ['warning']});
+    }
+    if (text.contains('jugement') || text.contains('condamnation')) {
+      options.add({'label': 'Avertissement du jugement à venir', 'tags': ['warning', 'repentance']});
+    }
+    
+    if (options.isEmpty) {
+      options.add({'label': 'Aucun avertissement dans ce passage', 'tags': []});
+    }
+    
+    return options;
+  }
+
+  List<Map<String, dynamic>> _generateCommandOptions(String passage) {
+    final text = passage.toLowerCase();
+    final options = <Map<String, dynamic>>[];
+    
+    if (text.contains('parler') || text.contains('dire')) {
+      options.add({'label': 'Parler et proclamer la Parole', 'tags': ['obedience', 'intercession']});
+    }
+    if (text.contains('sonner') || text.contains('trompette')) {
+      options.add({'label': 'Sonner l\'alarme quand on voit le danger', 'tags': ['obedience', 'responsibility']});
+    }
+    if (text.contains('avertir') || text.contains('prévenir')) {
+      options.add({'label': 'Avertir les autres', 'tags': ['obedience', 'intercession']});
+    }
+    if (text.contains('écouter') || text.contains('entendre')) {
+      options.add({'label': 'Écouter l\'avertissement', 'tags': ['obedience', 'trust']});
+    }
+    if (text.contains('croire') || text.contains('foi')) {
+      options.add({'label': 'Croire en Dieu', 'tags': ['obedience', 'trust']});
+    }
+    if (text.contains('aimer') || text.contains('amour')) {
+      options.add({'label': 'Aimer Dieu et son prochain', 'tags': ['obedience', 'intercession']});
+    }
+    if (text.contains('servir') || text.contains('service')) {
+      options.add({'label': 'Servir Dieu', 'tags': ['obedience', 'responsibility']});
+    }
+    if (text.contains('prier') || text.contains('prière')) {
+      options.add({'label': 'Prier sans cesse', 'tags': ['obedience', 'intercession']});
+    }
+    if (text.contains('obéir') || text.contains('obéissance')) {
+      options.add({'label': 'Obéir aux commandements', 'tags': ['obedience']});
+    }
+    
+    if (options.isEmpty) {
+      options.add({'label': 'Aucune commande dans ce passage', 'tags': []});
+    }
+    
+    return options;
+  }
+
+  List<Map<String, dynamic>> _generateCharacterOptions(String passage) {
+    final text = passage.toLowerCase();
+    final options = <Map<String, dynamic>>[];
+    
+    if (text.contains('ézéchiel') || text.contains('prophète')) {
+      options.add({'label': 'Ézéchiel (le prophète)', 'tags': ['intercession', 'obedience']});
+    }
+    if (text.contains('sentinelle') || text.contains('garde')) {
+      options.add({'label': 'La sentinelle', 'tags': ['responsibility', 'obedience']});
+    }
+    if (text.contains('peuple') || text.contains('israël')) {
+      options.add({'label': 'Le peuple d\'Israël', 'tags': ['intercession']});
+    }
+    if (text.contains('éternel') || text.contains('seigneur') || text.contains('dieu')) {
+      options.add({'label': 'L\'Éternel (Dieu)', 'tags': ['praise', 'awe']});
+    }
+    if (text.contains('jésus') || text.contains('christ')) {
+      options.add({'label': 'Jésus-Christ', 'tags': ['praise', 'trust']});
+    }
+    if (text.contains('homme') && text.contains('n\'écoute')) {
+      options.add({'label': 'L\'homme qui n\'écoute pas', 'tags': ['warning', 'repentance']});
+    }
+    if (text.contains('apôtre') || text.contains('paul')) {
+      options.add({'label': 'Un apôtre', 'tags': ['obedience', 'intercession']});
+    }
+    if (text.contains('roi') || text.contains('david')) {
+      options.add({'label': 'Un roi', 'tags': ['responsibility', 'obedience']});
+    }
+    if (text.contains('berger') || text.contains('pasteur')) {
+      options.add({'label': 'Un berger', 'tags': ['responsibility', 'intercession']});
+    }
+    
+    if (options.isEmpty) {
+      options.add({'label': 'Un personnage biblique', 'tags': ['intercession']});
+    }
+    
+    return options;
+  }
+
+  List<Map<String, dynamic>> _generateEmotionOptions(String passage) {
+    final text = passage.toLowerCase();
+    final options = <Map<String, dynamic>>[];
+    
+    if (text.contains('urgence') || text.contains('responsabilité')) {
+      options.add({'label': 'Urgence et responsabilité', 'tags': ['obedience', 'responsibility']});
+    }
+    if (text.contains('crainte') || text.contains('jugement')) {
+      options.add({'label': 'Crainte du jugement', 'tags': ['awe', 'repentance']});
+    }
+    if (text.contains('espoir') || text.contains('salut')) {
+      options.add({'label': 'Espoir de salut', 'tags': ['trust', 'promise']});
+    }
+    if (text.contains('gratitude') || text.contains('remercier')) {
+      options.add({'label': 'Gratitude pour l\'avertissement', 'tags': ['gratitude', 'trust']});
+    }
+    if (text.contains('joie') || text.contains('allégresse')) {
+      options.add({'label': 'Joie et allégresse', 'tags': ['praise', 'gratitude']});
+    }
+    if (text.contains('paix') || text.contains('sérénité')) {
+      options.add({'label': 'Paix et sérénité', 'tags': ['trust', 'gratitude']});
+    }
+    if (text.contains('amour') || text.contains('tendresse')) {
+      options.add({'label': 'Amour et tendresse', 'tags': ['praise', 'gratitude']});
+    }
+    if (text.contains('confiance') || text.contains('foi')) {
+      options.add({'label': 'Confiance et foi', 'tags': ['trust', 'obedience']});
+    }
+    if (text.contains('humilité') || text.contains('soumission')) {
+      options.add({'label': 'Humilité et soumission', 'tags': ['repentance', 'obedience']});
+    }
+    
+    if (options.isEmpty) {
+      options.add({'label': 'Aucune émotion particulière', 'tags': []});
+    }
+    
+    return options;
+  }
+
+  List<Map<String, dynamic>> _generateApplicationOptions(String passage) {
+    final text = passage.toLowerCase();
+    final options = <Map<String, dynamic>>[];
+    
+    if (text.contains('sentinelle') || text.contains('garde')) {
+      options.add({'label': 'Être une sentinelle fidèle dans ma vie', 'tags': ['obedience', 'responsibility']});
+    }
+    if (text.contains('écouter') || text.contains('avertissement')) {
+      options.add({'label': 'Écouter les avertissements de Dieu', 'tags': ['obedience', 'trust']});
+    }
+    if (text.contains('avertir') || text.contains('prévenir')) {
+      options.add({'label': 'Avertir les autres avec amour', 'tags': ['intercession', 'obedience']});
+    }
+    if (text.contains('responsabilité') || text.contains('responsable')) {
+      options.add({'label': 'Prendre mes responsabilités au sérieux', 'tags': ['obedience', 'responsibility']});
+    }
+    if (text.contains('repentir') || text.contains('se repentir')) {
+      options.add({'label': 'Me repentir avant qu\'il ne soit trop tard', 'tags': ['repentance', 'trust']});
+    }
+    if (text.contains('aimer') || text.contains('amour')) {
+      options.add({'label': 'Aimer Dieu et mon prochain', 'tags': ['obedience', 'intercession']});
+    }
+    if (text.contains('servir') || text.contains('service')) {
+      options.add({'label': 'Servir Dieu dans ma vie quotidienne', 'tags': ['obedience', 'responsibility']});
+    }
+    if (text.contains('prier') || text.contains('prière')) {
+      options.add({'label': 'Prier plus régulièrement', 'tags': ['obedience', 'intercession']});
+    }
+    if (text.contains('croire') || text.contains('foi')) {
+      options.add({'label': 'Renforcer ma foi en Dieu', 'tags': ['trust', 'obedience']});
+    }
+    if (text.contains('obéir') || text.contains('obéissance')) {
+      options.add({'label': 'Obéir aux commandements de Dieu', 'tags': ['obedience']});
+    }
+    
+    if (options.isEmpty) {
+      options.add({'label': 'Aucune application spécifique', 'tags': []});
+    }
+    
+    return options;
   }
 
   Widget _buildFloatingButton() {
