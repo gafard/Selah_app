@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/meditation_journal_service.dart';
 import '../models/meditation_journal_entry.dart';
+import '../widgets/uniform_back_button.dart';
 
 class BibleQuizPage extends StatefulWidget {
   const BibleQuizPage({super.key});
@@ -340,21 +341,9 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
                     // Header
                     Row(
                       children: [
-                        GestureDetector(
-                          onTap: () => Navigator.pop(context),
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.arrow_back_ios_new_rounded,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                          ),
+                        UniformBackButton(
+                          onPressed: () => Navigator.pop(context),
+                          iconColor: Colors.white,
                         ),
                         const SizedBox(width: 16),
                         Expanded(

@@ -39,26 +39,17 @@
             android:name="flutterEmbedding"
             android:value="2" />
         
-        <!-- Receivers pour les alarmes Android -->
-        <receiver
-            android:name="dev.fluttercommunity.plus.androidalarmmanager.AlarmBroadcastReceiver"
-            android:exported="false" />
-        <receiver
-            android:name="dev.fluttercommunity.plus.androidalarmmanager.RebootBroadcastReceiver"
-            android:enabled="false">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED"/>
-                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
-            </intent-filter>
-        </receiver>
-        
         <!-- Receivers pour les notifications -->
-        <receiver android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+        <receiver 
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
             </intent-filter>
         </receiver>
+
+        <!-- Android Alarm Manager supprimé pour éviter les problèmes de compatibilité -->
 
         <!-- Workmanager -->
         <provider

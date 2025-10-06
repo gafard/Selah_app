@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/passage_qcm_builder.dart';
+import '../widgets/uniform_back_button.dart';
 import '../models/passage_analysis.dart';
 import '../services/prayer_subjects_builder.dart';
 
@@ -73,7 +74,7 @@ class _MeditationAutoQcmPageState extends State<MeditationAutoQcmPage> {
             title: 'Quels événements se déroulent dans ce passage ?',
             type: QcmType.multi,
             options: facts.keyEvents.take(4).map((event) => 
-              QcmOption(event.length > 60 ? event.substring(0, 57) + '...' : event, tags: ['obedience'])).toList(),
+              QcmOption(event.length > 60 ? '${event.substring(0, 57)}...' : event, tags: ['obedience'])).toList(),
             allowFreeWrite: true,
           ));
         }
@@ -205,10 +206,11 @@ class _MeditationAutoQcmPageState extends State<MeditationAutoQcmPage> {
         children: [
           Row(
             children: [
-              IconButton(
+              UniformBackButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                iconColor: Colors.white,
               ),
+              const SizedBox(width: 16),
               Expanded(
                 child: Text(
                   'Test de Compréhension',

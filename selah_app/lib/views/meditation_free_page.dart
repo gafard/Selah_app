@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'prayer_carousel_page.dart';
 import '../utils/prayer_subjects_mapper.dart';
+import '../widgets/uniform_back_button.dart';
 
 class MeditationFreePage extends StatefulWidget {
   final String passageRef;
@@ -245,10 +246,11 @@ class _MeditationFreePageState extends State<MeditationFreePage> {
         children: [
           Row(
             children: [
-              IconButton(
+              UniformBackButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                iconColor: Colors.white,
               ),
+              const SizedBox(width: 16),
               Expanded(
                 child: Text(
                   'Méditation Libre',
@@ -260,7 +262,7 @@ class _MeditationFreePageState extends State<MeditationFreePage> {
                   textAlign: TextAlign.center,
                 ),
               ),
-              const SizedBox(width: 48),
+              const SizedBox(width: 56), // Ajuster pour centrer avec le bouton
             ],
           ),
           const SizedBox(height: 16),
@@ -449,11 +451,13 @@ class _MeditationFreePageState extends State<MeditationFreePage> {
     );
   }
 
-  Widget _buildStepTitle(String title, [String? subtitle]) {
+  Widget _buildStepTitle(String title) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
+        ),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -463,29 +467,13 @@ class _MeditationFreePageState extends State<MeditationFreePage> {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: GoogleFonts.inter(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
-          if (subtitle != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-                color: Colors.white70,
-              ),
-            ),
-          ],
-        ],
+      child: Text(
+        title,
+        style: GoogleFonts.inter(
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
+        ),
       ),
     );
   }

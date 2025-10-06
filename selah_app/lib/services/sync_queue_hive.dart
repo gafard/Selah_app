@@ -2,52 +2,15 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
-import 'package:workmanager/workmanager.dart';
+// workmanager supprimé pour éviter les problèmes de compatibilité
 import 'package:path_provider/path_provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'user_repo_supabase.dart';
 import 'telemetry_console.dart';
 
-@pragma('vm:entry-point')
-void callbackDispatcher() {
-  Workmanager().executeTask((task, input) async {
-    // Init Hive en isolate background
-    final dir = await getApplicationDocumentsDirectory();
-    Hive.init(dir.path);
-    final syncBox = await Hive.openBox('sync_tasks');
-
-    final telemetry = TelemetryConsole(); // console-safe en BG
-    final userRepo = UserRepoSupabase();
-
-    Future<void> _flush() async {
-      final keys = syncBox.keys.toList();
-      for (final k in keys) {
-        final m = Map<String, dynamic>.from(syncBox.get(k));
-        final kind = m['kind'] as String;
-        try {
-          if (kind == 'user_patch') {
-            await userRepo.patchUser(m['payload'], idempotencyKey: m['idempotencyKey']);
-          }
-          // Ajoute d'autres kinds ici si besoin…
-          await syncBox.delete(k);
-        } catch (e) {
-          telemetry.event('sync_error', {'kind': kind, 'error': e.toString()});
-          // garder en file => retry au prochain tick
-          return;
-        }
-      }
-    }
-
-    if (input?['kind'] == 'sync_all') {
-      await _flush();
-    } else if (input?['kind'] == 'single') {
-      // no-op: on flush quand même tout
-      await _flush();
-    }
-    return Future.value(true);
-  });
-}
+// Callback dispatcher supprimé - workmanager n'est plus utilisé
+// La synchronisation se fait maintenant à l'ouverture de l'app
 
 class SyncQueueHive {
   final Box box;
@@ -72,12 +35,23 @@ class SyncQueueHive {
     });
     telemetry.event('sync_enqueued', {'kind': 'user_patch'});
 
-    // déclenche un job one-shot
-    await Workmanager().registerOneOffTask(
-      'sync-single-$idKey',
-      'sync.single',
-      inputData: {'kind': 'single'},
-      constraints: Constraints(networkType: NetworkType.connected),
-    );
+    // Synchronisation directe au lieu de workmanager
+    _flushPendingTasks();
+  }
+
+  Future<void> _flushPendingTasks() async {
+    final keys = box.keys.toList();
+    for (final k in keys) {
+      final m = Map<String, dynamic>.from(box.get(k));
+      final kind = m['kind'] as String;
+      try {
+        if (kind == 'user_patch') {
+          await userRepo.patchUser(m['payload'], idempotencyKey: m['idempotencyKey']);
+        }
+        await box.delete(k);
+      } catch (e) {
+        telemetry.event('sync_error', {'kind': kind, 'error': e.toString()});
+      }
+    }
   }
 }

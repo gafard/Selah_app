@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../services/reader_settings_service.dart';
+import '../widgets/uniform_back_button.dart';
 
 class ReaderSettingsPage extends StatefulWidget {
   const ReaderSettingsPage({super.key});
@@ -18,9 +19,9 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+        leading: UniformBackButtonAppBar(
           onPressed: () => Navigator.pop(context),
+          iconColor: Colors.black,
         ),
         title: Text(
           'Réglages de lecture',
@@ -446,7 +447,7 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: Colors.blue,
+            activeThumbColor: Colors.blue,
           ),
         ],
       ),

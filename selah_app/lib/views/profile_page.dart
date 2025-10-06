@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../services/app_state.dart';
 import '../widgets/selah_logo.dart';
+import '../widgets/uniform_back_button.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -23,7 +24,10 @@ class ProfilePage extends StatelessWidget {
             Text('Mon parcours', style: GoogleFonts.playfairDisplay(color: const Color(0xFFF5F5F5))),
           ],
         ),
-        leading: IconButton(icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF8B7355)), onPressed: () => context.pop()),
+        leading: UniformBackButtonAppBar(
+          onPressed: () => context.pop(),
+          iconColor: const Color(0xFF8B7355),
+        ),
       ),
       body: FutureBuilder<Map<String, dynamic>>(
         future: _fetchProfileStats(context),

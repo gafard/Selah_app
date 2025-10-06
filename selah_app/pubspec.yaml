@@ -12,7 +12,7 @@ dependencies:
   flutter_animate: ^4.5.0
   # Local data
   # Notifications + alarmes
-  android_alarm_manager_plus: ^3.0.4
+  flutter_local_notifications: ^17.2.1
   # Téléchargements background (placeholder, peut être remplacé)
   background_downloader: ^8.4.0
 
@@ -41,9 +41,7 @@ dependencies:
   hive_flutter: ^1.1.0
   path_provider: ^2.1.3
 
-  # Background tasks
-  workmanager: ^0.5.2
-  flutter_local_notifications: ^17.2.1
+  # Background tasks (workmanager et android_alarm_manager_plus supprimés)
   timezone: ^0.9.4
   supabase_flutter: ^2.5.6
 

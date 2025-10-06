@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:workmanager/workmanager.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'services/sync_queue_hive.dart';
 import 'services/user_prefs_hive.dart';
@@ -57,16 +56,5 @@ Future<void> appBootstrap() async {
     telemetry: telemetry,
   );
 
-  // Workmanager (pas supporté sur web)
-  if (!kIsWeb) {
-    await Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
-    // Optionnel: relance un worker périodique discret pour vider la file
-    await Workmanager().registerPeriodicTask(
-      'sync-loop', 'sync.loop',
-      frequency: const Duration(minutes: 15),
-      initialDelay: const Duration(minutes: 2),
-      constraints: Constraints(networkType: NetworkType.connected),
-      inputData: {'kind': 'sync_all'},
-    );
-  }
+  // Workmanager et android_alarm_manager_plus supprimés pour éviter les problèmes de compatibilité
 }

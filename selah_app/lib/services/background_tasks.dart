@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:workmanager/workmanager.dart';
+// workmanager supprimé pour éviter les problèmes de compatibilité
 import 'package:timezone/timezone.dart' as tz;
 import 'telemetry_console.dart';
 
@@ -24,12 +24,9 @@ class BackgroundTasks {
       const NotificationDetails(android: AndroidNotificationDetails('dl', 'Downloads')),
     );
 
-    await Workmanager().registerOneOffTask(
-      'bible-$version',
-      'bible.download',
-      inputData: {'version': version},
-      constraints: Constraints(networkType: NetworkType.connected),
-    );
+    // Téléchargement direct au lieu de workmanager
+    // Le téléchargement se fera pendant que l'utilisateur utilise l'app
+    print('📥 Téléchargement de la Bible $version en cours...');
   }
 
   // Option: rappel quotidien "alarme"

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/ics_import_service.dart';
+import '../widgets/uniform_back_button.dart';
 
 class ImportPlanPage extends StatefulWidget {
   const ImportPlanPage({super.key});
@@ -28,9 +29,9 @@ class _ImportPlanPageState extends State<ImportPlanPage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+        leading: UniformBackButtonAppBar(
           onPressed: () => Navigator.pop(context),
+          iconColor: Colors.black,
         ),
         title: Text(
           'Importer un plan',

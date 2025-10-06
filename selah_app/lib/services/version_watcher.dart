@@ -15,7 +15,7 @@ class VersionWatcher {
   }) async {
     try {
       onStart?.call();
-      await UserPrefs.setBibleVersion(newVersionCode);
+      await UserPrefs.setBibleVersionCode(newVersionCode);
       final profile = await currentProfile();
       await PlanOrchestrator.generateAndCachePlan(
         profile: profile,

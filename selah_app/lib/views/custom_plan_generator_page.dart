@@ -8,6 +8,7 @@ import '../services/user_prefs_hive.dart';
 import '../services/plan_service.dart';
 import '../services/telemetry_console.dart';
 import '../models/plan_models.dart';
+import '../widgets/uniform_back_button.dart';
 
 class CustomPlanGeneratorPage extends StatefulWidget {
   const CustomPlanGeneratorPage({super.key});
@@ -19,7 +20,7 @@ class CustomPlanGeneratorPage extends StatefulWidget {
 class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
   final _nameController = TextEditingController();
   DateTime _startDate = DateTime.now();
-  int _totalDays = 360;
+  int _totalDays = 5;
   String _order = 'traditional';
   String _books = 'OT,NT';
   final String _lang = 'fr';
@@ -288,39 +289,12 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
   }
 
   Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Générer un plan personnalisé',
-                  style: GoogleFonts.inter(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Créez votre plan de lecture sur mesure',
-                  style: GoogleFonts.inter(
-                    fontSize: 16,
-                    color: Colors.white70,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return UniformHeader(
+      title: 'Générer un plan personnalisé',
+      subtitle: 'Créez votre plan de lecture sur mesure',
+      onBackPressed: () => Navigator.pop(context),
+      textColor: Colors.white,
+      iconColor: Colors.white,
     );
   }
 
@@ -421,9 +395,9 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
               Expanded(
                 child: Slider(
                   value: _totalDays.toDouble(),
-                  min: 30,
+                  min: 5,
                   max: 360,
-                  divisions: 330,
+                  divisions: 355,
                   onChanged: (value) {
                     setState(() {
                       _totalDays = value.round();
@@ -609,8 +583,8 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
   Future<void> _generatePlan() async {
     if (!_validateAndVibrate()) return;
     
-    if (_totalDays < 30 || _totalDays > 360) {
-      _showError('La durée doit être entre 30 et 360 jours');
+    if (_totalDays < 5 || _totalDays > 360) {
+      _showError('La durée doit être entre 5 et 360 jours');
       HapticFeedback.mediumImpact();
       return;
     }
@@ -657,7 +631,11 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
           icsUrl: Uri.parse(icsUrl.toString()),
         ),
         attempts: 2,
-      );
+      ).catchError((error) {
+        // Fallback: créer un plan local si l'import échoue
+        print('Import échoué, création d\'un plan local: $error');
+        return _createLocalPlan();
+      });
 
       _updateBlockingProgress('3/3 Indexation & rappels…');
 
@@ -770,6 +748,21 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
     }
     throw lastErr ?? Exception('Échec inconnu');
   }
+
+  Future<Plan> _createLocalPlan() async {
+    // Créer un plan local simple
+    final plan = Plan(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      userId: 'local_user',
+      name: _nameController.text.trim(),
+      totalDays: _totalDays,
+      startDate: _startDate,
+      isActive: true,
+    );
+    
+    return plan;
+  }
+
 
 
   bool _validateAndVibrate() {

@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:circle_nav_bar/circle_nav_bar.dart';
 import '../services/meditation_journal_service.dart';
 import '../models/meditation_journal_entry.dart';
+import '../widgets/uniform_back_button.dart';
 
 class SpiritualWallPage extends StatefulWidget {
   const SpiritualWallPage({super.key});
@@ -137,10 +138,11 @@ class _SpiritualWallPageState extends State<SpiritualWallPage> {
         children: [
           Row(
             children: [
-              IconButton(
+              UniformBackButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                iconColor: Colors.white,
               ),
+              const SizedBox(width: 16),
               Expanded(
                 child: Text(
                   'Mur Spirituel',

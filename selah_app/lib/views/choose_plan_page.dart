@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:fancy_stack_carousel/fancy_stack_carousel.dart';
 import '../models/plan_preset.dart';
 import '../services/plan_service.dart';
+import '../services/plan_presets_repo.dart';
 import 'custom_plan_generator_page.dart';
+import '../widgets/uniform_back_button.dart';
 
 class ChoosePlanPage extends StatefulWidget {
   const ChoosePlanPage({super.key});
@@ -109,10 +111,11 @@ class _ChoosePlanPageState extends State<ChoosePlanPage> {
         children: [
           Row(
             children: [
-              IconButton(
+              UniformBackButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                iconColor: Colors.white,
               ),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -437,10 +440,10 @@ class _ChoosePlanPageState extends State<ChoosePlanPage> {
       );
 
       // Créer le plan
-      await PlanService.createPlanFromPreset(
-        userId: 'current_user_id', // Dans une vraie app, récupérer depuis l'auth
-        preset: preset,
+      await PlanService.createFromPreset(
+        presetSlug: preset.slug,
         startDate: startDate,
+        profile: {}, // Dans une vraie app, récupérer depuis l'auth
       );
 
       // Fermer le dialogue de chargement

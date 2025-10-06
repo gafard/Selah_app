@@ -21,6 +21,20 @@ class _AuthPageState extends State<AuthPage> {
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Vérifier les arguments passés lors de la navigation
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args != null && args['mode'] == 'signup') {
+        setState(() {
+          _isLogin = false;
+        });
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _nameC.dispose();
     _emailC.dispose();

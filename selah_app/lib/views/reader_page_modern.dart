@@ -6,6 +6,7 @@ import '../services/reader_settings_service.dart';
 import '../services/audio_player_service.dart';
 import '../widgets/highlightable_text.dart';
 import '../widgets/circular_audio_progress.dart';
+import '../widgets/uniform_back_button.dart';
 
 class ReaderPageModern extends StatefulWidget {
   final String? passageRef;
@@ -25,7 +26,7 @@ class ReaderPageModern extends StatefulWidget {
 
 class _ReaderPageModernState extends State<ReaderPageModern>
     with TickerProviderStateMixin {
-  bool _isFavorite = false;
+  final bool _isFavorite = false;
   bool _isMarkedAsRead = false;
   late AnimationController _buttonAnimationController;
   String _notedVerse = ''; // Verset noté par l'utilisateur
@@ -453,20 +454,10 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: Colors.grey.shade700,
-                size: 20,
-              ),
-            ),
+          UniformBackButton(
+            onPressed: () => Navigator.pop(context),
+            backgroundColor: Colors.grey.shade200,
+            iconColor: Colors.grey.shade700,
           ),
           const SizedBox(width: 16),
           Expanded(

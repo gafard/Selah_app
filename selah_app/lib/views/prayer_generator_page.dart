@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/selah_logo.dart';
+import '../widgets/uniform_back_button.dart';
 
 class PrayerGeneratorPage extends StatefulWidget {
   const PrayerGeneratorPage({super.key});
@@ -32,9 +33,9 @@ class _PrayerGeneratorPageState extends State<PrayerGeneratorPage> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF1A1D29),
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+        leading: UniformBackButtonAppBar(
           onPressed: () => Navigator.pop(context),
+          iconColor: Colors.white,
         ),
         title: Row(
           children: [

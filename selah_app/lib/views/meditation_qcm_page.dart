@@ -4,6 +4,7 @@ import '../models/passage_qcm_builder.dart';
 import '../models/passage_analysis.dart';
 import '../utils/prayer_subjects_mapper.dart';
 import 'prayer_carousel_page.dart';
+import '../widgets/uniform_back_button.dart';
 
 class MeditationQcmPage extends StatefulWidget {
   final String? passageRef;
@@ -454,10 +455,11 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
         children: [
           Row(
             children: [
-              IconButton(
+              UniformBackButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                iconColor: Colors.white,
               ),
+              const SizedBox(width: 16),
               Expanded(
                 child: Text(
                   'Méditation Guidée',
@@ -469,7 +471,7 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
                   textAlign: TextAlign.center,
                 ),
               ),
-              const SizedBox(width: 48),
+              const SizedBox(width: 56), // Ajuster pour centrer avec le bouton
             ],
           ),
           const SizedBox(height: 16),
@@ -534,7 +536,7 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
           ),
           const SizedBox(height: 12),
           Text(
-            'Sélectionne ce qui décrit le mieux le passage. Tu peux aussi écrire ta propre réponse à la fin de chaque question.',
+            'Sélectionne les options qui correspondent le mieux à ta compréhension du passage.',
             style: GoogleFonts.inter(
               fontSize: 14,
               color: Colors.white.withOpacity(0.9),

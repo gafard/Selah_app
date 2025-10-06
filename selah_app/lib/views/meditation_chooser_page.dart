@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../constants/app_tokens.dart';
+import '../widgets/uniform_back_button.dart';
 import '../widgets/calm_ui_components.dart';
 import '../widgets/option_tile.dart';
 import '../models/passage_payload.dart';
@@ -24,9 +25,10 @@ class MeditationChooserPage extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                IconButton(
+                UniformBackButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.arrow_back),
+                  iconColor: Colors.black,
+                  backgroundColor: Colors.grey.shade100,
                 ),
                 const Text('Méditation'),
               ],

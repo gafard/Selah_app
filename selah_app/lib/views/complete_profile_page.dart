@@ -1,12 +1,9 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import 'package:go_router/go_router.dart';
 import '../services/notification_service.dart';
-import '../services/bible_download_service.dart';
 import '../services/daily_scheduler.dart';
 import '../services/user_prefs.dart';
-import '../models/plan_profile.dart';
 
 class CompleteProfilePage extends StatefulWidget {
   const CompleteProfilePage({super.key});
@@ -17,7 +14,7 @@ class CompleteProfilePage extends StatefulWidget {
 
 class _CompleteProfilePageState extends State<CompleteProfilePage> {
   // Sélections
-  String bibleVersion = 'LSG';
+  String bibleVersion = 'Louis Segond (LSG)';
   int durationMin = 15;
   TimeOfDay reminder = const TimeOfDay(hour: 7, minute: 0);
   String goal = 'Discipline quotidienne';
@@ -27,15 +24,29 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
   bool downloading = false;
   double dlProgress = 0;
 
-  final bibleVersions = const ['LSG', 'S21', 'BDS', 'PDV', 'TOB', 'NIV'];
+  final bibleVersions = const [
+    'Louis Segond (LSG)',
+    'Segond 21 (S21)', 
+    'Bible du Semeur (BDS)',
+    'Parole de Vie (PDV)',
+    'Traduction Œcuménique de la Bible (TOB)',
+    'New International Version (NIV)'
+  ];
   final goals = const [
     'Discipline quotidienne',
+    'Discipline de prière',
     'Approfondir la Parole',
-    'Mieux prier',
     'Grandir dans la foi',
+    'Développer mon caractère',
+    'Trouver de l\'encouragement',
+    'Expérimenter la guérison',
+    'Partager ma foi',
+    'Mieux prier',
   ];
   final levels = const [
     'Nouveau converti',
+    'Rétrogarde',
+    'Fidèle pas si régulier',
     'Fidèle régulier',
     'Serviteur/leader',
   ];
@@ -56,155 +67,69 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        // Dégradé Calm/Superlist + léger glow
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF1C1740), Color(0xFF2D1B69)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
+            colors: [Color(0xFF1A1D29), Color(0xFF112244)],
           ),
         ),
         child: SafeArea(
-          child: Stack(
+          child: Column(
             children: [
-              // Micro-shapes
-              Positioned.fill(child: _BackgroundMist()),
-              // Contenu
-              SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              // Contenu scrollable
+              Expanded(
+                child: Stack(
                   children: [
-                    _header(context),
-                    const SizedBox(height: 12),
-                    _sectionTitle('Version de la Bible'),
-                    _GlassCard(
-                      child: _DropdownTile(
-                        icon: Icons.menu_book_rounded,
-                        value: bibleVersion,
-                        items: bibleVersions,
-                        onChanged: (v) => setState(() => bibleVersion = v),
-                      ),
-                    ).animate().fadeIn().moveY(begin: 16, end: 0, curve: Curves.easeOut),
-
-                    const SizedBox(height: 16),
-                    _sectionTitle('Durée quotidienne'),
-                    _GlassCard(
-                      child: _DurationSlider(
-                        value: durationMin,
-                        onChanged: (v) => setState(() => durationMin = v),
-                      ),
-                    ).animate().fadeIn().moveY(begin: 16, end: 0),
-
-                    const SizedBox(height: 16),
-                    _sectionTitle('Rappel'),
-                    _GlassCard(
-                      child: Column(
-                        children: [
-                          _SwitchTile(
-                            icon: Icons.notifications_active_outlined,
-                            title: 'Activer le rappel',
-                            value: autoReminder,
-                            onChanged: (v) => setState(() => autoReminder = v),
-                          ),
-                          if (autoReminder) ...[
-                            const SizedBox(height: 12),
-                            _TimePickerTile(
-                              icon: Icons.access_time,
-                              timeOfDay: reminder,
-                              onPick: () async {
-                                final t = await showTimePicker(
-                                  context: context,
-                                  initialTime: reminder,
-                                );
-                                if (t != null) setState(() => reminder = t);
-                              },
-                            ),
-                          ],
-                        ],
-                      ),
-                    ).animate().fadeIn().moveY(begin: 16, end: 0),
-
-                    const SizedBox(height: 16),
-                    _sectionTitle('Objectif & Niveau'),
-                    _GlassCard(
-                      child: Column(
-                        children: [
-                          _DropdownTile(
-                            icon: Icons.flag_outlined,
-                            value: goal,
-                            items: goals,
-                            onChanged: (v) => setState(() => goal = v),
-                          ),
-                          const SizedBox(height: 12),
-                          _DropdownTile(
-                            icon: Icons.trending_up_rounded,
-                            value: level,
-                            items: levels,
-                            onChanged: (v) => setState(() => level = v),
-                          ),
-                        ],
-                      ),
-                    ).animate().fadeIn().moveY(begin: 16, end: 0),
-
-                    const SizedBox(height: 16),
-                    _sectionTitle('Préférences'),
-                    _GlassCard(
-                      child: Column(
-                        children: [
-                          _DropdownTile(
-                            icon: Icons.menu_book_rounded,
-                            value: meditation,
-                            items: meditations,
-                            onChanged: (v) => setState(() => meditation = v),
-                          ),
-                        ],
-                      ),
-                    ).animate().fadeIn().moveY(begin: 16, end: 0),
-
-                    const SizedBox(height: 24),
-                    _primaryButton(
-                      label: downloading ? 'Téléchargement…' : 'Continuer',
-                      icon: downloading ? Icons.downloading : Icons.check,
-                      onPressed: downloading ? null : _onContinue,
+                    // Ornements légers
+                    Positioned(
+                      right: -60,
+                      top: -40,
+                      child: _softBlob(180),
                     ),
-                    if (downloading) ...[
-                      const SizedBox(height: 12),
-                      _GlassCard(
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                const SizedBox(width: 8),
-                                const Icon(Icons.download, color: Colors.white70, size: 20),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    'Téléchargement de $bibleVersion…',
-                                    style: GoogleFonts.inter(color: Colors.white70),
-                                  ),
+                    Positioned(
+                      left: -40,
+                      bottom: -50,
+                      child: _softBlob(220),
+                    ),
+
+                    // Contenu centré avec scroll
+                    SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                            child: Container(
+                              constraints: const BoxConstraints(maxWidth: 480),
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.2),
+                                  width: 1,
                                 ),
-                                Text(
-                                  '${(dlProgress * 100).toInt()}%',
-                                  style: GoogleFonts.inter(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                              ],
+                              ),
+                              child: Column(
+                                children: [
+                                  const SizedBox(height: 8),
+                                  // Header
+                                  _buildHeader(),
+                                  const SizedBox(height: 20),
+
+                                  // Formulaire de configuration
+                                  _buildConfigurationForm(),
+                                  const SizedBox(height: 100), // Espace pour le bouton
+                                ],
+                              ),
                             ),
-                            const SizedBox(height: 12),
-                            LinearProgressIndicator(
-                              value: dlProgress,
-                              backgroundColor: Colors.white.withOpacity(0.1),
-                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF1553FF)),
-                              minHeight: 6,
-                            ),
-                          ],
+                          ),
                         ),
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ),
@@ -212,44 +137,329 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
           ),
         ),
       ),
+      // Bouton principal (fixé en bas de l'écran)
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.transparent,
+              const Color(0xFF1A1D29).withOpacity(0.9),
+              const Color(0xFF1A1D29),
+            ],
+          ),
+        ),
+        child: _buildContinueButton(),
+      ),
     );
   }
 
-  Widget _header(BuildContext context) {
-    return Row(
+  Widget _buildHeader() {
+    return Column(
       children: [
-        Expanded(
-          child: Text(
-            'Personnalise ton parcours',
-            style: GoogleFonts.outfit(
+        Text(
+          'PERSONNALISE TON PARCOURS',
+          style: GoogleFonts.inter(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
               color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-            ),
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Configure tes préférences pour une expérience sur mesure',
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            color: Colors.white70,
+            height: 1.3,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildConfigurationForm() {
+    return Column(
+      children: [
+        // Version de la Bible
+        _buildField(
+          label: 'Version de la Bible',
+          icon: Icons.menu_book_rounded,
+          child: _buildDropdown(
+            value: bibleVersion,
+            items: bibleVersions,
+            onChanged: (v) => setState(() => bibleVersion = v),
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Durée quotidienne
+        _buildField(
+          label: 'Durée quotidienne ($durationMin min)',
+          icon: Icons.timer_outlined,
+          child: _buildDurationSlider(),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Rappels quotidiens
+        _buildField(
+          label: 'Rappels quotidiens',
+          icon: Icons.notifications_active_outlined,
+          child: _buildSwitchTile(),
+        ),
+
+        if (autoReminder) ...[
+          const SizedBox(height: 16),
+          _buildField(
+            label: 'Heure du rappel',
+            icon: Icons.access_time,
+            child: _buildTimePicker(),
+          ),
+        ],
+
+        const SizedBox(height: 16),
+
+        // Objectif principal
+        _buildField(
+          label: 'Ton objectif principal',
+          icon: Icons.flag_outlined,
+          child: _buildDropdown(
+            value: goal,
+            items: goals,
+            onChanged: (v) => setState(() => goal = v),
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Niveau spirituel
+        _buildField(
+          label: 'Ton niveau spirituel',
+          icon: Icons.trending_up_rounded,
+          child: _buildDropdown(
+            value: level,
+            items: levels,
+            onChanged: (v) => setState(() => level = v),
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Méthode de méditation
+        _buildField(
+          label: 'Méthode de méditation',
+          icon: Icons.spa_outlined,
+          child: _buildDropdown(
+            value: meditation,
+            items: meditations,
+            onChanged: (v) => setState(() => meditation = v),
           ),
         ),
       ],
     );
   }
 
-  Widget _sectionTitle(String t) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
-    child: Text(
-      t,
-      style: GoogleFonts.inter(
-        color: Colors.white.withOpacity(0.9),
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-      ),
-    ),
-  );
+  Widget _buildField({
+    required String label,
+    required IconData icon,
+    required Widget child,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: Colors.white70, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        child,
+      ],
+    );
+  }
 
-  Widget _primaryButton({required String label, required IconData icon, VoidCallback? onPressed}) {
+  Widget _buildDropdown({
+    required String value,
+    required List<String> items,
+    required Function(String) onChanged,
+  }) {
+    return Container(
+      height: 52, // Hauteur légèrement réduite
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.20)),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12), // Padding réduit
+          child: DropdownButton<String>(
+            value: value,
+            dropdownColor: const Color(0xFF2D1B69),
+            style: GoogleFonts.inter(color: Colors.white, fontSize: 13), // Taille réduite
+            isExpanded: true, // Permet au dropdown de prendre toute la largeur
+            items: items.map((e) => DropdownMenuItem(
+              value: e,
+              child: Text(
+                e, 
+                style: GoogleFonts.inter(color: Colors.white, fontSize: 13), // Taille réduite
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+            )).toList(),
+            onChanged: (v) {
+              if (v != null) onChanged(v);
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDurationSlider() {
+    return Container(
+      height: 52, // Hauteur légèrement réduite
+      padding: const EdgeInsets.symmetric(horizontal: 12), // Padding réduit
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.20)),
+      ),
+      child: Center(
+        child: SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            activeTrackColor: Colors.white,
+            inactiveTrackColor: Colors.white.withOpacity(0.3),
+            thumbColor: const Color(0xFF1553FF),
+            overlayColor: const Color(0xFF1553FF).withOpacity(0.2),
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+          ),
+          child: Slider(
+            value: durationMin.toDouble(),
+            min: 5,
+            max: 60,
+            divisions: 11,
+            label: '$durationMin min',
+            onChanged: (v) => setState(() => durationMin = v.round()),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSwitchTile() {
+    return Container(
+      height: 52, // Hauteur légèrement réduite
+      padding: const EdgeInsets.symmetric(horizontal: 12), // Padding réduit
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.20)),
+      ),
+      child: Center(
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Recevoir des rappels quotidiens',
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            Switch(
+              value: autoReminder,
+              onChanged: (v) => setState(() => autoReminder = v),
+              activeColor: const Color(0xFF1553FF),
+              activeTrackColor: const Color(0xFF1553FF).withOpacity(0.3),
+              inactiveThumbColor: Colors.white70,
+              inactiveTrackColor: Colors.white.withOpacity(0.3),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimePicker() {
+    return Container(
+      height: 52, // Hauteur légèrement réduite
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.20)),
+      ),
+      child: InkWell(
+        onTap: () async {
+          final t = await showTimePicker(
+            context: context,
+            initialTime: reminder,
+          );
+          if (t != null) setState(() => reminder = t);
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12), // Padding réduit
+          child: Center(
+            child: Row(
+              children: [
+                Icon(Icons.access_time, color: Colors.white70, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Heure du rappel',
+                    style: GoogleFonts.inter(
+                      color: Colors.white70,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    _fmt(reminder),
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContinueButton() {
     return SizedBox(
       width: double.infinity,
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           gradient: const LinearGradient(
             colors: [
               Color(0xFF1553FF),
@@ -264,27 +474,77 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
             ),
           ],
         ),
-        child: ElevatedButton.icon(
-          onPressed: onPressed,
-          icon: Icon(icon, color: Colors.white),
-          label: Text(label, style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.white)),
+        child: ElevatedButton(
+          onPressed: downloading ? null : _onContinue,
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.transparent,
             foregroundColor: Colors.white,
             elevation: 0,
             shadowColor: Colors.transparent,
             padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
+          child: downloading
+              ? Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Téléchargement…',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                )
+              : Text(
+                  'Continuer',
+                  style: GoogleFonts.inter(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
         ),
       ),
     );
   }
 
+  Widget _softBlob(double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [Colors.white.withOpacity(0.20), Colors.transparent],
+        ),
+      ),
+    );
+  }
+
+
   Future<void> _onContinue() async {
+    // Extraire le code de la version de la Bible (ex: "LSG" de "Louis Segond (LSG)")
+    final bibleVersionCode = bibleVersion.contains('(') 
+        ? bibleVersion.substring(bibleVersion.lastIndexOf('(') + 1, bibleVersion.lastIndexOf(')'))
+        : bibleVersion;
+
     // 1) Sauvegarde des préférences utilisateur
     await UserPrefs.saveProfile({
-      'bibleVersion': bibleVersion,
+      'bibleVersion': bibleVersionCode,
       'durationMin': durationMin,
       'reminderHour': reminder.hour,
       'reminderMinute': reminder.minute,
@@ -296,7 +556,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     });
 
     // 2) Sauvegarde de la version de la Bible
-    await UserPrefs.setBibleVersionCode(bibleVersion);
+    await UserPrefs.setBibleVersionCode(bibleVersionCode);
 
     // 3) Téléchargement de la Bible en background avec progression
     setState(() => downloading = true);
@@ -306,67 +566,36 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
 
     // 4) Configuration des rappels quotidiens
     if (autoReminder) {
-      await DailyScheduler.scheduleDaily(reminder);
-      // Notification immédiate (feedback)
-      await NotificationService.instance.showNow(
-        title: 'Rappel configuré',
-        body: 'Tu recevras un rappel chaque jour à ${_fmt(reminder)}.',
-      );
+      try {
+        await DailyScheduler.scheduleDaily(reminder);
+        // Notification immédiate (feedback)
+        await NotificationService.instance.showNow(
+          title: 'Rappel configuré',
+          body: 'Tu recevras un rappel chaque jour à ${_fmt(reminder)}.',
+        );
+      } catch (e) {
+        print('Erreur lors de la configuration du rappel: $e');
+        // Continuer même si les rappels ne fonctionnent pas
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Les rappels ne sont pas disponibles sur cet appareil'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
     } else {
-      await DailyScheduler.cancel();
+      try {
+        await DailyScheduler.cancel();
+      } catch (e) {
+        print('Erreur lors de l\'annulation du rappel: $e');
+      }
     }
 
     if (mounted) Navigator.pushReplacementNamed(context, '/goals');
   }
 
-  PlanProfile _createPlanProfile() {
-    // Convertir les choix de l'utilisateur en PlanProfile
-    Level userLevel;
-    switch (level) {
-      case 'Nouveau converti':
-        userLevel = Level.newBeliever;
-        break;
-      case 'Serviteur/leader':
-        userLevel = Level.leader;
-        break;
-      default:
-        userLevel = Level.regular;
-    }
-
-    Set<Goal> userGoals = {};
-    switch (goal) {
-      case 'Discipline quotidienne':
-        userGoals.add(Goal.discipline);
-        break;
-      case 'Approfondir la Parole':
-        userGoals.add(Goal.deepenWord);
-        break;
-      case 'Mieux prier':
-        userGoals.add(Goal.prayer);
-        break;
-      case 'Grandir dans la foi':
-        userGoals.add(Goal.faithGrowth);
-        break;
-    }
-
-    // Déterminer la durée du plan selon le niveau et la durée quotidienne
-    int totalDays;
-    if (userLevel == Level.newBeliever) {
-      totalDays = durationMin <= 15 ? 30 : 90;
-    } else if (userLevel == Level.leader) {
-      totalDays = durationMin >= 20 ? 90 : 30;
-    } else {
-      totalDays = durationMin >= 20 ? 90 : 30;
-    }
-
-    return PlanProfile(
-      level: userLevel,
-      goals: userGoals,
-      minutesPerDay: durationMin,
-      totalDays: totalDays,
-      startDate: DateTime.now(),
-    );
-  }
 
   String _fmt(TimeOfDay t) {
     final hh = t.hour.toString().padLeft(2, '0');
@@ -375,202 +604,3 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
   }
 }
 
-// ============= UI helpers (Calm/Superlist vibe) =============
-
-class _GlassCard extends StatelessWidget {
-  const _GlassCard({required this.child});
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.12)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.25),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: child,
-    );
-  }
-}
-
-class _DropdownTile extends StatelessWidget {
-  const _DropdownTile({
-    required this.icon,
-    required this.value,
-    required this.items,
-    required this.onChanged,
-  });
-
-  final IconData icon;
-  final String value;
-  final List<String> items;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, color: Colors.white70),
-        const SizedBox(width: 12),
-        Expanded(
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: value,
-              dropdownColor: const Color(0xFF2D1B69),
-              items: items.map((e) => DropdownMenuItem(
-                value: e,
-                child: Text(e, style: GoogleFonts.inter(color: Colors.white)),
-              )).toList(),
-              onChanged: (v) {
-                if (v != null) onChanged(v);
-              },
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _DurationSlider extends StatelessWidget {
-  const _DurationSlider({required this.value, required this.onChanged});
-  final int value;
-  final ValueChanged<int> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            const Icon(Icons.timer_outlined, color: Colors.white70),
-            const SizedBox(width: 12),
-            Expanded(
-              child: SliderTheme(
-                data: SliderTheme.of(context).copyWith(
-                  activeTrackColor: Colors.white,
-                  inactiveTrackColor: Colors.white24,
-                  thumbColor: const Color(0xFF1553FF),
-                ),
-                child: Slider(
-                  value: value.toDouble(),
-                  min: 5,
-                  max: 60,
-                  divisions: 11,
-                  label: '$value min',
-                  onChanged: (v) => onChanged(v.round()),
-                ),
-              ),
-            ),
-            Text('$value min', style: GoogleFonts.inter(color: Colors.white)),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _SwitchTile extends StatelessWidget {
-  const _SwitchTile({
-    required this.icon,
-    required this.title,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final IconData icon;
-  final String title;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, color: Colors.white70),
-        const SizedBox(width: 12),
-        Expanded(child: Text(title, style: GoogleFonts.inter(color: Colors.white))),
-        Switch(
-          value: value,
-          onChanged: onChanged,
-          activeThumbColor: const Color(0xFF1553FF),
-        )
-      ],
-    );
-  }
-}
-
-class _TimePickerTile extends StatelessWidget {
-  const _TimePickerTile({
-    required this.icon,
-    required this.timeOfDay,
-    required this.onPick,
-  });
-
-  final IconData icon;
-  final TimeOfDay timeOfDay;
-  final VoidCallback onPick;
-
-  @override
-  Widget build(BuildContext context) {
-    String fmt(TimeOfDay t) =>
-        '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
-
-    return InkWell(
-      onTap: onPick,
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.white70),
-          const SizedBox(width: 12),
-          Text('Heure du rappel', style: GoogleFonts.inter(color: Colors.white70)),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.white24),
-            ),
-            child: Text(fmt(timeOfDay), style: GoogleFonts.inter(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BackgroundMist extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: CustomPaint(
-        painter: _MistPainter(),
-      ),
-    );
-  }
-}
-
-class _MistPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..maskFilter = const MaskFilter.blur(BlurStyle.normal, 30);
-    paint.color = const Color(0xFF1553FF).withOpacity(0.18);
-    canvas.drawCircle(Offset(size.width * .2, size.height * .25), 80, paint);
-    paint.color = const Color(0xFF0D47A1).withOpacity(0.16);
-    canvas.drawCircle(Offset(size.width * .8, size.height * .35), 100, paint);
-    paint.color = const Color(0xFF1553FF).withOpacity(0.10);
-    canvas.drawCircle(Offset(size.width * .6, size.height * .75), 120, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}

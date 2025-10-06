@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import '../widgets/selah_logo.dart';
+import '../widgets/uniform_back_button.dart';
 
 class JournalPage extends StatefulWidget {
   final Map<String, dynamic>? prefillData;
@@ -169,10 +169,11 @@ class _JournalPageState extends State<JournalPage> with TickerProviderStateMixin
         children: [
           Row(
             children: [
-              IconButton(
+              UniformBackButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                iconColor: Colors.white,
               ),
+              const SizedBox(width: 16),
               Expanded(
                 child: Text(
                   'Journal Spirituel',

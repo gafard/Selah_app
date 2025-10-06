@@ -19,26 +19,28 @@ class GeneratedPlanDay {
 class PlanGenerator {
   /// point d'entrée : génère les références quotidiennes à partir d'un preset + startDate
   static List<GeneratedPlanDay> generate(PlanPreset preset, DateTime startDate) {
-    switch (preset.rule) {
-      case 'NT_90_LINEAR':
+    switch (preset.slug) {
+      case 'nt_90':
         return _nt90(startDate);
-      case 'PROVERBS_31':
+      case 'proverbs_31':
         return _proverbs31(startDate);
-      case 'PSALMS_40':
-        return _psalmsRange(startDate,
-            start: preset.params['start'] ?? 1,
-            end: preset.params['end'] ?? 80,
-            perDay: preset.params['per_day'] ?? 2);
-      case 'RANGE_SPLIT': // ex: Genèse 1–25 sur 14 jours
+      case 'psalms_40':
+        return _psalmsRange(startDate, start: 1, end: 40, perDay: 1);
+      case 'genesis_1_25_14d':
         return _rangeSplit(startDate,
-            book: preset.params['book'] ?? 'Genèse',
-            startCh: preset.params['start_ch'] ?? 1,
-            endCh: preset.params['end_ch'] ?? 25,
-            days: preset.params['days'] ?? preset.durationDays);
-      case 'SEQUENCE_CHAPTERS': // liste de {book, chapters}
-        return _sequenceChapters(startDate, preset.params['sequence']);
+            book: 'Genèse',
+            startCh: 1,
+            endCh: 25,
+            days: 14);
       default:
-        // "COMING_SOON" : on renvoie une liste vide (le preset s'affiche mais non générable)
+        // Pour les autres presets, utiliser la logique basée sur les livres
+        if (preset.books.contains('NT')) {
+          return _nt90(startDate);
+        } else if (preset.books.contains('Psalms')) {
+          return _psalmsRange(startDate, start: 1, end: 40, perDay: 1);
+        } else if (preset.books.contains('Proverbs')) {
+          return _proverbs31(startDate);
+        }
         return <GeneratedPlanDay>[];
     }
   }

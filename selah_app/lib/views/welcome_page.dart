@@ -13,6 +13,7 @@ class WelcomePage extends StatefulWidget {
 
 class _WelcomePageState extends State<WelcomePage> {
   bool _busy = false;
+  bool _isNavigating = false;
 
   @override
   Widget build(BuildContext context) {
@@ -40,39 +41,47 @@ class _WelcomePageState extends State<WelcomePage> {
                 ),
               ),
               
-              // Contenu principal avec support du TextScaleFactor
+              // Contenu principal avec support du TextScaleFactor et scroll
               MediaQuery.withNoTextScaling(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 60),
-                      
-                      // Icône de l'app avec accessibilité
-                      _buildAppIcon(),
-                      
-                      const SizedBox(height: 40),
-                      
-                      // Titre de bienvenue avec accessibilité
-                      _buildWelcomeTitle(),
-                      
-                      const SizedBox(height: 16),
-                      
-                      // Sous-titre avec accessibilité
-                      _buildSubtitle(),
-                      
-                      const Spacer(),
-                      
-                      // Boutons d'authentification
-                      _buildAuthButtons(context),
-                      
-                      const SizedBox(height: 16),
-                      
-                      // Mentions légales
-                      _buildLegalText(context),
-                      
-                      const SizedBox(height: 40),
-                    ],
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top,
+                      ),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 60),
+                          
+                          // Icône de l'app avec accessibilité
+                          _buildAppIcon(),
+                          
+                          const SizedBox(height: 40),
+                          
+                          // Titre de bienvenue avec accessibilité
+                          _buildWelcomeTitle(),
+                          
+                          const SizedBox(height: 32),
+                          
+                          // Sous-titre avec accessibilité
+                          _buildSubtitle(),
+                          
+                          const SizedBox(height: 60),
+                          
+                          // Boutons d'authentification
+                          _buildAuthButtons(context),
+                          
+                          const SizedBox(height: 16),
+                          
+                          // Mentions légales
+                          _buildLegalText(context),
+                          
+                          const SizedBox(height: 40),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -168,24 +177,39 @@ class _WelcomePageState extends State<WelcomePage> {
   Widget _buildSubtitle() {
     return Semantics(
       label: 'Arrêtez, et sachez que je suis Dieu : je domine sur les nations, je domine sur la terre.',
-      child: Text(
-        '"Arrêtez, et sachez que je suis Dieu :\nje domine sur les nations, je domine sur la terre."\n\nPsaume 46:10',
-        style: GoogleFonts.playfairDisplay(
-          fontSize: 18,
-          fontWeight: FontWeight.w400,
-          fontStyle: FontStyle.italic,
-          color: Colors.white.withOpacity(0.9),
-          height: 1.6,
-          letterSpacing: 0.3,
-          shadows: [
-            Shadow(
-              color: Colors.black.withOpacity(0.15),
-              offset: const Offset(0, 1),
-              blurRadius: 3,
+      child: Column(
+        children: [
+          Text(
+            '"Arrêtez, et sachez que je suis Dieu :\nje domine sur les nations, je domine sur la terre."',
+            style: GoogleFonts.playfairDisplay(
+              fontSize: 18,
+              fontWeight: FontWeight.w400,
+              fontStyle: FontStyle.italic,
+              color: Colors.white.withOpacity(0.9),
+              height: 1.3,
+              letterSpacing: 0.3,
+              shadows: [
+                Shadow(
+                  color: Colors.black.withOpacity(0.15),
+                  offset: const Offset(0, 1),
+                  blurRadius: 3,
+                ),
+              ],
             ),
-          ],
-        ),
-        textAlign: TextAlign.center,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Psaume 46:10',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.white.withOpacity(0.7),
+              letterSpacing: 0.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     )
     .animate()
@@ -232,7 +256,7 @@ class _WelcomePageState extends State<WelcomePage> {
           ],
         ),
         child: ElevatedButton(
-          onPressed: () => _handleAuthTap(() => Navigator.pushNamed(context, '/auth', arguments: {'mode': 'login'})),
+          onPressed: _isNavigating ? null : () => _handleAuthTap(() => Navigator.pushNamed(context, '/auth', arguments: {'mode': 'login'})),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.transparent,
             foregroundColor: Colors.white,
@@ -271,7 +295,7 @@ class _WelcomePageState extends State<WelcomePage> {
       label: 'Créer un compte',
       button: true,
       child: InkWell(
-        onTap: () => _handleAuthTap(() => Navigator.pushNamed(context, '/auth', arguments: {'mode': 'signup'})),
+        onTap: _isNavigating ? null : () => _handleAuthTap(() => Navigator.pushNamed(context, '/auth', arguments: {'mode': 'signup'})),
         borderRadius: BorderRadius.circular(8),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -336,13 +360,19 @@ class _WelcomePageState extends State<WelcomePage> {
   }
 
   Future<void> _handleAuthTap(VoidCallback action) async {
-    if (_busy) return;
-    setState(() => _busy = true);
+    if (_busy || _isNavigating) return;
+    setState(() {
+      _busy = true;
+      _isNavigating = true;
+    });
     
     try {
       HapticFeedback.lightImpact();
+      // Délai pour permettre à l'animation de se terminer avant la navigation
+      await Future.delayed(const Duration(milliseconds: 150));
       action();
     } finally {
+      // Ne pas remettre _busy à false car on navigue
       if (mounted) {
         setState(() => _busy = false);
       }

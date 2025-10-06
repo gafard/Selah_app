@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../widgets/uniform_back_button.dart';
 
 class AdvancedScanBiblePage extends StatefulWidget {
   const AdvancedScanBiblePage({super.key});
@@ -79,21 +80,9 @@ class _AdvancedScanBiblePageState extends State<AdvancedScanBiblePage>
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
                 child: Row(
                   children: [
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.arrow_back_ios_new_rounded,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
+                    UniformBackButton(
+                      onPressed: () => Navigator.pop(context),
+                      iconColor: Colors.white,
                     ),
                     const Spacer(),
                     Text(

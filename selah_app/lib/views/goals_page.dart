@@ -2,15 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fancy_stack_carousel/fancy_stack_carousel.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../models/plan_preset.dart';
 import '../services/plan_presets_repo.dart';
 import '../services/user_prefs_hive.dart';
 import '../services/plan_service.dart';
 import 'package:provider/provider.dart';
 import '../services/dynamic_preset_generator.dart';
-import '../models/thompson_plan_models.dart';
-import '../services/hybrid_plan_service.dart';
+import '../services/intelligent_local_preset_generator.dart';
+import '../widgets/uniform_back_button.dart';
 
 class GoalsPage extends StatefulWidget {
   const GoalsPage({super.key});
@@ -33,326 +32,47 @@ class _GoalsPageState extends State<GoalsPage> {
   @override
   void initState() {
     super.initState();
-    _presetsFuture = _fetchPresets();
     _carouselController = FancyStackCarouselController();
     _loadUserProfile();
+    // Générer des presets dynamiques basés sur le profil utilisateur
+    _presetsFuture = _fetchPresets();
   }
 
   Future<List<PlanPreset>> _fetchPresets() async {
-    print('🎯 Génération de 5+ presets hybrides Thompson + API...');
+    print('🧠 Génération intelligente de presets locaux...');
     
     try {
-      // Générer plusieurs presets hybrides basés sur le profil utilisateur
-      if (_userProfile != null) {
-        final completeProfile = CompleteProfile.fromUserPrefs(_userProfile!);
+      // Utiliser le générateur enrichi avec apprentissage et adaptation émotionnelle
+      final enrichedPresets = IntelligentLocalPresetGenerator.generateEnrichedPresets(_userProfile ?? {});
+      
+      if (enrichedPresets.isNotEmpty) {
+        print('✅ ${enrichedPresets.length} presets enrichis générés avec adaptation émotionnelle');
         
-        // Générer 5 presets avec différents thèmes Thompson selon l'objectif
-        final List<PlanPreset> presets = [];
-        final thompsonThemes = _getThemesForGoal(completeProfile.goals);
+        // Générer les explications pour chaque preset
+        final explanations = IntelligentLocalPresetGenerator.explainPresets(enrichedPresets, _userProfile);
+        _printPresetExplanations(explanations);
         
-        // Prendre 5 thèmes différents
-        final selectedThemes = thompsonThemes.take(5).toList();
+        // Afficher les recommandations spirituelles
+        final recommendations = IntelligentLocalPresetGenerator.getSpiritualRecommendations();
+        _printSpiritualRecommendations(recommendations);
         
-        for (int i = 0; i < selectedThemes.length; i++) {
-          final theme = selectedThemes[i];
-          print('🎨 Génération preset ${i + 1}/5: $theme');
-          
-          try {
-            // Créer un profil modifié pour ce thème
-            final modifiedProfile = _createProfileForTheme(completeProfile, theme, i);
-            
-            // Générer le plan hybride
-            final hybridResult = await HybridPlanService.generateHybridPlan(modifiedProfile);
-            
-            if (hybridResult.success && hybridResult.planPreset != null) {
-              // Sauvegarder le plan hybride
-              await HybridPlanService.saveHybridPlan(hybridResult);
-              
-              // Générer un nom dynamique pour le preset
-              final dynamicName = _generateDynamicPlanName(theme, i, hybridResult.planPreset!.books);
-              final enhancedPreset = PlanPreset(
-                slug: hybridResult.planPreset!.slug,
-                name: dynamicName,
-                durationDays: hybridResult.planPreset!.durationDays,
-                order: hybridResult.planPreset!.order,
-                books: hybridResult.planPreset!.books,
-                coverImage: hybridResult.planPreset!.coverImage,
-                minutesPerDay: hybridResult.planPreset!.minutesPerDay,
-                recommended: hybridResult.planPreset!.recommended,
-                description: hybridResult.planPreset!.description,
-                gradient: hybridResult.planPreset!.gradient,
-                specificBooks: hybridResult.planPreset!.specificBooks,
-              );
-              
-              print('✅ Preset ${i + 1} généré: $dynamicName');
-              print('📚 Livres: ${hybridResult.planPreset!.books}');
-              
-              presets.add(enhancedPreset);
-            } else {
-              print('❌ Échec preset ${i + 1}: ${hybridResult.error}');
-              // Ajouter un preset de fallback
-              presets.add(await _createFallbackPreset(theme, i));
-            }
-          } catch (e) {
-            print('❌ Erreur preset ${i + 1}: $e');
-            // Ajouter un preset de fallback
-            presets.add(await _createFallbackPreset(theme, i));
-          }
-        }
-        
-        print('✅ ${presets.length} presets générés avec succès');
-        return presets;
+        return enrichedPresets;
       }
       
       // Fallback: générer des presets dynamiques si pas de profil
+      print('📝 Fallback vers presets dynamiques...');
       final dynamicPresets = DynamicPresetGenerator.generateDynamicPresets(_userProfile);
       return dynamicPresets;
     } catch (e) {
-      print('❌ Erreur génération multiple presets: $e');
-      // Fallback vers les presets statiques en cas d'erreur
+      print('❌ Erreur génération intelligente: $e');
+      // Fallback final vers les presets statiques
+      print('📚 Fallback final vers presets statiques...');
       final allPresets = await PlanPresetsRepo.loadFromAsset();
       return allPresets;
     }
   }
   
-  /// Crée un profil modifié pour un thème spécifique
-  CompleteProfile _createProfileForTheme(CompleteProfile baseProfile, String theme, int index) {
-    // Modifier les objectifs pour se concentrer sur ce thème
-    final themeGoals = {
-      'spiritual_demand': ['discipline', 'holiness', 'transformation'],
-      'no_worry': ['anxiety', 'peace', 'trust'],
-      'companionhip': ['community', 'fellowship', 'relationships'],
-      'prayer_life': ['prayer', 'spiritual_life', 'communion'],
-      'forgiveness': ['forgiveness', 'healing', 'reconciliation'],
-      'faith_trials': ['trials', 'faith', 'perseverance'],
-      'common_errors': ['wisdom', 'discernment', 'avoiding_sin'],
-      'marriage_duties': ['marriage', 'relationships', 'covenant'],
-    };
-    
-    // Varier la durée selon l'index pour diversifier
-    final minutes = [15, 20, 25, 30, 35];
-    
-    return CompleteProfile(
-      language: baseProfile.language,
-      minutesPerDay: minutes[index % minutes.length],
-      daysPerWeek: baseProfile.daysPerWeek,
-      goals: themeGoals[theme] ?? ['discipline'],
-      experience: baseProfile.experience,
-      prefersThemes: true,
-      hasPhysicalBible: baseProfile.hasPhysicalBible,
-      startDate: baseProfile.startDate.add(Duration(days: index)), // Décaler les dates
-    );
-  }
-  
-  /// Obtient les thèmes Thompson selon l'objectif utilisateur
-  List<String> _getThemesForGoal(List<String> goals) {
-    final allThemes = [
-      'spiritual_demand',
-      'no_worry', 
-      'companionhip',
-      'prayer_life',
-      'forgiveness',
-      'faith_trials',
-      'common_errors',
-      'marriage_duties'
-    ];
-    
-    // Si pas d'objectifs spécifiques, retourner tous les thèmes
-    if (goals.isEmpty) return allThemes;
-    
-    // Mapper les objectifs vers les thèmes Thompson
-    final goalToThemes = {
-      'discipline': ['spiritual_demand', 'faith_trials', 'common_errors'],
-      'holiness': ['spiritual_demand', 'prayer_life', 'faith_trials'],
-      'transformation': ['spiritual_demand', 'forgiveness', 'prayer_life'],
-      'anxiety': ['no_worry', 'prayer_life', 'faith_trials'],
-      'peace': ['no_worry', 'prayer_life', 'forgiveness'],
-      'trust': ['no_worry', 'faith_trials', 'prayer_life'],
-      'community': ['companionhip', 'marriage_duties', 'prayer_life'],
-      'fellowship': ['companionhip', 'marriage_duties', 'prayer_life'],
-      'relationships': ['companionhip', 'marriage_duties', 'forgiveness'],
-      'prayer': ['prayer_life', 'spiritual_demand', 'no_worry'],
-      'spiritual_life': ['prayer_life', 'spiritual_demand', 'faith_trials'],
-      'communion': ['prayer_life', 'companionhip', 'spiritual_demand'],
-      'forgiveness': ['forgiveness', 'prayer_life', 'no_worry'],
-      'healing': ['forgiveness', 'prayer_life', 'no_worry'],
-      'reconciliation': ['forgiveness', 'companionhip', 'marriage_duties'],
-      'trials': ['faith_trials', 'spiritual_demand', 'no_worry'],
-      'faith': ['faith_trials', 'spiritual_demand', 'prayer_life'],
-      'perseverance': ['faith_trials', 'spiritual_demand', 'common_errors'],
-      'wisdom': ['common_errors', 'spiritual_demand', 'faith_trials'],
-      'discernment': ['common_errors', 'spiritual_demand', 'prayer_life'],
-      'avoiding_sin': ['common_errors', 'spiritual_demand', 'faith_trials'],
-      'marriage': ['marriage_duties', 'companionhip', 'forgiveness'],
-      'covenant': ['marriage_duties', 'companionhip', 'spiritual_demand'],
-    };
-    
-    // Collecter tous les thèmes pertinents
-    final relevantThemes = <String>{};
-    for (final goal in goals) {
-      final themes = goalToThemes[goal] ?? [];
-      relevantThemes.addAll(themes);
-    }
-    
-    // Si aucun thème trouvé, retourner les thèmes par défaut
-    if (relevantThemes.isEmpty) {
-      return ['spiritual_demand', 'prayer_life', 'no_worry', 'companionhip', 'forgiveness'];
-    }
-    
-    // Retourner les thèmes uniques, en ajoutant des thèmes supplémentaires si nécessaire
-    final result = relevantThemes.toList();
-    for (final theme in allThemes) {
-      if (!result.contains(theme) && result.length < 8) {
-        result.add(theme);
-      }
-    }
-    
-    return result;
-  }
 
-  /// Génère un nom dynamique et original inspiré de l'algorithme Thompson
-  String _generateDynamicPlanName(String theme, int index, String books) {
-    final thompsonInspirations = {
-      'spiritual_demand': {
-        'titles': [
-          'La Sanctification par l\'Épreuve',
-          'Marche dans la Sainteté',
-          'Transformation par l\'Esprit',
-          'L\'Excellence Chrétienne',
-          'La Discipline Divine'
-        ],
-        'subjects': [
-          'Romains 12-14',
-          'Éphésiens 4-6', 
-          '1 Pierre 1-2',
-          'Hébreux 12',
-          '2 Corinthiens 3-4'
-        ]
-      },
-      'no_worry': {
-        'titles': [
-          'La Paix qui Surpasse',
-          'Confiance en l\'Éternel',
-          'L\'Anxiété Transformée',
-          'Repos dans la Foi',
-          'Sérénité Divine'
-        ],
-        'subjects': [
-          'Matthieu 6:25-34',
-          'Psaumes 23, 27, 46',
-          'Philippiens 4:6-7',
-          '1 Pierre 5:7',
-          'Ésaïe 26:3-4'
-        ]
-      },
-      'companionhip': {
-        'titles': [
-          'L\'Amour Fraternel',
-          'Communion Authentique',
-          'L\'Unité dans le Christ',
-          'Relations Bénies',
-          'L\'Amour qui Édifie'
-        ],
-        'subjects': [
-          '1 Corinthiens 13',
-          'Actes 2:42-47',
-          'Jean 13:34-35',
-          '1 Jean 4:7-21',
-          'Romains 12:9-21'
-        ]
-      },
-      'prayer_life': {
-        'titles': [
-          'La Prière qui Transforme',
-          'Communion avec le Père',
-          'L\'Intimité Divine',
-          'La Puissance de la Prière',
-          'Dialogue Céleste'
-        ],
-        'subjects': [
-          'Matthieu 6:5-15',
-          'Luc 11:1-13',
-          'Psaumes 1-50',
-          'Éphésiens 6:18',
-          '1 Thessaloniciens 5:17'
-        ]
-      },
-      'forgiveness': {
-        'titles': [
-          'La Libération du Pardon',
-          'Cœur Guéri, Âme Libérée',
-          'La Grâce qui Restaure',
-          'Réconciliation Divine',
-          'L\'Amour qui Pardonne'
-        ],
-        'subjects': [
-          'Matthieu 18:21-35',
-          'Luc 15:11-32',
-          'Éphésiens 4:32',
-          'Colossiens 3:13',
-          '1 Jean 1:9'
-        ]
-      },
-      'faith_trials': {
-        'titles': [
-          'La Foi dans l\'Épreuve',
-          'Triompher par la Foi',
-          'L\'Endurance qui Vainc',
-          'La Persévérance Bénie',
-          'Foi Affermie par l\'Épreuve'
-        ],
-        'subjects': [
-          'Jacques 1:2-8',
-          'Romains 5:1-5',
-          '1 Pierre 1:6-9',
-          'Hébreux 11',
-          '2 Corinthiens 4:16-18'
-        ]
-      },
-      'common_errors': {
-        'titles': [
-          'La Sagesse qui Préserve',
-          'Éviter les Pièges',
-          'La Discernement Divin',
-          'Marche dans la Vérité',
-          'La Prudence qui Protège'
-        ],
-        'subjects': [
-          'Proverbes 1-10',
-          'Jacques 1:5-8',
-          'Galates 5:16-26',
-          '1 Corinthiens 10:12-13',
-          'Éphésiens 5:15-17'
-        ]
-      },
-      'marriage_duties': {
-        'titles': [
-          'L\'Alliance Sacrée',
-          'Amour selon Dieu',
-          'L\'Union Bénie',
-          'Mariage dans la Grâce',
-          'L\'Amour qui Dure'
-        ],
-        'subjects': [
-          'Genèse 2:18-25',
-          'Éphésiens 5:22-33',
-          '1 Corinthiens 7',
-          'Proverbes 31:10-31',
-          'Cantique des Cantiques'
-        ]
-      }
-    };
-
-    final inspiration = thompsonInspirations[theme] ?? thompsonInspirations['spiritual_demand']!;
-    final title = inspiration['titles']![index % inspiration['titles']!.length];
-    final subject = inspiration['subjects']![index % inspiration['subjects']!.length];
-    
-    // Générer un nom dynamique basé sur le contenu
-    final bookNames = _getBookDisplayNames(books);
-    final duration = [21, 30, 40, 45, 60][index % 5];
-    
-    return '$title — $subject';
-  }
 
   /// Obtient le texte CTA selon le niveau utilisateur
   String _getCtaTextForUserLevel() {
@@ -368,70 +88,7 @@ class _GoalsPageState extends State<GoalsPage> {
     }
   }
 
-  /// Obtient les noms d'affichage des livres
-  String _getBookDisplayNames(String books) {
-    final bookNames = {
-      'OT,NT': 'Ancien & Nouveau Testament',
-      'NT': 'Nouveau Testament',
-      'OT': 'Ancien Testament',
-      'Gospels,Psalms': 'Évangiles & Psaumes',
-      'Gospels': 'Évangiles',
-      'Psalms,Proverbs': 'Psaumes & Proverbes',
-      'Psalms': 'Psaumes',
-      'Proverbs,James': 'Proverbes & Jacques',
-      'Gospels,Psalms,Proverbs': 'Évangiles, Psaumes & Proverbes',
-    };
-    
-    return bookNames[books] ?? books;
-  }
 
-  /// Crée un preset de fallback en cas d'échec
-  Future<PlanPreset> _createFallbackPreset(String theme, int index) async {
-    final bookConfigs = {
-      'spiritual_demand': 'NT',
-      'no_worry': 'Gospels,Psalms',
-      'companionhip': 'OT,NT',
-      'prayer_life': 'Psalms',
-      'forgiveness': 'NT',
-      'faith_trials': 'OT,NT',
-      'common_errors': 'Proverbs,James',
-      'marriage_duties': 'Gospels,Psalms,Proverbs',
-    };
-    
-    final specificBooks = {
-      'spiritual_demand': 'Matthieu 5-7, Romains 12-14, Éphésiens 4-6',
-      'no_worry': 'Matthieu 6, Psaumes 23, 27, 46, 91, 121',
-      'companionhip': 'Genèse 2, Proverbes 18, Actes 2, 1 Corinthiens 13',
-      'prayer_life': 'Psaumes 1-50, Matthieu 6, Luc 11, Éphésiens 6',
-      'forgiveness': 'Matthieu 18, Luc 15, Éphésiens 4, Colossiens 3',
-      'faith_trials': 'Jacques 1, Romains 5, 1 Pierre 1, Hébreux 11',
-      'common_errors': 'Proverbes 1-10, Jacques 1-5, Galates 5',
-      'marriage_duties': 'Genèse 2, Proverbes 31, Éphésiens 5, 1 Corinthiens 7',
-    };
-    
-    final durations = [21, 30, 40, 45, 60];
-    final minutes = [15, 20, 25, 30, 35];
-    final books = bookConfigs[theme] ?? 'OT,NT';
-    
-    // Générer un nom dynamique
-    final dynamicName = _generateDynamicPlanName(theme, index, books);
-    
-    return PlanPreset(
-      slug: 'fallback_${theme}_$index',
-      name: dynamicName,
-      durationDays: durations[index % durations.length],
-      order: 'thematic',
-      books: books,
-      coverImage: null,
-      minutesPerDay: minutes[index % minutes.length],
-      recommended: [PresetLevel.regular],
-      description: 'Plan de méditation inspiré de la Bible d\'étude Thompson 21. '
-                  'Parcours de ${durations[index % durations.length]} jours à travers ${_getBookDisplayNames(books)} '
-                  'pour approfondir ce thème spirituel.',
-      gradient: _getThompsonGradient([theme]),
-      specificBooks: specificBooks[theme] ?? 'Ancien & Nouveau Testament',
-    );
-  }
   
 
   /// Charge le profil utilisateur et applique la logique de personnalisation
@@ -568,68 +225,44 @@ class _GoalsPageState extends State<GoalsPage> {
   }
 
   Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-      child: Row(
-        children: [
-          // Bouton retour
-          GestureDetector(
-            onTap: () {
-              HapticFeedback.lightImpact();
-              Navigator.pushReplacementNamed(context, '/complete_profile');
-            },
-            child: Container(
-              width: 40,
-              height: 40,
-            decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withOpacity(0.2)),
-              ),
-              child: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          // Titre
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Choisis ton plan',
-                  style: GoogleFonts.inter(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Des parcours personnalisés pour toi',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: Colors.white70,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return UniformHeader(
+      title: 'Choisis ton plan',
+      subtitle: 'Des parcours personnalisés pour toi',
+      onBackPressed: () => Navigator.pushReplacementNamed(context, '/complete_profile'),
+      textColor: Colors.white,
+      iconColor: Colors.white,
     );
+  }
+
+  /// Affiche les explications des presets dans la console (pour debug)
+  void _printPresetExplanations(List<PresetExplanation> explanations) {
+    print('\n🎯 === EXPLICATIONS DES PRESETS ===');
+    for (final e in explanations) {
+      print('\n--- ${e.name} (score: ${e.totalScore})');
+      for (final r in e.reasons) {
+        final sign = r.weight >= 0 ? '+' : '';
+        print('  • ${r.label}: ${sign}${r.weight.toStringAsFixed(2)} — ${r.detail}');
+      }
+    }
+    print('\n=====================================\n');
+  }
+
+  /// Affiche les recommandations spirituelles dans la console (pour debug)
+  void _printSpiritualRecommendations(List<String> recommendations) {
+    print('\n🙏 === RECOMMANDATIONS SPIRITUELLES ===');
+    for (final recommendation in recommendations) {
+      print('  • $recommendation');
+    }
+    print('==========================================\n');
   }
 
   Widget _buildCardsSection(List<PlanPreset> presets) {
     return SizedBox(
-      height: 320, // Hauteur du carousel réduite
+      height: 280, // Hauteur du carousel encore plus réduite
       child: FancyStackCarousel(
         items: _carouselItems,
         options: FancyStackCarouselOptions(
-          size: const Size(280, 380), // Hauteur des cartes réduite
+          size: const Size(260, 320), // Hauteur des cartes encore plus réduite
           autoPlay: true,
           autoPlayInterval: const Duration(seconds: 6),
           autoplayDirection: AutoplayDirection.bothSide,
@@ -660,15 +293,15 @@ class _GoalsPageState extends State<GoalsPage> {
           },
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 20),
-            height: 300, // Hauteur des cartes réduite
+            height: 260, // Hauteur réduite pour s'adapter au carousel
       decoration: BoxDecoration(
               gradient: _getGradientForPreset(preset),
               borderRadius: BorderRadius.circular(26),
         boxShadow: [
           BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 12,
-                  offset: const Offset(0, 6),
+                  color: Colors.black.withOpacity(0.15), // Ombre réduite
+                  blurRadius: 8, // Blur réduit
+                  offset: const Offset(0, 4), // Offset réduit
                 ),
               ],
             ),
@@ -677,45 +310,15 @@ class _GoalsPageState extends State<GoalsPage> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Image de fond avec cache
-                  if (preset.coverImage != null)
-                    CachedNetworkImage(
-                      imageUrl: preset.coverImage!,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        decoration: BoxDecoration(
-                          gradient: _getGradientForPreset(preset),
-                        ),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        decoration: BoxDecoration(
-                          gradient: _getGradientForPreset(preset),
-                        ),
-                      ),
-                    ),
-                  // Voile frosted pour lisibilité
-                  Align(
-                    alignment: Alignment.bottomCenter,
-                    child: Container(
-                      height: 100, // Hauteur du voile restaurée
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: [Colors.black.withOpacity(.55), Colors.black.withOpacity(0)],
-                        ),
-                      ),
-                      child: const SizedBox.expand(),
-                    ),
-                  ),
-              // Contenu
+                  // Contenu principal
               Padding(
-                padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(24),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Icône moderne de swipe
-                    Container(
+                        // Icône moderne de swipe en haut
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(.18),
@@ -728,19 +331,37 @@ class _GoalsPageState extends State<GoalsPage> {
                         size: 16,
                       ),
                     ),
-                    const Spacer(),
-                    // Nom du plan
-                    Text(
+                        ),
+                        
+                        const SizedBox(height: 12), // Espacement réduit
+                        
+                        // Nom du plan centré avec typographie améliorée
+                        Expanded(
+                          child: Center(
+                            child: Text(
                       preset.name,
-                      style: GoogleFonts.inter(
+                              style: GoogleFonts.roboto(
                         color: Colors.white,
-                        fontSize: 22,
+                                fontSize: 20, // Taille de police réduite
                         fontWeight: FontWeight.w800,
-                        height: 1.1,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    // Détails
+                                height: 1.2,
+                                letterSpacing: 0.8,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black.withOpacity(0.3), // Ombre réduite
+                                    offset: const Offset(0, 1), // Offset réduit
+                                    blurRadius: 2, // Blur réduit
+                                  ),
+                                ],
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 4,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                        
+                        // Détails en bas (jours et temps)
                     Text(
                       '${preset.durationDays} jours • ${_getEstimatedTime(preset)} min/jour',
                       style: GoogleFonts.inter(
@@ -748,8 +369,11 @@ class _GoalsPageState extends State<GoalsPage> {
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
+                          textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 4),
+                        
+                        const SizedBox(height: 6),
+                        
                     // Livres spécifiques à méditer
                     if (preset.specificBooks != null) ...[
                       Text(
@@ -760,6 +384,7 @@ class _GoalsPageState extends State<GoalsPage> {
                           fontWeight: FontWeight.w400,
                           height: 1.3,
                         ),
+                            textAlign: TextAlign.center,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -771,12 +396,15 @@ class _GoalsPageState extends State<GoalsPage> {
                           fontSize: 12,
                           fontWeight: FontWeight.w400,
                         ),
+                            textAlign: TextAlign.center,
                       ),
                     ],
-                    const SizedBox(height: 14),
+                        
+                        const SizedBox(height: 10), // Espacement réduit
+                        
                     // CTA adapté au niveau utilisateur
                     Container(
-                      height: 44,
+                      height: 36, // Hauteur du bouton réduite
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(14),
@@ -795,6 +423,7 @@ class _GoalsPageState extends State<GoalsPage> {
                   ],
                 ),
               ),
+                  
               // Icône discrète en haut à droite
               Positioned(
                 right: 14, 
@@ -973,38 +602,111 @@ class _GoalsPageState extends State<GoalsPage> {
       );
     }
     
-    // Fallback vers les gradients basés sur le slug du preset
+    // Générer des gradients basés sur le contenu du nom pour plus de variété
+    final name = preset.name.toLowerCase();
+    
+    // Gradients inspirés des thèmes spirituels
+    if (name.contains('prière') || name.contains('prayer')) {
+      return const LinearGradient(
+        colors: [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
+        begin: Alignment.topLeft, 
+        end: Alignment.bottomRight,
+      );
+    } else if (name.contains('sagesse') || name.contains('wisdom') || name.contains('proverbes')) {
+      return const LinearGradient(
+        colors: [Color(0xFFF59E0B), Color(0xFFFBBF24)],
+        begin: Alignment.topLeft, 
+        end: Alignment.bottomRight,
+      );
+    } else if (name.contains('foi') || name.contains('faith') || name.contains('romains')) {
+      return const LinearGradient(
+        colors: [Color(0xFF3B82F6), Color(0xFF60A5FA)],
+        begin: Alignment.topLeft, 
+        end: Alignment.bottomRight,
+      );
+    } else if (name.contains('croissance') || name.contains('growth') || name.contains('philippiens')) {
+      return const LinearGradient(
+        colors: [Color(0xFF34D399), Color(0xFF6EE7B7)],
+        begin: Alignment.topLeft, 
+        end: Alignment.bottomRight,
+      );
+    } else if (name.contains('pardon') || name.contains('forgiveness') || name.contains('luc')) {
+      return const LinearGradient(
+        colors: [Color(0xFFEC4899), Color(0xFFF472B6)],
+        begin: Alignment.topLeft, 
+        end: Alignment.bottomRight,
+      );
+    } else if (name.contains('espoir') || name.contains('hope') || name.contains('pierre')) {
+      return const LinearGradient(
+        colors: [Color(0xFF06B6D4), Color(0xFF67E8F9)],
+        begin: Alignment.topLeft, 
+        end: Alignment.bottomRight,
+      );
+    } else if (name.contains('caractère') || name.contains('character') || name.contains('galates')) {
+      return const LinearGradient(
+        colors: [Color(0xFF8B5CF6), Color(0xFFC084FC)],
+        begin: Alignment.topLeft, 
+        end: Alignment.bottomRight,
+      );
+    } else if (name.contains('mission') || name.contains('actes')) {
+      return const LinearGradient(
+        colors: [Color(0xFFEF4444), Color(0xFFF87171)],
+        begin: Alignment.topLeft, 
+        end: Alignment.bottomRight,
+      );
+    } else if (name.contains('psaumes') || name.contains('psalm')) {
+      return const LinearGradient(
+        colors: [Color(0xFFF97316), Color(0xFFFB923C)],
+        begin: Alignment.topLeft, 
+        end: Alignment.bottomRight,
+      );
+    } else if (name.contains('évangile') || name.contains('gospel') || name.contains('matthieu') || name.contains('jean')) {
+      return const LinearGradient(
+        colors: [Color(0xFF10B981), Color(0xFF34D399)],
+        begin: Alignment.topLeft, 
+        end: Alignment.bottomRight,
+      );
+    }
+    
+    // Gradients par défaut basés sur le slug
     switch (preset.slug) {
       case 'nt_90':
         return const LinearGradient(
-          colors: [Color(0xFF60A5FA), Color(0xFF93C5FD)],
+          colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
           begin: Alignment.topLeft, 
           end: Alignment.bottomRight,
         );
       case 'bible_180':
         return const LinearGradient(
-          colors: [Color(0xFFA78BFA), Color(0xFFC4B5FD)],
+          colors: [Color(0xFF7C3AED), Color(0xFFA855F7)],
           begin: Alignment.topLeft, 
           end: Alignment.bottomRight,
         );
       case 'proverbs_31':
         return const LinearGradient(
-          colors: [Color(0xFF34D399), Color(0xFF6EE7B7)],
+          colors: [Color(0xFF059669), Color(0xFF10B981)],
           begin: Alignment.topLeft, 
           end: Alignment.bottomRight,
         );
       case 'psalms_40':
         return const LinearGradient(
-          colors: [Color(0xFFF59E0B), Color(0xFFFBBF24)],
+          colors: [Color(0xFFDC2626), Color(0xFFEF4444)],
           begin: Alignment.topLeft, 
           end: Alignment.bottomRight,
         );
       default:
-        return const LinearGradient(
-          colors: [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
-          begin: Alignment.topLeft, 
-          end: Alignment.bottomRight,
-        );
+        // Gradient aléatoire basé sur l'index pour plus de variété
+        final gradients = [
+          const LinearGradient(colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)]),
+          const LinearGradient(colors: [Color(0xFFEC4899), Color(0xFFF472B6)]),
+          const LinearGradient(colors: [Color(0xFF06B6D4), Color(0xFF67E8F9)]),
+          const LinearGradient(colors: [Color(0xFF10B981), Color(0xFF34D399)]),
+          const LinearGradient(colors: [Color(0xFFF59E0B), Color(0xFFFBBF24)]),
+          const LinearGradient(colors: [Color(0xFF8B5CF6), Color(0xFFA78BFA)]),
+          const LinearGradient(colors: [Color(0xFFEF4444), Color(0xFFF87171)]),
+          const LinearGradient(colors: [Color(0xFF059669), Color(0xFF10B981)]),
+        ];
+        return gradients[preset.slug.hashCode % gradients.length];
     }
   }
 
@@ -1050,38 +752,6 @@ class _GoalsPageState extends State<GoalsPage> {
     return bookNames[books] ?? books;
   }
 
-  /// Génère un gradient pour les presets Thompson selon les thèmes
-  List<Color>? _getThompsonGradient(List<dynamic>? themeKeys) {
-    if (themeKeys == null || themeKeys.isEmpty) return null;
-    
-    final themes = themeKeys.cast<String>();
-    
-    // Gradients spécifiques aux thèmes Thompson
-    if (themes.contains('no_worry')) {
-      return [const Color(0xFF4FD1C5), const Color(0xFF06B6D4)]; // Teal pour la paix
-    }
-    if (themes.contains('spiritual_demand')) {
-      return [const Color(0xFF7C8CFF), const Color(0xFF6366F1)]; // Indigo pour la discipline
-    }
-    if (themes.contains('marriage_duties')) {
-      return [const Color(0xFFEC4899), const Color(0xFFF472B6)]; // Rose pour le mariage
-    }
-    if (themes.contains('companionship')) {
-      return [const Color(0xFF34D399), const Color(0xFF10B981)]; // Vert pour la communauté
-    }
-    if (themes.contains('prayer_life')) {
-      return [const Color(0xFF8B5CF6), const Color(0xFFA78BFA)]; // Violet pour la prière
-    }
-    if (themes.contains('forgiveness')) {
-      return [const Color(0xFFF59E0B), const Color(0xFFFBBF24)]; // Orange pour le pardon
-    }
-    if (themes.contains('faith_trials')) {
-      return [const Color(0xFFEF4444), const Color(0xFFF87171)]; // Rouge pour les épreuves
-    }
-    
-    // Gradient par défaut pour Thompson
-    return [const Color(0xFF6366F1), const Color(0xFF8B5CF6)];
-  }
 
 
   /// Gère la sélection d'un plan preset

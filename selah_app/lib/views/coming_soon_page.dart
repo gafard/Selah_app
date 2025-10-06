@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:circle_nav_bar/circle_nav_bar.dart';
+import '../widgets/uniform_back_button.dart';
 
 class ComingSoonPage extends StatefulWidget {
   const ComingSoonPage({super.key});
@@ -72,9 +72,9 @@ class _ComingSoonPageState extends State<ComingSoonPage> with TickerProviderStat
       appBar: AppBar(
         backgroundColor: const Color(0xFF1a1a2e),
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+        leading: UniformBackButtonAppBar(
           onPressed: () => Navigator.pop(context),
+          iconColor: Colors.white,
         ),
         title: Text(
           'Communauté',
