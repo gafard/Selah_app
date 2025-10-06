@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:go_router/go_router.dart';
 import '../services/auth_service.dart';
 import '../widgets/selah_logo.dart';
 
@@ -20,7 +19,6 @@ class _AuthPageState extends State<AuthPage> {
   final _passC = TextEditingController();
   final _pass2C = TextEditingController();
   bool _isLoading = false;
-  bool _acceptTerms = false;
 
   @override
   void dispose() {
@@ -33,10 +31,6 @@ class _AuthPageState extends State<AuthPage> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (!_isLogin && !_acceptTerms) {
-      _toast('Veuillez accepter les conditions d\'utilisation.');
-      return;
-    }
 
     setState(() => _isLoading = true);
     try {
@@ -75,7 +69,7 @@ class _AuthPageState extends State<AuthPage> {
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft, end: Alignment.bottomRight,
-            colors: [Color(0xFF1553FF), Color(0xFF49C98D)],
+            colors: [Color(0xFF1A1D29), Color(0xFF112244)],
           ),
         ),
         child: SafeArea(
@@ -147,65 +141,54 @@ class _AuthPageState extends State<AuthPage> {
                             // Bouton principal
                             SizedBox(
                               width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: _isLoading ? null : _submit,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: const Color(0xFF1C1740),
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFF1553FF),
+                                      Color(0xFF0D47A1),
+                                    ],
                                   ),
-                                  elevation: 0,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF1553FF).withOpacity(0.3),
+                                      blurRadius: 20,
+                                      offset: const Offset(0, 8),
+                                    ),
+                                  ],
                                 ),
-                                child: _isLoading
-                                    ? const SizedBox(
-                                        height: 20, width: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1C1740)),
-                                        ),
-                                      )
-                                    : Text(
-                                        _isLogin ? 'Se connecter' : 'Créer un compte',
-                                        style: GoogleFonts.inter(
-                                          fontSize: 16, fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                              ),
-                            ),
-
-                            const SizedBox(height: 12),
-
-                            // Google (stub)
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: _isLoading ? null : () async {
-                                  _toast('Connexion Google à venir');
-                                  // await AuthService.instance.signInWithGoogle();
-                                },
-                                icon: const Icon(Icons.g_mobiledata, size: 24, color: Colors.white),
-                                label: Text(
-                                  'Continuer avec Google',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white,
+                                child: ElevatedButton(
+                                  onPressed: _isLoading ? null : _submit,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    shadowColor: Colors.transparent,
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
                                   ),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: Colors.white),
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
+                                  child: _isLoading
+                                      ? const SizedBox(
+                                          height: 20, width: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                          ),
+                                        )
+                                      : Text(
+                                          _isLogin ? 'Se connecter' : 'Créer un compte',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 16, fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
+                                        ),
                                 ),
                               ),
                             ),
 
-                            const SizedBox(height: 12),
-
-                            // Verset du jour
-                            _verseOfTheDay(),
 
                             ],
                           ),
@@ -317,7 +300,6 @@ class _AuthPageState extends State<AuthPage> {
               'Mot de passe oublié ?',
               style: GoogleFonts.inter(
                 color: Colors.white, fontWeight: FontWeight.w500,
-                decoration: TextDecoration.underline,
               ),
             ),
           ),
@@ -352,47 +334,6 @@ class _AuthPageState extends State<AuthPage> {
             if (v != _passC.text) return 'Les mots de passe ne correspondent pas';
             return null;
           },
-        ),
-        const SizedBox(height: 12),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Checkbox(
-              value: _acceptTerms,
-              onChanged: (v) => setState(() => _acceptTerms = v ?? false),
-              activeColor: Colors.white, checkColor: const Color(0xFF1C1740),
-              side: const BorderSide(color: Colors.white70),
-            ),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => setState(() => _acceptTerms = !_acceptTerms),
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: RichText(
-                    text: TextSpan(
-                      style: GoogleFonts.inter(fontSize: 13.5, color: Colors.white70, height: 1.4),
-                      children: [
-                        const TextSpan(text: 'J\'accepte les '),
-                        TextSpan(text: 'conditions d\'utilisation',
-                          style: GoogleFonts.inter(
-                            color: Colors.white, fontWeight: FontWeight.w600,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                        const TextSpan(text: ' et la '),
-                        TextSpan(text: 'politique de confidentialité',
-                          style: GoogleFonts.inter(
-                            color: Colors.white, fontWeight: FontWeight.w600,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
         ),
       ],
     );
@@ -437,29 +378,6 @@ class _AuthPageState extends State<AuthPage> {
     );
   }
 
-  Widget _verseOfTheDay() {
-    return Container(
-      margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.14)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.auto_awesome, color: Colors.white, size: 18),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              '"Ta parole est une lampe à mes pieds, et une lumière sur mon sentier." — Psaume 119:105',
-              style: GoogleFonts.inter(color: Colors.white.withOpacity(0.92), fontSize: 13.5, height: 1.35),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _softBlob(double size) {
     return Container(
@@ -570,52 +488,75 @@ class _AuthPageState extends State<AuthPage> {
                               ),
                               const SizedBox(width: 12),
                               Expanded(
-                                child: ElevatedButton(
-                                  onPressed: isLoading
-                                      ? null
-                                      : () async {
-                                          if (!formKey.currentState!.validate()) return;
-                                          setModalState(() => isLoading = true);
-                                          try {
-                                            await AuthService.instance.resetPassword(emailC.text.trim());
-                                            if (!mounted) return;
-                                            Navigator.pop(ctx);
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  'Un lien de réinitialisation a été envoyé.',
-                                                  style: GoogleFonts.inter(color: Colors.white),
-                                                ),
-                                              ),
-                                            );
-                                          } catch (e) {
-                                            setModalState(() => isLoading = false);
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text('Erreur: $e',
-                                                  style: GoogleFonts.inter(color: Colors.white)),
-                                              ),
-                                            );
-                                          }
-                                        },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white,
-                                    foregroundColor: const Color(0xFF1C1740),
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFF1553FF),
+                                        Color(0xFF0D47A1),
+                                      ],
                                     ),
-                                    elevation: 0,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF1553FF).withOpacity(0.3),
+                                        blurRadius: 20,
+                                        offset: const Offset(0, 8),
+                                      ),
+                                    ],
                                   ),
-                                  child: isLoading
-                                      ? const SizedBox(
-                                          height: 20, width: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1C1740)),
-                                          ),
-                                        )
-                                      : Text('Envoyer le lien', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                                  child: ElevatedButton(
+                                    onPressed: isLoading
+                                        ? null
+                                        : () async {
+                                            if (!formKey.currentState!.validate()) return;
+                                            setModalState(() => isLoading = true);
+                                            try {
+                                              await AuthService.instance.resetPassword(emailC.text.trim());
+                                              if (!mounted) return;
+                                              Navigator.pop(ctx);
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    'Un lien de réinitialisation a été envoyé.',
+                                                    style: GoogleFonts.inter(color: Colors.white),
+                                                  ),
+                                                ),
+                                              );
+                                            } catch (e) {
+                                              setModalState(() => isLoading = false);
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text('Erreur: $e',
+                                                    style: GoogleFonts.inter(color: Colors.white)),
+                                                ),
+                                              );
+                                            }
+                                          },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.transparent,
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      shadowColor: Colors.transparent,
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: isLoading
+                                        ? const SizedBox(
+                                            height: 20, width: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                            ),
+                                          )
+                                        : Text('Envoyer le lien', 
+                                            style: GoogleFonts.inter(
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white,
+                                            )),
+                                  ),
                                 ),
                               ),
                             ],

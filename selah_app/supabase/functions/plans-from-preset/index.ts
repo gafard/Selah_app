@@ -3,25 +3,38 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, idempotency-key',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-interface PresetRequest {
-  preset_slug: string
-  start_date: string
-  profile: Record<string, any>
+interface PlanPresetRequest {
+  presetSlug: string
+  startDate: string
+  profile: {
+    level?: string
+    goal?: string
+    minutesPerDay?: number
+    totalDays?: number
+    [key: string]: any
+  }
 }
 
-interface ReadingRef {
-  book: string
-  range: string
-  url?: string
+interface PlanTask {
+  task_type: string
+  title: string
+  description?: string
+  book?: string
+  chapter_start?: number
+  chapter_end?: number
+  verse_start?: number
+  verse_end?: number
+  estimated_minutes: number
+  order_index: number
 }
 
 interface PlanDay {
-  day_index: number
+  day_number: number
   date: string
-  readings: ReadingRef[]
+  tasks: PlanTask[]
 }
 
 serve(async (req) => {
@@ -31,7 +44,7 @@ serve(async (req) => {
   }
 
   try {
-    // Create Supabase client
+    // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -42,73 +55,146 @@ serve(async (req) => {
       }
     )
 
-    // Get the user
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
-    if (userError || !user) {
+    // Get the current user
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+    
+    if (authError || !user) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
       )
     }
 
     // Parse request body
-    const { preset_slug, start_date, profile }: PresetRequest = await req.json()
+    const { presetSlug, startDate, profile }: PlanPresetRequest = await req.json()
 
-    // Deactivate current active plan
-    await supabaseClient
-      .from('plans')
-      .update({ is_active: false })
-      .eq('user_id', user.id)
-      .eq('is_active', true)
+    if (!presetSlug || !startDate) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required fields: presetSlug, startDate' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
 
-    // Generate plan based on preset and profile
-    const planData = await generatePlanFromPreset(preset_slug, start_date, profile)
+    // Generate plan based on preset
+    const planData = await generatePlanFromPreset(presetSlug, startDate, profile)
 
-    // Create the plan
+    // Create the plan in database
     const { data: plan, error: planError } = await supabaseClient
       .from('plans')
       .insert({
         user_id: user.id,
-        name: planData.name,
-        start_date: start_date,
-        total_days: planData.days.length,
-        is_active: true
+        title: planData.title,
+        description: planData.description,
+        duration_days: planData.duration_days,
+        start_date: startDate,
+        is_active: true,
+        metadata: {
+          preset_slug: presetSlug,
+          profile: profile,
+          generated_at: new Date().toISOString()
+        }
       })
       .select()
       .single()
 
     if (planError) {
-      throw new Error(`Failed to create plan: ${planError.message}`)
+      console.error('Error creating plan:', planError)
+      return new Response(
+        JSON.stringify({ error: 'Failed to create plan', details: planError.message }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
     }
 
-    // Create plan days
-    const planDays = planData.days.map((day: PlanDay) => ({
-      plan_id: plan.id,
-      day_index: day.day_index,
-      date: day.date,
-      readings: day.readings
-    }))
+    // Deactivate other plans for this user
+    await supabaseClient
+      .from('plans')
+      .update({ is_active: false })
+      .eq('user_id', user.id)
+      .neq('id', plan.id)
 
-    const { error: daysError } = await supabaseClient
-      .from('plan_days')
-      .insert(planDays)
+    // Create plan days and tasks
+    const planDays = []
+    for (const dayData of planData.days) {
+      // Create plan day
+      const { data: planDay, error: dayError } = await supabaseClient
+        .from('plan_days')
+        .insert({
+          plan_id: plan.id,
+          day_number: dayData.day_number,
+          date: dayData.date,
+          is_completed: false
+        })
+        .select()
+        .single()
 
-    if (daysError) {
-      throw new Error(`Failed to create plan days: ${daysError.message}`)
+      if (dayError) {
+        console.error('Error creating plan day:', dayError)
+        continue
+      }
+
+      // Create tasks for this day
+      const tasks = []
+      for (let i = 0; i < dayData.tasks.length; i++) {
+        const taskData = dayData.tasks[i]
+        const { data: task, error: taskError } = await supabaseClient
+          .from('plan_tasks')
+          .insert({
+            plan_day_id: planDay.id,
+            task_type: taskData.task_type,
+            title: taskData.title,
+            description: taskData.description,
+            book: taskData.book,
+            chapter_start: taskData.chapter_start,
+            chapter_end: taskData.chapter_end,
+            verse_start: taskData.verse_start,
+            verse_end: taskData.verse_end,
+            estimated_minutes: taskData.estimated_minutes,
+            order_index: taskData.order_index,
+            is_completed: false
+          })
+          .select()
+          .single()
+
+        if (taskError) {
+          console.error('Error creating task:', taskError)
+        } else {
+          tasks.push(task)
+        }
+      }
+
+      planDays.push({
+        ...planDay,
+        tasks
+      })
     }
 
     return new Response(
-      JSON.stringify(plan),
+      JSON.stringify({
+        success: true,
+        plan: {
+          ...plan,
+          days: planDays
+        }
+      }),
       { 
-        status: 201, 
+        status: 200, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     )
 
   } catch (error) {
-    console.error('Error in plans-from-preset:', error)
+    console.error('Unexpected error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'Internal server error', details: error.message }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -117,110 +203,122 @@ serve(async (req) => {
   }
 })
 
-async function generatePlanFromPreset(
-  presetSlug: string, 
-  startDate: string, 
-  profile: Record<string, any>
-): Promise<{ name: string; days: PlanDay[] }> {
-  
-  // Parse start date
+// Function to generate plan data based on preset
+async function generatePlanFromPreset(presetSlug: string, startDate: string, profile: any) {
   const start = new Date(startDate)
   
-  // Get preset configuration
-  const preset = getPresetConfig(presetSlug, profile)
+  // Parse preset slug to extract theme and ID
+  const [theme, id] = presetSlug.split(':')
   
-  // Generate days
-  const days: PlanDay[] = []
-  let currentDate = new Date(start)
+  // Default plan configuration
+  let title = 'Plan de lecture personnalisé'
+  let description = 'Un plan de lecture adapté à vos besoins'
+  let durationDays = profile.totalDays || 21
+  let minutesPerDay = profile.minutesPerDay || 30
   
-  for (let i = 1; i <= preset.totalDays; i++) {
-    // Skip rest days if configured
-    if (preset.restDays && preset.restDays.includes(currentDate.getDay())) {
-      currentDate.setDate(currentDate.getDate() + 1)
-      continue
-    }
+  // Generate plan based on theme
+  switch (theme) {
+    case 'thompson':
+      title = generateThompsonTitle(profile)
+      description = generateThompsonDescription(profile)
+      break
+    case 'api':
+      title = generateApiTitle(profile)
+      description = generateApiDescription(profile)
+      break
+    default:
+      title = 'Plan de lecture biblique'
+      description = 'Un parcours spirituel personnalisé'
+  }
+  
+  // Generate days and tasks
+  const days = []
+  for (let i = 0; i < durationDays; i++) {
+    const currentDate = new Date(start)
+    currentDate.setDate(start.getDate() + i)
     
-    // Generate readings for this day
-    const readings = generateReadingsForDay(i, preset, profile)
+    const dayNumber = i + 1
+    const tasks = generateTasksForDay(dayNumber, theme, profile)
     
     days.push({
-      day_index: i,
+      day_number: dayNumber,
       date: currentDate.toISOString().split('T')[0],
-      readings
+      tasks
     })
-    
-    currentDate.setDate(currentDate.getDate() + 1)
   }
   
   return {
-    name: preset.name,
+    title,
+    description,
+    duration_days: durationDays,
     days
   }
 }
 
-function getPresetConfig(slug: string, profile: Record<string, any>) {
-  const presets: Record<string, any> = {
-    'thompson-compagnie': {
-      name: 'Compagnie avec Dieu',
-      totalDays: profile.minutesPerDay > 30 ? 90 : 60,
-      books: ['Jean', '1 Jean', '2 Jean', '3 Jean'],
-      restDays: profile.goals?.includes('weekend_rest') ? [0, 6] : null
-    },
-    'thompson-exigence': {
-      name: 'Exigence Spirituelle',
-      totalDays: profile.minutesPerDay > 30 ? 120 : 80,
-      books: ['Matthieu', 'Marc', 'Luc', 'Jean'],
-      restDays: null
-    },
-    'thompson-erreurs': {
-      name: 'Erreurs Courantes',
-      totalDays: profile.minutesPerDay > 30 ? 100 : 70,
-      books: ['Romains', '1 Corinthiens', '2 Corinthiens', 'Galates'],
-      restDays: profile.goals?.includes('weekend_rest') ? [0, 6] : null
-    },
-    'thompson-inquietude': {
-      name: 'Inquiétude Interdite',
-      totalDays: profile.minutesPerDay > 30 ? 75 : 50,
-      books: ['Philippiens', 'Colossiens', '1 Thessaloniciens', '2 Thessaloniciens'],
-      restDays: null
-    },
-    'thompson-liens': {
-      name: 'Liens Conjugaux',
-      totalDays: profile.minutesPerDay > 30 ? 60 : 40,
-      books: ['Ephésiens', '1 Timothée', '2 Timothée', 'Tite'],
-      restDays: profile.goals?.includes('weekend_rest') ? [0, 6] : null
-    }
+function generateThompsonTitle(profile: any): string {
+  const themes = {
+    'spiritual_demand': 'Exigence spirituelle — Transformation profonde',
+    'no_worry': 'Ne vous inquiétez pas — Apprentissages de Mt 6',
+    'companionship': 'Cheminer en couple selon la Parole',
+    'prayer_life': 'Vie de prière — Souffle spirituel',
+    'forgiveness': 'Pardon & réconciliation — Cœur libéré'
   }
   
-  return presets[slug] || presets['thompson-compagnie']
+  return themes[profile.goal] || 'Plan Thompson personnalisé'
 }
 
-function generateReadingsForDay(
-  dayIndex: number, 
-  preset: any, 
-  profile: Record<string, any>
-): ReadingRef[] {
+function generateThompsonDescription(profile: any): string {
+  return `Un parcours spirituel basé sur la Thompson Study Bible, adapté à votre niveau ${profile.level || 'intermédiaire'}.`
+}
+
+function generateApiTitle(profile: any): string {
+  return `Plan de lecture ${profile.goal || 'général'}`
+}
+
+function generateApiDescription(profile: any): string {
+  return `Un plan de lecture biblique généré automatiquement selon vos préférences.`
+}
+
+function generateTasksForDay(dayNumber: number, theme: string, profile: any): PlanTask[] {
+  const tasks: PlanTask[] = []
   
-  const readings: ReadingRef[] = []
-  const minutesPerDay = profile.minutesPerDay || 15
+  // Reading task
+  tasks.push({
+    task_type: 'reading',
+    title: `Lecture du jour ${dayNumber}`,
+    description: `Lecture biblique recommandée`,
+    book: getBookForDay(dayNumber, theme),
+    chapter_start: getChapterForDay(dayNumber),
+    estimated_minutes: Math.floor((profile.minutesPerDay || 30) * 0.6),
+    order_index: 0
+  })
   
-  // Calculate how many chapters to read based on available time
-  const chaptersPerDay = Math.max(1, Math.floor(minutesPerDay / 10))
+  // Meditation task
+  tasks.push({
+    task_type: 'meditation',
+    title: `Méditation ${dayNumber}`,
+    description: `Prenez un moment pour méditer sur le passage lu`,
+    estimated_minutes: Math.floor((profile.minutesPerDay || 30) * 0.3),
+    order_index: 1
+  })
   
-  // Simple round-robin through books
-  const bookIndex = (dayIndex - 1) % preset.books.length
-  const book = preset.books[bookIndex]
+  // Prayer task
+  tasks.push({
+    task_type: 'prayer',
+    title: `Prière ${dayNumber}`,
+    description: `Temps de prière personnelle`,
+    estimated_minutes: Math.floor((profile.minutesPerDay || 30) * 0.1),
+    order_index: 2
+  })
   
-  // Generate chapter ranges
-  for (let i = 0; i < chaptersPerDay; i++) {
-    const chapter = Math.floor((dayIndex - 1) / preset.books.length) + 1 + i
-    
-    readings.push({
-      book,
-      range: `${chapter}:1-${chapter}:50`, // Simplified range
-      url: `https://www.biblegateway.com/passage/?search=${book}+${chapter}&version=LSG`
-    })
-  }
-  
-  return readings
+  return tasks
+}
+
+function getBookForDay(dayNumber: number, theme: string): string {
+  const books = ['Matthieu', 'Marc', 'Luc', 'Jean', 'Actes', 'Romains', '1 Corinthiens', '2 Corinthiens', 'Galates', 'Éphésiens']
+  return books[dayNumber % books.length]
+}
+
+function getChapterForDay(dayNumber: number): number {
+  return (dayNumber % 28) + 1
 }

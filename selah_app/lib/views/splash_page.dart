@@ -43,8 +43,8 @@ class _SplashPageState extends State<SplashPage> {
     if (_navigated) return;
     _navigated = true;
     
-    // Attendre minimum 1000ms pour l'animation, puis naviguer dès que prêt
-    await Future.delayed(const Duration(milliseconds: 1000));
+    // Attendre minimum 3500ms pour une expérience premium (3,5 secondes)
+    await Future.delayed(const Duration(milliseconds: 3500));
     
     if (!mounted) return;
     

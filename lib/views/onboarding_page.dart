@@ -11,7 +11,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
 
   void _next() {
     if (_page.page == null) return;
-    if (_page.page! >= 2) return; // dernier
+    if (_page.page! >= 3) return; // dernier (slide 4)
     _page.nextPage(duration: const Duration(milliseconds: 350), curve: Curves.easeOutCubic);
   }
 
@@ -40,7 +40,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           topDecoration: const TopRightWedge(),
           heroImage: const AssetImage('assets/images/onboarding_bible.png'),
           title: "Choisis ton plan et engage-toi.",
-          subtitle: "Commence aujourd'hui et avance pas à pas.",
+          subtitle: "Cette application ne peut ni remplacer le Saint-Esprit, ni Dieu, ni t'obliger à te discipliner. C'est ta décision personnelle de marcher avec Lui.",
           onNext: _next,
         ),
         // Slide 2 (arche en bas)
@@ -48,7 +48,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           bottomDecoration: const BottomArch(),
           heroImage: const AssetImage('assets/images/onboarding_tree.png'),
           title: "Marchons ensemble dans la Parole.",
-          subtitle: "Partage, médite et prie avec la communauté.",
+          subtitle: "Toujours te rappeler de prier Dieu avant toute chose. Partage, médite et prie avec la communauté.",
           onNext: _next,
         ),
         // Slide 3 (autre wedge)
@@ -57,11 +57,19 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           heroImage: const AssetImage('assets/images/onboarding_path.png'),
           title: "Ta parole est une lampe à mes pieds.",
           subtitle: "Chaque jour, laisse la Parole éclairer ta route.",
+          onNext: _next,
+        ),
+        // Slide 4 - Exhortation et encouragement avec verset
+        OnboardingSlide(
+          bottomDecoration: const BottomArch(),
+          heroImage: const AssetImage('assets/images/onboarding_bible.png'),
+          title: "Sois fort et courageux !",
+          subtitle: "Tu es prêt à commencer ce beau chemin avec Dieu !\n\nNe crains point, car l'Éternel, ton Dieu, sera avec toi partout où tu iras. (Josué 1:9)",
           onNext: () {
             // Naviguer vers la home page
             Navigator.pushNamed(context, '/selah_home');
           },
-                          ),
+        ),
                         ],
                       ),
                     ],

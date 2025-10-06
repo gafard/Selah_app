@@ -71,7 +71,7 @@ dependencies:
   
   # Share and save
   share_plus: ^10.0.0
-  image_gallery_saver: ^2.0.3
+  # image_gallery_saver: ^2.0.3  # Temporairement désactivé à cause de problèmes de build Android
   permission_handler: ^11.3.1
   
   # Audio player

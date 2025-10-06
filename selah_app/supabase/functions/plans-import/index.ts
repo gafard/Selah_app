@@ -3,34 +3,21 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, idempotency-key',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
 interface ImportRequest {
-  name: string
-  ics_url: string
-}
-
-interface ICSReading {
-  book: string
-  range: string
-  url?: string
-}
-
-interface ICSDay {
-  day_index: number
-  date: string
-  readings: ICSReading[]
+  icsUrl: string
+  startDate: string
+  profile: any
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -41,189 +28,180 @@ serve(async (req) => {
       }
     )
 
-    // Get the user
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
-    if (userError || !user) {
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+    
+    if (authError || !user) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Parse request body
-    const { name, ics_url }: ImportRequest = await req.json()
+    const { icsUrl, startDate, profile }: ImportRequest = await req.json()
 
-    // Deactivate current active plan
-    await supabaseClient
-      .from('plans')
-      .update({ is_active: false })
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-
-    // Download and parse ICS file
-    const icsData = await downloadAndParseICS(ics_url)
-    
-    if (!icsData || icsData.length === 0) {
-      throw new Error('No valid readings found in ICS file')
+    if (!icsUrl || !startDate) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required fields: icsUrl, startDate' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
+
+    // Fetch ICS data
+    const icsResponse = await fetch(icsUrl)
+    if (!icsResponse.ok) {
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch ICS data' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const icsData = await icsResponse.text()
+    const planData = parseICSData(icsData, startDate, profile)
 
     // Create the plan
     const { data: plan, error: planError } = await supabaseClient
       .from('plans')
       .insert({
         user_id: user.id,
-        name: name,
-        start_date: icsData[0].date,
-        total_days: icsData.length,
-        is_active: true
+        title: planData.title,
+        description: planData.description,
+        duration_days: planData.duration_days,
+        start_date: startDate,
+        is_active: true,
+        metadata: {
+          ics_url: icsUrl,
+          profile: profile,
+          imported_at: new Date().toISOString()
+        }
       })
       .select()
       .single()
 
     if (planError) {
-      throw new Error(`Failed to create plan: ${planError.message}`)
+      return new Response(
+        JSON.stringify({ error: 'Failed to create plan', details: planError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
-    // Create plan days
-    const planDays = icsData.map((day: ICSDay) => ({
-      plan_id: plan.id,
-      day_index: day.day_index,
-      date: day.date,
-      readings: day.readings
-    }))
+    // Deactivate other plans
+    await supabaseClient
+      .from('plans')
+      .update({ is_active: false })
+      .eq('user_id', user.id)
+      .neq('id', plan.id)
 
-    const { error: daysError } = await supabaseClient
-      .from('plan_days')
-      .insert(planDays)
+    // Create plan days and tasks
+    const planDays = []
+    for (const dayData of planData.days) {
+      const { data: planDay, error: dayError } = await supabaseClient
+        .from('plan_days')
+        .insert({
+          plan_id: plan.id,
+          day_number: dayData.day_number,
+          date: dayData.date,
+          is_completed: false
+        })
+        .select()
+        .single()
 
-    if (daysError) {
-      throw new Error(`Failed to create plan days: ${daysError.message}`)
+      if (dayError) continue
+
+      const tasks = []
+      for (let i = 0; i < dayData.tasks.length; i++) {
+        const taskData = dayData.tasks[i]
+        const { data: task, error: taskError } = await supabaseClient
+          .from('plan_tasks')
+          .insert({
+            plan_day_id: planDay.id,
+            task_type: taskData.task_type,
+            title: taskData.title,
+            description: taskData.description,
+            book: taskData.book,
+            chapter_start: taskData.chapter_start,
+            chapter_end: taskData.chapter_end,
+            verse_start: taskData.verse_start,
+            verse_end: taskData.verse_end,
+            estimated_minutes: taskData.estimated_minutes,
+            order_index: taskData.order_index,
+            is_completed: false
+          })
+          .select()
+          .single()
+
+        if (!taskError) {
+          tasks.push(task)
+        }
+      }
+
+      planDays.push({
+        ...planDay,
+        tasks
+      })
     }
 
     return new Response(
-      JSON.stringify(plan),
-      { 
-        status: 201, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      JSON.stringify({
+        success: true,
+        plan: {
+          ...plan,
+          days: planDays
+        }
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
   } catch (error) {
-    console.error('Error in plans-import:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      JSON.stringify({ error: 'Internal server error', details: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })
 
-async function downloadAndParseICS(icsUrl: string): Promise<ICSDay[]> {
-  try {
-    // Download the ICS file
-    const response = await fetch(icsUrl)
-    if (!response.ok) {
-      throw new Error(`Failed to download ICS: ${response.statusText}`)
-    }
-    
-    const icsContent = await response.text()
-    
-    // Parse ICS content
-    return parseICSContent(icsContent)
-    
-  } catch (error) {
-    console.error('Error downloading/parsing ICS:', error)
-    throw new Error(`Failed to process ICS file: ${error.message}`)
-  }
-}
-
-function parseICSContent(icsContent: string): ICSDay[] {
-  const days: ICSDay[] = []
-  const lines = icsContent.split('\n')
+function parseICSData(icsData: string, startDate: string, profile: any) {
+  // Simple ICS parser - in a real implementation, you'd use a proper ICS library
+  const lines = icsData.split('\n')
+  const events = []
   
-  let currentEvent: any = {}
-  let dayIndex = 1
-  
+  let currentEvent = {}
   for (const line of lines) {
-    const trimmedLine = line.trim()
-    
-    if (trimmedLine === 'BEGIN:VEVENT') {
+    if (line.startsWith('BEGIN:VEVENT')) {
       currentEvent = {}
-    } else if (trimmedLine === 'END:VEVENT') {
-      if (currentEvent.summary && currentEvent.dtstart) {
-        const readings = parseReadingFromSummary(currentEvent.summary)
-        if (readings.length > 0) {
-          days.push({
-            day_index: dayIndex++,
-            date: formatDateFromICS(currentEvent.dtstart),
-            readings
-          })
-        }
-      }
-    } else if (trimmedLine.startsWith('SUMMARY:')) {
-      currentEvent.summary = trimmedLine.substring(8)
-    } else if (trimmedLine.startsWith('DTSTART:')) {
-      currentEvent.dtstart = trimmedLine.substring(8)
+    } else if (line.startsWith('END:VEVENT')) {
+      events.push(currentEvent)
+    } else if (line.startsWith('SUMMARY:')) {
+      currentEvent.summary = line.substring(8)
+    } else if (line.startsWith('DESCRIPTION:')) {
+      currentEvent.description = line.substring(12)
     }
   }
-  
-  return days
-}
 
-function parseReadingFromSummary(summary: string): ICSReading[] {
-  const readings: ICSReading[] = []
+  const start = new Date(startDate)
+  const days = []
   
-  // Simple parsing - look for book names and chapter references
-  // This is a simplified parser - in production you'd want more robust parsing
-  
-  // Common book patterns
-  const bookPatterns = [
-    /(Jean|Matthieu|Marc|Luc|Actes|Romains|1\s+Corinthiens|2\s+Corinthiens|Galates|Ephésiens|Philippiens|Colossiens|1\s+Thessaloniciens|2\s+Thessaloniciens|1\s+Timothée|2\s+Timothée|Tite|Philémon|Hébreux|Jacques|1\s+Pierre|2\s+Pierre|1\s+Jean|2\s+Jean|3\s+Jean|Jude|Apocalypse)/gi
-  ]
-  
-  for (const pattern of bookPatterns) {
-    const matches = summary.match(pattern)
-    if (matches) {
-      for (const match of matches) {
-        // Extract chapter/verse info
-        const chapterMatch = summary.match(new RegExp(`${match}\\s+(\\d+)`, 'i'))
-        if (chapterMatch) {
-          const chapter = chapterMatch[1]
-          readings.push({
-            book: match.trim(),
-            range: `${chapter}:1-${chapter}:50`,
-            url: `https://www.biblegateway.com/passage/?search=${encodeURIComponent(match.trim())}+${chapter}&version=LSG`
-          })
-        }
-      }
-    }
-  }
-  
-  // If no specific readings found, create a generic one
-  if (readings.length === 0) {
-    readings.push({
-      book: 'Lecture du jour',
-      range: '1:1-50',
-      url: 'https://www.biblegateway.com/'
+  for (let i = 0; i < events.length; i++) {
+    const event = events[i]
+    const currentDate = new Date(start)
+    currentDate.setDate(start.getDate() + i)
+    
+    days.push({
+      day_number: i + 1,
+      date: currentDate.toISOString().split('T')[0],
+      tasks: [{
+        task_type: 'reading',
+        title: event.summary || `Lecture du jour ${i + 1}`,
+        description: event.description || 'Lecture biblique',
+        estimated_minutes: profile.minutesPerDay || 30,
+        order_index: 0
+      }]
     })
   }
-  
-  return readings
-}
 
-function formatDateFromICS(dtstart: string): string {
-  // ICS dates are typically in format YYYYMMDD or YYYYMMDDTHHMMSSZ
-  // Convert to ISO date format
-  
-  if (dtstart.length >= 8) {
-    const year = dtstart.substring(0, 4)
-    const month = dtstart.substring(4, 6)
-    const day = dtstart.substring(6, 8)
-    return `${year}-${month}-${day}`
+  return {
+    title: 'Plan importé',
+    description: 'Plan de lecture importé depuis un fichier ICS',
+    duration_days: events.length,
+    days
   }
-  
-  // Fallback to current date
-  return new Date().toISOString().split('T')[0]
 }

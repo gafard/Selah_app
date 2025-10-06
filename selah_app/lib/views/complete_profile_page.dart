@@ -138,7 +138,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                           ),
                           const SizedBox(height: 12),
                           _DropdownTile(
-                            icon: Icons.bolt_outlined,
+                            icon: Icons.trending_up_rounded,
                             value: level,
                             items: levels,
                             onChanged: (v) => setState(() => level = v),
@@ -153,7 +153,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                       child: Column(
                         children: [
                           _DropdownTile(
-                            icon: Icons.self_improvement_outlined,
+                            icon: Icons.menu_book_rounded,
                             value: meditation,
                             items: meditations,
                             onChanged: (v) => setState(() => meditation = v),
@@ -198,7 +198,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                             LinearProgressIndicator(
                               value: dlProgress,
                               backgroundColor: Colors.white.withOpacity(0.1),
-                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF49C98D)),
+                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF1553FF)),
                               minHeight: 6,
                             ),
                           ],
@@ -228,10 +228,6 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
             ),
           ),
         ),
-        IconButton(
-          onPressed: () => context.pop(),
-          icon: const Icon(Icons.close, color: Colors.white70),
-        ),
       ],
     );
   }
@@ -251,16 +247,35 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
   Widget _primaryButton({required String label, required IconData icon, VoidCallback? onPressed}) {
     return SizedBox(
       width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: onPressed,
-        icon: Icon(icon, color: Colors.white),
-        label: Text(label, style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF49C98D),
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          elevation: 0,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFF1553FF),
+              Color(0xFF0D47A1),
+            ],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF1553FF).withOpacity(0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: ElevatedButton.icon(
+          onPressed: onPressed,
+          icon: Icon(icon, color: Colors.white),
+          label: Text(label, style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.white)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            shadowColor: Colors.transparent,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
         ),
       ),
     );
@@ -444,7 +459,7 @@ class _DurationSlider extends StatelessWidget {
                 data: SliderTheme.of(context).copyWith(
                   activeTrackColor: Colors.white,
                   inactiveTrackColor: Colors.white24,
-                  thumbColor: const Color(0xFFC6F830),
+                  thumbColor: const Color(0xFF1553FF),
                 ),
                 child: Slider(
                   value: value.toDouble(),
@@ -487,7 +502,7 @@ class _SwitchTile extends StatelessWidget {
         Switch(
           value: value,
           onChanged: onChanged,
-          activeThumbColor: const Color(0xFFC6F830),
+          activeThumbColor: const Color(0xFF1553FF),
         )
       ],
     );
@@ -550,9 +565,9 @@ class _MistPainter extends CustomPainter {
     final paint = Paint()..maskFilter = const MaskFilter.blur(BlurStyle.normal, 30);
     paint.color = const Color(0xFF1553FF).withOpacity(0.18);
     canvas.drawCircle(Offset(size.width * .2, size.height * .25), 80, paint);
-    paint.color = const Color(0xFF49C98D).withOpacity(0.16);
+    paint.color = const Color(0xFF0D47A1).withOpacity(0.16);
     canvas.drawCircle(Offset(size.width * .8, size.height * .35), 100, paint);
-    paint.color = const Color(0xFFC6F830).withOpacity(0.10);
+    paint.color = const Color(0xFF1553FF).withOpacity(0.10);
     canvas.drawCircle(Offset(size.width * .6, size.height * .75), 120, paint);
   }
 

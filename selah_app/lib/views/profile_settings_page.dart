@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../domain/user_prefs.dart';
-import '../domain/plan_service.dart';
-import '../domain/bible_repo.dart';
-import '../domain/telemetry.dart';
-import '../services/daily_alarm.dart';
+import '../services/user_prefs_hive.dart';
+import '../services/plan_service.dart';
+import '../services/telemetry_console.dart';
 import '../services/background_tasks.dart';
-import '../services/ics_import_service.dart';
 
 /// Page unifiée Profil + Paramètres avec design Calm/Superlist
 class ProfileSettingsPage extends StatefulWidget {
@@ -18,12 +15,11 @@ class ProfileSettingsPage extends StatefulWidget {
 }
 
 class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
-  late final UserPrefs prefs;
+  late final UserPrefsHive prefs;
   late final PlanService planSvc;
-  late final BibleRepo bible;
-  late final Telemetry telemetry;
+  late final TelemetryConsole telemetry;
 
-  UserProfile? _profile;
+  Map<String, dynamic>? _profile;
   bool _loading = true;
   bool _saving = false;
 
@@ -38,26 +34,24 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
   @override
   void initState() {
     super.initState();
-    prefs = context.read<UserPrefs>();
+    prefs = context.read<UserPrefsHive>();
     planSvc = context.read<PlanService>();
-    bible = context.read<BibleRepo>();
-    telemetry = context.read<Telemetry>();
+    telemetry = context.read<TelemetryConsole>();
     _load();
   }
 
   Future<void> _load() async {
     try {
-      final profile = await prefs.get();
-      final versions = await bible.versions();
+      final profile = prefs.profile;
       
       setState(() {
         _profile = profile;
-        _nameController.text = profile.displayName ?? '';
-        _bibleVersion = profile.bibleVersion ?? 'LSG';
-        _time = profile.preferredTime ?? '08:00';
-        _minutes = profile.dailyMinutes ?? 15;
+        _nameController.text = profile['displayName'] ?? '';
+        _bibleVersion = profile['bibleVersion'] ?? 'LSG';
+        _time = profile['preferredTime'] ?? '08:00';
+        _minutes = profile['dailyMinutes'] ?? 15;
         _notifications = true; // TODO: récupérer depuis le profil
-        _availableVersions = versions.map((v) => v['id'] as String).toList();
+        _availableVersions = ['LSG', 'S21', 'NIV', 'ESV', 'KJV'];
         _loading = false;
       });
     } catch (e) {
@@ -70,53 +64,21 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
     if (_profile == null) return;
     
     setState(() => _saving = true);
-    final changedVersion = _bibleVersion != _profile!.bibleVersion;
+    final changedVersion = _bibleVersion != _profile!['bibleVersion'];
 
     try {
-      final updated = _profile!.copyWith(
-        displayName: _nameController.text.trim().isEmpty 
-            ? _profile!.displayName 
-            : _nameController.text.trim(),
-        bibleVersion: _bibleVersion,
-        preferredTime: _time,
-        dailyMinutes: _minutes,
-      );
+      final updated = Map<String, dynamic>.from(_profile!);
+      updated['displayName'] = _nameController.text.trim().isEmpty 
+          ? _profile!['displayName'] 
+          : _nameController.text.trim();
+      updated['bibleVersion'] = _bibleVersion;
+      updated['preferredTime'] = _time;
+      updated['dailyMinutes'] = _minutes;
 
-      await prefs.update(updated);
+      await prefs.patchProfile(updated);
       
-      // Programmer l'alarme quotidienne
-      if (_notifications) {
-        await DailyAlarm.scheduleDaily(_time);
-      } else {
-        await DailyAlarm.cancelDaily();
-      }
-
-      // Si la version de la Bible a changé
-      if (changedVersion) {
-        // 1) Téléchargement offline en tâche de fond
-        // await BackgroundTasks.queueBible(_bibleVersion);
-
-        // 2) Régénérer le plan courant si présent
-        final currentPlanId = updated.preferences?['currentPlanId'] as String?;
-        if (currentPlanId != null) {
-          final icsUrl = buildGeneratorIcsUrl(
-            start: DateTime.now(),
-            totalDays: 365,
-            order: 'traditional',
-            daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
-            books: 'OT,NT',
-            lang: 'fr',
-            logic: 'words',
-            includeUrls: true,
-            urlSite: 'biblegateway',
-            urlVersion: _bibleVersion,
-          );
-          // await // BackgroundTasks.queueRegen // TODO: Implémenter(currentPlanId, icsUrl.toString());
-        }
-      }
-
       // Télémétrie
-      telemetry.track('settings_saved', {
+      telemetry.event('settings_saved', {
         'version': _bibleVersion,
         'minutes': _minutes,
         'time': _time,
@@ -354,19 +316,42 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
 
   Widget _buildPrimaryButton({required String text, VoidCallback? onTap}) => SizedBox(
     width: double.infinity,
-    child: ElevatedButton(
-      onPressed: onTap,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF3B82F6),
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+    child: Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF1553FF),
+            Color(0xFF0D47A1),
+          ],
         ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1553FF).withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      child: Text(
-        text,
-        style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+      child: ElevatedButton(
+        onPressed: onTap,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shadowColor: Colors.transparent,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: Text(
+          text,
+          style: GoogleFonts.inter(
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
       ),
     ),
   );

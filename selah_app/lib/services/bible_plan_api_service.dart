@@ -1,5 +1,3 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../models/thompson_plan_models.dart';
 
@@ -7,6 +5,7 @@ import '../models/thompson_plan_models.dart';
 /// Génère des plans de lecture biblique réels basés sur les paramètres utilisateur
 class BiblePlanApiService {
   static const String _baseUrl = 'https://www.biblereadingplangenerator.com';
+  static const String _proxyUrl = 'https://rvwwgvzuwlxnnzumsqvg.supabase.co/functions/v1/bible-plan-proxy';
   
   /// Génère un plan de lecture via l'API biblereadingplangenerator.com
   static Future<BiblePlanResponse> generatePlan({
@@ -29,7 +28,8 @@ class BiblePlanApiService {
       final daysParam = daysOfWeek.join(',');
       final startParam = startDate.toIso8601String().split('T')[0];
       
-      final uri = Uri.parse('$_baseUrl/').replace(queryParameters: {
+      // Utiliser le proxy Supabase pour contourner CORS
+      final uri = Uri.parse(_proxyUrl).replace(queryParameters: {
         'start': startParam,
         'total': totalDays.toString(),
         'format': 'calendar',

@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/rendering.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:cross_file/cross_file.dart';
+// import 'package:image_gallery_saver/image_gallery_saver.dart'; // Temporairement désactivé
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:ui' as ui;
 import '../services/meditation_journal_service.dart';
@@ -57,11 +58,18 @@ class _VersePosterPageState extends State<VersePosterPage> {
 
   Future<void> _saveToGallery() async {
     if (await Permission.photos.request().isDenied &&
-        await Permission.storage.request().isDenied) return;
+        await Permission.storage.request().isDenied) {
+      return;
+    }
 
     final bytes = await _capturePng();
     if (bytes == null) return;
-    await ImageGallerySaver.saveImage(bytes, name: 'selah_verse_${DateTime.now().millisecondsSinceEpoch}');
+    
+    // Utiliser share_plus pour partager l'image (alternative à la sauvegarde)
+    await Share.shareXFiles([
+      XFile.fromData(bytes, name: 'selah_verse_${DateTime.now().millisecondsSinceEpoch}.png', mimeType: 'image/png')
+    ], text: 'Verset partagé depuis Selah');
+    
     _saveToJournal(); // Sauvegarder dans le journal
     if (!mounted) return;
     
@@ -73,7 +81,7 @@ class _VersePosterPageState extends State<VersePosterPage> {
     final bytes = await _capturePng();
     if (bytes == null) return;
     final xFile = XFile.fromData(bytes, mimeType: 'image/png', name: 'selah_verse.png');
-    await Share.shareXFiles([xFile], text: '${_ref}');
+    await Share.shareXFiles([xFile], text: _ref);
     _saveToJournal(); // Sauvegarder dans le journal
     
     // Naviguer vers la page de gratitude
@@ -267,9 +275,9 @@ class _VersePosterPageState extends State<VersePosterPage> {
                             child: Container(
                               height: 78,
                               padding: const EdgeInsets.symmetric(horizontal: 18),
-                              decoration: BoxDecoration(
+                              decoration: const BoxDecoration(
                                 color: Colors.white,
-                                borderRadius: const BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32)),
+                                borderRadius: BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32)),
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,

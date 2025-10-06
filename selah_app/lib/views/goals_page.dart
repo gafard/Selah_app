@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:go_router/go_router.dart';
 import 'package:fancy_stack_carousel/fancy_stack_carousel.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/plan_preset.dart';
@@ -10,7 +9,6 @@ import '../services/user_prefs_hive.dart';
 import '../services/plan_service.dart';
 import 'package:provider/provider.dart';
 import '../services/dynamic_preset_generator.dart';
-import '../services/thompson_plan_service.dart';
 import '../models/thompson_plan_models.dart';
 import '../services/hybrid_plan_service.dart';
 
@@ -30,7 +28,6 @@ class _GoalsPageState extends State<GoalsPage> {
   // Profil utilisateur
   Map<String, dynamic>? _userProfile;
   bool _showBeginnerTracks = false;
-  bool _allowCustomPlan = true; // ⟵ toujours autoriser
   String _userGoal = '';
 
   @override
@@ -49,18 +46,9 @@ class _GoalsPageState extends State<GoalsPage> {
       if (_userProfile != null) {
         final completeProfile = CompleteProfile.fromUserPrefs(_userProfile!);
         
-        // Générer 5 presets avec différents thèmes Thompson
+        // Générer 5 presets avec différents thèmes Thompson selon l'objectif
         final List<PlanPreset> presets = [];
-        final thompsonThemes = [
-          'spiritual_demand',
-          'no_worry', 
-          'companionhip',
-          'prayer_life',
-          'forgiveness',
-          'faith_trials',
-          'common_errors',
-          'marriage_duties'
-        ];
+        final thompsonThemes = _getThemesForGoal(completeProfile.goals);
         
         // Prendre 5 thèmes différents
         final selectedThemes = thompsonThemes.take(5).toList();
@@ -80,10 +68,26 @@ class _GoalsPageState extends State<GoalsPage> {
               // Sauvegarder le plan hybride
               await HybridPlanService.saveHybridPlan(hybridResult);
               
-              print('✅ Preset ${i + 1} généré: ${hybridResult.planPreset!.name}');
+              // Générer un nom dynamique pour le preset
+              final dynamicName = _generateDynamicPlanName(theme, i, hybridResult.planPreset!.books);
+              final enhancedPreset = PlanPreset(
+                slug: hybridResult.planPreset!.slug,
+                name: dynamicName,
+                durationDays: hybridResult.planPreset!.durationDays,
+                order: hybridResult.planPreset!.order,
+                books: hybridResult.planPreset!.books,
+                coverImage: hybridResult.planPreset!.coverImage,
+                minutesPerDay: hybridResult.planPreset!.minutesPerDay,
+                recommended: hybridResult.planPreset!.recommended,
+                description: hybridResult.planPreset!.description,
+                gradient: hybridResult.planPreset!.gradient,
+                specificBooks: hybridResult.planPreset!.specificBooks,
+              );
+              
+              print('✅ Preset ${i + 1} généré: $dynamicName');
               print('📚 Livres: ${hybridResult.planPreset!.books}');
               
-              presets.add(hybridResult.planPreset!);
+              presets.add(enhancedPreset);
             } else {
               print('❌ Échec preset ${i + 1}: ${hybridResult.error}');
               // Ajouter un preset de fallback
@@ -126,7 +130,6 @@ class _GoalsPageState extends State<GoalsPage> {
     };
     
     // Varier la durée selon l'index pour diversifier
-    final durations = [21, 30, 40, 45, 60];
     final minutes = [15, 20, 25, 30, 35];
     
     return CompleteProfile(
@@ -141,19 +144,249 @@ class _GoalsPageState extends State<GoalsPage> {
     );
   }
   
-  /// Crée un preset de fallback en cas d'échec
-  Future<PlanPreset> _createFallbackPreset(String theme, int index) async {
-    final themeNames = {
-      'spiritual_demand': 'Exigence spirituelle',
-      'no_worry': 'Paix du cœur',
-      'companionhip': 'Communion fraternelle',
-      'prayer_life': 'Vie de prière',
-      'forgiveness': 'Pardon & guérison',
-      'faith_trials': 'Foi dans l\'épreuve',
-      'common_errors': 'Sagesse pratique',
-      'marriage_duties': 'Mariage selon Dieu',
+  /// Obtient les thèmes Thompson selon l'objectif utilisateur
+  List<String> _getThemesForGoal(List<String> goals) {
+    final allThemes = [
+      'spiritual_demand',
+      'no_worry', 
+      'companionhip',
+      'prayer_life',
+      'forgiveness',
+      'faith_trials',
+      'common_errors',
+      'marriage_duties'
+    ];
+    
+    // Si pas d'objectifs spécifiques, retourner tous les thèmes
+    if (goals.isEmpty) return allThemes;
+    
+    // Mapper les objectifs vers les thèmes Thompson
+    final goalToThemes = {
+      'discipline': ['spiritual_demand', 'faith_trials', 'common_errors'],
+      'holiness': ['spiritual_demand', 'prayer_life', 'faith_trials'],
+      'transformation': ['spiritual_demand', 'forgiveness', 'prayer_life'],
+      'anxiety': ['no_worry', 'prayer_life', 'faith_trials'],
+      'peace': ['no_worry', 'prayer_life', 'forgiveness'],
+      'trust': ['no_worry', 'faith_trials', 'prayer_life'],
+      'community': ['companionhip', 'marriage_duties', 'prayer_life'],
+      'fellowship': ['companionhip', 'marriage_duties', 'prayer_life'],
+      'relationships': ['companionhip', 'marriage_duties', 'forgiveness'],
+      'prayer': ['prayer_life', 'spiritual_demand', 'no_worry'],
+      'spiritual_life': ['prayer_life', 'spiritual_demand', 'faith_trials'],
+      'communion': ['prayer_life', 'companionhip', 'spiritual_demand'],
+      'forgiveness': ['forgiveness', 'prayer_life', 'no_worry'],
+      'healing': ['forgiveness', 'prayer_life', 'no_worry'],
+      'reconciliation': ['forgiveness', 'companionhip', 'marriage_duties'],
+      'trials': ['faith_trials', 'spiritual_demand', 'no_worry'],
+      'faith': ['faith_trials', 'spiritual_demand', 'prayer_life'],
+      'perseverance': ['faith_trials', 'spiritual_demand', 'common_errors'],
+      'wisdom': ['common_errors', 'spiritual_demand', 'faith_trials'],
+      'discernment': ['common_errors', 'spiritual_demand', 'prayer_life'],
+      'avoiding_sin': ['common_errors', 'spiritual_demand', 'faith_trials'],
+      'marriage': ['marriage_duties', 'companionhip', 'forgiveness'],
+      'covenant': ['marriage_duties', 'companionhip', 'spiritual_demand'],
     };
     
+    // Collecter tous les thèmes pertinents
+    final relevantThemes = <String>{};
+    for (final goal in goals) {
+      final themes = goalToThemes[goal] ?? [];
+      relevantThemes.addAll(themes);
+    }
+    
+    // Si aucun thème trouvé, retourner les thèmes par défaut
+    if (relevantThemes.isEmpty) {
+      return ['spiritual_demand', 'prayer_life', 'no_worry', 'companionhip', 'forgiveness'];
+    }
+    
+    // Retourner les thèmes uniques, en ajoutant des thèmes supplémentaires si nécessaire
+    final result = relevantThemes.toList();
+    for (final theme in allThemes) {
+      if (!result.contains(theme) && result.length < 8) {
+        result.add(theme);
+      }
+    }
+    
+    return result;
+  }
+
+  /// Génère un nom dynamique et original inspiré de l'algorithme Thompson
+  String _generateDynamicPlanName(String theme, int index, String books) {
+    final thompsonInspirations = {
+      'spiritual_demand': {
+        'titles': [
+          'La Sanctification par l\'Épreuve',
+          'Marche dans la Sainteté',
+          'Transformation par l\'Esprit',
+          'L\'Excellence Chrétienne',
+          'La Discipline Divine'
+        ],
+        'subjects': [
+          'Romains 12-14',
+          'Éphésiens 4-6', 
+          '1 Pierre 1-2',
+          'Hébreux 12',
+          '2 Corinthiens 3-4'
+        ]
+      },
+      'no_worry': {
+        'titles': [
+          'La Paix qui Surpasse',
+          'Confiance en l\'Éternel',
+          'L\'Anxiété Transformée',
+          'Repos dans la Foi',
+          'Sérénité Divine'
+        ],
+        'subjects': [
+          'Matthieu 6:25-34',
+          'Psaumes 23, 27, 46',
+          'Philippiens 4:6-7',
+          '1 Pierre 5:7',
+          'Ésaïe 26:3-4'
+        ]
+      },
+      'companionhip': {
+        'titles': [
+          'L\'Amour Fraternel',
+          'Communion Authentique',
+          'L\'Unité dans le Christ',
+          'Relations Bénies',
+          'L\'Amour qui Édifie'
+        ],
+        'subjects': [
+          '1 Corinthiens 13',
+          'Actes 2:42-47',
+          'Jean 13:34-35',
+          '1 Jean 4:7-21',
+          'Romains 12:9-21'
+        ]
+      },
+      'prayer_life': {
+        'titles': [
+          'La Prière qui Transforme',
+          'Communion avec le Père',
+          'L\'Intimité Divine',
+          'La Puissance de la Prière',
+          'Dialogue Céleste'
+        ],
+        'subjects': [
+          'Matthieu 6:5-15',
+          'Luc 11:1-13',
+          'Psaumes 1-50',
+          'Éphésiens 6:18',
+          '1 Thessaloniciens 5:17'
+        ]
+      },
+      'forgiveness': {
+        'titles': [
+          'La Libération du Pardon',
+          'Cœur Guéri, Âme Libérée',
+          'La Grâce qui Restaure',
+          'Réconciliation Divine',
+          'L\'Amour qui Pardonne'
+        ],
+        'subjects': [
+          'Matthieu 18:21-35',
+          'Luc 15:11-32',
+          'Éphésiens 4:32',
+          'Colossiens 3:13',
+          '1 Jean 1:9'
+        ]
+      },
+      'faith_trials': {
+        'titles': [
+          'La Foi dans l\'Épreuve',
+          'Triompher par la Foi',
+          'L\'Endurance qui Vainc',
+          'La Persévérance Bénie',
+          'Foi Affermie par l\'Épreuve'
+        ],
+        'subjects': [
+          'Jacques 1:2-8',
+          'Romains 5:1-5',
+          '1 Pierre 1:6-9',
+          'Hébreux 11',
+          '2 Corinthiens 4:16-18'
+        ]
+      },
+      'common_errors': {
+        'titles': [
+          'La Sagesse qui Préserve',
+          'Éviter les Pièges',
+          'La Discernement Divin',
+          'Marche dans la Vérité',
+          'La Prudence qui Protège'
+        ],
+        'subjects': [
+          'Proverbes 1-10',
+          'Jacques 1:5-8',
+          'Galates 5:16-26',
+          '1 Corinthiens 10:12-13',
+          'Éphésiens 5:15-17'
+        ]
+      },
+      'marriage_duties': {
+        'titles': [
+          'L\'Alliance Sacrée',
+          'Amour selon Dieu',
+          'L\'Union Bénie',
+          'Mariage dans la Grâce',
+          'L\'Amour qui Dure'
+        ],
+        'subjects': [
+          'Genèse 2:18-25',
+          'Éphésiens 5:22-33',
+          '1 Corinthiens 7',
+          'Proverbes 31:10-31',
+          'Cantique des Cantiques'
+        ]
+      }
+    };
+
+    final inspiration = thompsonInspirations[theme] ?? thompsonInspirations['spiritual_demand']!;
+    final title = inspiration['titles']![index % inspiration['titles']!.length];
+    final subject = inspiration['subjects']![index % inspiration['subjects']!.length];
+    
+    // Générer un nom dynamique basé sur le contenu
+    final bookNames = _getBookDisplayNames(books);
+    final duration = [21, 30, 40, 45, 60][index % 5];
+    
+    return '$title — $subject';
+  }
+
+  /// Obtient le texte CTA selon le niveau utilisateur
+  String _getCtaTextForUserLevel() {
+    final level = _userProfile?['level'] as String? ?? 'Fidèle régulier';
+    
+    switch (level) {
+      case 'Nouveau converti':
+        return 'Commencer ici';
+      case 'Serviteur/leader':
+        return 'Déployer ce plan';
+      default:
+        return 'Choisir ce plan';
+    }
+  }
+
+  /// Obtient les noms d'affichage des livres
+  String _getBookDisplayNames(String books) {
+    final bookNames = {
+      'OT,NT': 'Ancien & Nouveau Testament',
+      'NT': 'Nouveau Testament',
+      'OT': 'Ancien Testament',
+      'Gospels,Psalms': 'Évangiles & Psaumes',
+      'Gospels': 'Évangiles',
+      'Psalms,Proverbs': 'Psaumes & Proverbes',
+      'Psalms': 'Psaumes',
+      'Proverbs,James': 'Proverbes & Jacques',
+      'Gospels,Psalms,Proverbs': 'Évangiles, Psaumes & Proverbes',
+    };
+    
+    return bookNames[books] ?? books;
+  }
+
+  /// Crée un preset de fallback en cas d'échec
+  Future<PlanPreset> _createFallbackPreset(String theme, int index) async {
     final bookConfigs = {
       'spiritual_demand': 'NT',
       'no_worry': 'Gospels,Psalms',
@@ -178,52 +411,28 @@ class _GoalsPageState extends State<GoalsPage> {
     
     final durations = [21, 30, 40, 45, 60];
     final minutes = [15, 20, 25, 30, 35];
+    final books = bookConfigs[theme] ?? 'OT,NT';
+    
+    // Générer un nom dynamique
+    final dynamicName = _generateDynamicPlanName(theme, index, books);
     
     return PlanPreset(
       slug: 'fallback_${theme}_$index',
-      name: '${themeNames[theme] ?? 'Plan spirituel'} — ${durations[index % durations.length]} jours',
+      name: dynamicName,
       durationDays: durations[index % durations.length],
       order: 'thematic',
-      books: bookConfigs[theme] ?? 'OT,NT',
+      books: books,
       coverImage: null,
       minutesPerDay: minutes[index % minutes.length],
       recommended: [PresetLevel.regular],
-      description: 'Plan de méditation basé sur le thème "${themeNames[theme]}" de la Bible d\'étude Thompson 21. '
-                  'Parcours de ${durations[index % durations.length]} jours à travers ${bookConfigs[theme] ?? 'OT,NT'} '
+      description: 'Plan de méditation inspiré de la Bible d\'étude Thompson 21. '
+                  'Parcours de ${durations[index % durations.length]} jours à travers ${_getBookDisplayNames(books)} '
                   'pour approfondir ce thème spirituel.',
       gradient: _getThompsonGradient([theme]),
       specificBooks: specificBooks[theme] ?? 'Ancien & Nouveau Testament',
     );
   }
   
-  /// Fallback vers Thompson seul en cas d'échec de l'API
-  Future<List<PlanPreset>> _fallbackToThompson(CompleteProfile profile) async {
-    try {
-      print('🔄 Fallback vers Thompson seul...');
-      final thompsonPreset = await ThompsonPlanService.generateAndSave(profile);
-      
-      final planPreset = PlanPreset(
-        slug: thompsonPreset.id,
-        name: thompsonPreset.title,
-        durationDays: thompsonPreset.durationDays,
-        order: 'thematic',
-        books: 'OT,NT',
-        coverImage: thompsonPreset.meta['coverImage'] as String?,
-        minutesPerDay: thompsonPreset.meta['minutesPerDay'] as int?,
-        recommended: [PresetLevel.regular],
-        description: thompsonPreset.description,
-        gradient: _getThompsonGradient(thompsonPreset.meta['themeKeys'] as List<dynamic>?),
-        specificBooks: _getSpecificBooksForTheme(thompsonPreset.meta['themeKeys'] as List<dynamic>?),
-      );
-      
-      print('✅ Fallback Thompson réussi: ${planPreset.name}');
-      return [planPreset];
-    } catch (e) {
-      print('❌ Échec fallback Thompson: $e');
-      final dynamicPresets = DynamicPresetGenerator.generateDynamicPresets(_userProfile);
-      return dynamicPresets;
-    }
-  }
 
   /// Charge le profil utilisateur et applique la logique de personnalisation
   Future<void> _loadUserProfile() async {
@@ -231,12 +440,10 @@ class _GoalsPageState extends State<GoalsPage> {
       final profile = context.read<UserPrefsHive>().profile;
       final level = profile['level'] as String? ?? 'Nouveau converti';
       final goal = profile['goal'] as String? ?? 'Discipline quotidienne';
-      final allowCustom = profile['allowCustomPlan'] as bool? ?? false;
 
       setState(() {
         _userProfile = profile;
         _showBeginnerTracks = level == 'Nouveau converti';
-        _allowCustomPlan = true; // ⟵ toujours autoriser
         _userGoal = goal;
       });
       
@@ -246,7 +453,6 @@ class _GoalsPageState extends State<GoalsPage> {
       // En cas d'erreur, utiliser les valeurs par défaut
       setState(() {
         _showBeginnerTracks = true;
-        _allowCustomPlan = true; // ⟵ toujours autoriser
         _userGoal = 'Discipline quotidienne';
       });
     }
@@ -353,12 +559,10 @@ class _GoalsPageState extends State<GoalsPage> {
         _buildTextContent(),
         // Pagination Dots
         _buildPaginationDots(presets.length),
-        const SizedBox(height: 12),
+        const SizedBox(height: 20),
         // Custom Generator Button (toujours affiché)
         _buildCustomGeneratorButton(),
-        const SizedBox(height: 16),
-        // Bottom Navigation
-        _buildBottomNavigation(presets.length),
+        const SizedBox(height: 24),
       ],
     );
   }
@@ -377,7 +581,7 @@ class _GoalsPageState extends State<GoalsPage> {
             child: Container(
               width: 40,
               height: 40,
-              decoration: BoxDecoration(
+            decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.white.withOpacity(0.2)),
@@ -421,11 +625,11 @@ class _GoalsPageState extends State<GoalsPage> {
 
   Widget _buildCardsSection(List<PlanPreset> presets) {
     return SizedBox(
-      height: 380,
+      height: 320, // Hauteur du carousel réduite
       child: FancyStackCarousel(
         items: _carouselItems,
         options: FancyStackCarouselOptions(
-          size: const Size(300, 380),
+          size: const Size(280, 380), // Hauteur des cartes réduite
           autoPlay: true,
           autoPlayInterval: const Duration(seconds: 6),
           autoplayDirection: AutoplayDirection.bothSide,
@@ -456,7 +660,7 @@ class _GoalsPageState extends State<GoalsPage> {
           },
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 20),
-            height: 340,
+            height: 300, // Hauteur des cartes réduite
       decoration: BoxDecoration(
               gradient: _getGradientForPreset(preset),
               borderRadius: BorderRadius.circular(26),
@@ -493,7 +697,7 @@ class _GoalsPageState extends State<GoalsPage> {
                   Align(
                     alignment: Alignment.bottomCenter,
                     child: Container(
-                      height: 140,
+                      height: 100, // Hauteur du voile restaurée
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.bottomCenter,
@@ -510,21 +714,18 @@ class _GoalsPageState extends State<GoalsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Badge "Preset"
+                    // Icône moderne de swipe
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(.18),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Colors.white.withOpacity(.25)),
                       ),
-                      child: Text(
-                        'Preset',
-                        style: GoogleFonts.inter(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      child: const Icon(
+                        Icons.swipe_rounded,
+                        color: Colors.white,
+                        size: 16,
                       ),
                     ),
                     const Spacer(),
@@ -573,7 +774,7 @@ class _GoalsPageState extends State<GoalsPage> {
                       ),
                     ],
                     const SizedBox(height: 14),
-                    // CTA
+                    // CTA adapté au niveau utilisateur
                     Container(
                       height: 44,
                       decoration: BoxDecoration(
@@ -582,7 +783,7 @@ class _GoalsPageState extends State<GoalsPage> {
                       ),
                       child: Center(
                         child: Text(
-                          'Choisir ce plan',
+                          _getCtaTextForUserLevel(),
                           style: GoogleFonts.inter(
                             color: const Color(0xFF111827),
                             fontSize: 14,
@@ -677,7 +878,7 @@ class _GoalsPageState extends State<GoalsPage> {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Plan hybride Thompson + API',
+                    'Plans personnalisés pour toi',
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -711,45 +912,6 @@ class _GoalsPageState extends State<GoalsPage> {
     );
   }
 
-  Widget _buildBottomNavigation(int totalItems) {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Color(0xFF1553FF), Color(0xFF49C98D)]),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pushReplacementNamed(context, '/home');
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size.fromHeight(52),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  elevation: 0,
-                ),
-                child: Text(
-                  'Commencer',
-                  style: GoogleFonts.inter(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-                      ),
-                    ),
-                  ],
-                ),
-    );
-  }
 
 
   Widget _buildCustomGeneratorButton() {
@@ -757,26 +919,39 @@ class _GoalsPageState extends State<GoalsPage> {
       margin: const EdgeInsets.symmetric(horizontal: 24),
       child: Container(
         decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [Color(0xFF1553FF), Color(0xFF49C98D)]),
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFF1553FF),
+              Color(0xFF0D47A1),
+            ],
+          ),
           borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF1553FF).withOpacity(0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: OutlinedButton.icon(
           onPressed: () {
             Navigator.pushNamed(context, '/custom_plan');
           },
-          icon: const Icon(Icons.auto_awesome, size: 20, color: Colors.white),
+          icon: const Icon(Icons.tune_rounded, size: 24, color: Colors.white),
           label: Text(
-            'Générer un plan personnalisé',
+            'Clique ici si tu veux créer ton propre plan',
             style: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
               color: Colors.white,
             ),
           ),
           style: OutlinedButton.styleFrom(
             foregroundColor: Colors.white,
             side: BorderSide.none,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            minimumSize: const Size.fromHeight(56),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
             ),
@@ -786,37 +961,6 @@ class _GoalsPageState extends State<GoalsPage> {
     );
   }
 
-  Widget _buildCustomPlanInfo() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.blue.withOpacity(0.2)),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.info_outline,
-            color: Colors.blue[600],
-            size: 20,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Les plans personnalisés seront disponibles après avoir terminé quelques plans guidés.',
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                color: Colors.blue[700],
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
 
   LinearGradient _getGradientForPreset(PlanPreset preset) {
@@ -939,40 +1083,6 @@ class _GoalsPageState extends State<GoalsPage> {
     return [const Color(0xFF6366F1), const Color(0xFF8B5CF6)];
   }
 
-  /// Génère les livres spécifiques pour un thème Thompson
-  String? _getSpecificBooksForTheme(List<dynamic>? themeKeys) {
-    if (themeKeys == null || themeKeys.isEmpty) return null;
-    
-    final themes = themeKeys.cast<String>();
-    
-    // Livres spécifiques aux thèmes Thompson
-    if (themes.contains('no_worry')) {
-      return 'Matthieu 6, Psaumes 23, 27, 46, 91, 121';
-    }
-    if (themes.contains('spiritual_demand')) {
-      return 'Matthieu 5-7, Romains 12-14, Éphésiens 4-6';
-    }
-    if (themes.contains('marriage_duties')) {
-      return 'Genèse 2, Proverbes 31, Éphésiens 5, 1 Corinthiens 7';
-    }
-    if (themes.contains('companionship')) {
-      return 'Genèse 2, Proverbes 18, Actes 2, 1 Corinthiens 13';
-    }
-    if (themes.contains('prayer_life')) {
-      return 'Psaumes 1-50, Matthieu 6, Luc 11, Éphésiens 6';
-    }
-    if (themes.contains('forgiveness')) {
-      return 'Matthieu 18, Luc 15, Éphésiens 4, Colossiens 3';
-    }
-    if (themes.contains('faith_trials')) {
-      return 'Jacques 1, Romains 5, 1 Pierre 1, Hébreux 11';
-    }
-    if (themes.contains('common_errors')) {
-      return 'Proverbes 1-10, Jacques 1-5, Galates 5';
-    }
-    
-    return null;
-  }
 
   /// Gère la sélection d'un plan preset
   Future<void> _onPlanSelected(PlanPreset preset) async {
@@ -986,7 +1096,7 @@ class _GoalsPageState extends State<GoalsPage> {
       final profile = context.read<UserPrefsHive>().profile;
 
       // ⚡ super-intelligente côté serveur : preset + profil
-      final plan = await planService.createFromPreset(
+      await planService.createFromPreset(
         presetSlug: preset.slug,
         startDate: startDate,
         profile: profile,
@@ -1000,13 +1110,41 @@ class _GoalsPageState extends State<GoalsPage> {
         ));
       }
 
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushReplacementNamed(context, '/onboarding');
     } catch (e) {
       if (mounted) Navigator.pop(context);
       if (mounted) {
+        // Gestion d'erreur améliorée pour le mode offline-first
+        String errorMessage = 'Impossible de créer le plan pour le moment.';
+        
+        if (e.toString().contains('Failed to fetch')) {
+          errorMessage = 'Mode hors ligne : Le plan sera créé localement.';
+        } else if (e.toString().contains('ClientException')) {
+          errorMessage = 'Connexion requise pour synchroniser le plan.';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 3),
+            action: SnackBarAction(
+              label: 'Continuer',
+              textColor: Colors.white,
+              onPressed: () {
+                // Navigation vers l'onboarding même en cas d'erreur
+                Navigator.pushReplacementNamed(context, '/onboarding');
+              },
+            ),
+          ),
         );
+        
+        // Navigation automatique après 3 secondes
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) {
+            Navigator.pushReplacementNamed(context, '/onboarding');
+          }
+        });
       }
     }
   }
@@ -1039,21 +1177,50 @@ class _GoalsPageState extends State<GoalsPage> {
                 ),
               ),
               const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () async {
-                  final date = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime.now(),
-                    lastDate: DateTime.now().add(const Duration(days: 365)),
-                  );
-                  if (date != null) {
-                    selectedDate = date;
-                  }
-                },
-                child: Text(
-                  'Sélectionner une date',
-                  style: GoogleFonts.inter(),
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0xFF1553FF),
+                      Color(0xFF0D47A1),
+                    ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF1553FF).withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: ElevatedButton(
+                  onPressed: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (date != null) {
+                      selectedDate = date;
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'Sélectionner une date',
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 10),
@@ -1074,11 +1241,40 @@ class _GoalsPageState extends State<GoalsPage> {
                 style: GoogleFonts.inter(),
               ),
             ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, selectedDate),
-              child: Text(
-                'Créer le plan',
-                style: GoogleFonts.inter(),
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFF1553FF),
+                    Color(0xFF0D47A1),
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF1553FF).withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context, selectedDate),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shadowColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'Créer le plan',
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
           ],
@@ -1100,7 +1296,7 @@ class _GoalsPageState extends State<GoalsPage> {
           child: Center(
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 20),
-              height: 380,
+              height: 320, // Hauteur du skeleton réduite
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(26),
@@ -1152,14 +1348,37 @@ class _GoalsPageState extends State<GoalsPage> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: onRetry,
-            icon: const Icon(Icons.refresh, size: 18),
-            label: const Text('Réessayer'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: const Color(0xFF111827),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFF1553FF),
+                  Color(0xFF0D47A1),
+                ],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF1553FF).withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: ElevatedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh, size: 18, color: Colors.white),
+              label: const Text('Réessayer', style: TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shadowColor: Colors.transparent,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
           ),
         ],

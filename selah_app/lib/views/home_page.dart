@@ -197,8 +197,6 @@ class _HomePageWidgetState extends State<HomePageWidget>
                                       const SizedBox(height: 16),
                                       _buildProgressCard(tasksDone: tasksDone, tasksTotal: tasksTotal),
                             const SizedBox(height: 16),
-                                      // New section for Bible version and downloads
-                                      _buildBibleSection(),
                           ],
                         ),
                       ),
@@ -357,7 +355,7 @@ class _HomePageWidgetState extends State<HomePageWidget>
                   style: GoogleFonts.inter(
                     fontSize: 10,
                     color: isToday
-                        ? const Color(0xFF1F2937)
+                        ? Colors.white
                         : const Color(0xFF9CA3AF),
                     fontWeight: FontWeight.w500,
                   ),
@@ -367,7 +365,9 @@ class _HomePageWidgetState extends State<HomePageWidget>
                   '${date.day}',
                   style: GoogleFonts.inter(
                     fontSize: 14,
-                    color: const Color(0xFF1F2937),
+                    color: isToday
+                        ? Colors.white
+                        : const Color(0xFF1F2937),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -379,7 +379,9 @@ class _HomePageWidgetState extends State<HomePageWidget>
                     Icon(
                       Icons.radio_button_unchecked,
                       size: 10,
-                      color: const Color(0xFF9CA3AF),
+                      color: isToday
+                          ? Colors.white.withOpacity(0.7)
+                          : const Color(0xFF9CA3AF),
                     ),
                   ],
                 ),
@@ -655,122 +657,4 @@ class _HomePageWidgetState extends State<HomePageWidget>
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // New Bible Section with Downloads
-  // ---------------------------------------------------------------------------
-  Widget _buildBibleSection() {
-    return Consumer<HomeVM>(
-      builder: (context, homeVM, child) {
-        final state = homeVM.state;
-        
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.menu_book, color: Color(0xFF6D28D9)),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Version de la Bible',
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF1E293B),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Version actuelle: Aucune',
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: const Color(0xFF64748B),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        context.read<TelemetryConsole>().event('bible_download_started', {'version': 'LSG'});
-                        await context.read<BackgroundTasks>().queueBible('LSG');
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Téléchargement de LSG en cours...'),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.download, size: 16),
-                      label: const Text('LSG'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6D28D9),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        context.read<TelemetryConsole>().event('bible_download_started', {'version': 'S21'});
-                        await context.read<BackgroundTasks>().queueBible('S21');
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Téléchargement de S21 en cours...'),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.download, size: 16),
-                      label: const Text('S21'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF059669),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                      ),
-                    ),
-                          ),
-                        ],
-                ),
-              if (context.watch<AppState>().value.hasPendingSync) ...[
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Synchronisation en cours...',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: const Color(0xFFF59E0B),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ],
-            ),
-          );
-        },
-    );
-  }
 }

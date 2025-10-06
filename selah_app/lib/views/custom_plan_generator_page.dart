@@ -19,7 +19,7 @@ class CustomPlanGeneratorPage extends StatefulWidget {
 class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
   final _nameController = TextEditingController();
   DateTime _startDate = DateTime.now();
-  int _totalDays = 365;
+  int _totalDays = 360;
   String _order = 'traditional';
   String _books = 'OT,NT';
   final String _lang = 'fr';
@@ -422,8 +422,8 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
                 child: Slider(
                   value: _totalDays.toDouble(),
                   min: 30,
-                  max: 730,
-                  divisions: 70,
+                  max: 360,
+                  divisions: 330,
                   onChanged: (value) {
                     setState(() {
                       _totalDays = value.round();
@@ -609,8 +609,8 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
   Future<void> _generatePlan() async {
     if (!_validateAndVibrate()) return;
     
-    if (_totalDays < 30 || _totalDays > 730) {
-      _showError('La durée doit être entre 30 et 730 jours');
+    if (_totalDays < 30 || _totalDays > 360) {
+      _showError('La durée doit être entre 30 et 360 jours');
       HapticFeedback.mediumImpact();
       return;
     }
@@ -862,8 +862,20 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
           // CTA principal
           DecoratedBox(
             decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)]),
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFF1553FF),
+                  Color(0xFF0D47A1),
+                ],
+              ),
               borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF1553FF).withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
             child: ElevatedButton.icon(
               onPressed: _isGenerating ? null : _generatePlan,

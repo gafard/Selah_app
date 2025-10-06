@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:go_router/go_router.dart';
 import '../widgets/selah_logo.dart';
 
 class WelcomePage extends StatefulWidget {
@@ -168,19 +167,21 @@ class _WelcomePageState extends State<WelcomePage> {
 
   Widget _buildSubtitle() {
     return Semantics(
-      label: 'Ta parole est une lampe à mes pieds. Chaque jour, laisse la Parole éclairer ta route.',
+      label: 'Arrêtez, et sachez que je suis Dieu : je domine sur les nations, je domine sur la terre.',
       child: Text(
-        'Ta parole est une lampe à mes pieds.\nChaque jour, laisse la Parole éclairer ta route.',
-        style: GoogleFonts.inter(
-          fontSize: 16,
+        '"Arrêtez, et sachez que je suis Dieu :\nje domine sur les nations, je domine sur la terre."\n\nPsaume 46:10',
+        style: GoogleFonts.playfairDisplay(
+          fontSize: 18,
           fontWeight: FontWeight.w400,
-          color: Colors.white.withOpacity(0.8),
-          height: 1.5,
+          fontStyle: FontStyle.italic,
+          color: Colors.white.withOpacity(0.9),
+          height: 1.6,
+          letterSpacing: 0.3,
           shadows: [
             Shadow(
-              color: Colors.black.withOpacity(0.12),
+              color: Colors.black.withOpacity(0.15),
               offset: const Offset(0, 1),
-              blurRadius: 2,
+              blurRadius: 3,
             ),
           ],
         ),
@@ -193,119 +194,42 @@ class _WelcomePageState extends State<WelcomePage> {
   }
 
   Widget _buildAuthButtons(BuildContext context) {
-    final isIOS = Theme.of(context).platform == TargetPlatform.iOS;
-    
     return Column(
       children: [
-        // Boutons selon la plateforme
-        if (isIOS) ...[
-          // Bouton Apple sur iOS
-          _buildAuthButton(
-            context: context,
-            icon: Icons.apple,
-            label: 'Se connecter avec Apple',
-            backgroundColor: Colors.white,
-            textColor: Colors.black,
-            onTap: () => _handleAuthTap(() => _showComingSoon(context, 'Apple')),
-          ),
-          const SizedBox(height: 16),
-        ] else ...[
-          // Bouton Google sur Android/Web
-          _buildAuthButton(
-            context: context,
-            icon: Icons.g_mobiledata,
-            label: 'Continuer avec Google',
-            backgroundColor: Colors.white,
-            textColor: Colors.black,
-            onTap: () => _handleAuthTap(() => _showComingSoon(context, 'Google')),
-          ),
-          const SizedBox(height: 16),
-        ],
-        
-        // Bouton Email avec outline gradient
-        _buildEmailButton(context),
+        // Bouton principal "Se connecter"
+        _buildLoginButton(context),
         
         const SizedBox(height: 16),
         
-        // Lien "Créer un compte par email"
+        // Lien "Créer un compte"
         _buildSignUpLink(context),
       ],
     );
   }
 
-  Widget _buildAuthButton({
-    required BuildContext context,
-    required IconData icon,
-    required String label,
-    required Color backgroundColor,
-    required Color textColor,
-    required VoidCallback onTap,
-  }) {
-    return Semantics(
-      label: label,
-      button: true,
-      child: SizedBox(
-        width: double.infinity,
-        height: 56,
-        child: ElevatedButton(
-          onPressed: onTap,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: backgroundColor,
-            foregroundColor: textColor,
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(
-                color: backgroundColor == Colors.white 
-                  ? Colors.grey.withOpacity(0.2)
-                  : Colors.transparent,
-                width: 1,
-              ),
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 24,
-                color: textColor,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                label,
-                style: GoogleFonts.inter(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: textColor,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildEmailButton(BuildContext context) {
+  Widget _buildLoginButton(BuildContext context) {
     return Semantics(
-      label: 'Continuer avec l\'email',
+      label: 'Se connecter',
       button: true,
       child: Container(
         width: double.infinity,
         height: 56,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: const Color(0xFF1553FF).withOpacity(0.3),
-            width: 1,
-          ),
-          gradient: LinearGradient(
+          gradient: const LinearGradient(
             colors: [
-              const Color(0xFF2A2D3A),
-              const Color(0xFF2A2D3A).withOpacity(0.8),
+              Color(0xFF1553FF),
+              Color(0xFF0D47A1),
             ],
           ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF1553FF).withOpacity(0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: ElevatedButton(
           onPressed: () => _handleAuthTap(() => Navigator.pushNamed(context, '/auth', arguments: {'mode': 'login'})),
@@ -322,16 +246,16 @@ class _WelcomePageState extends State<WelcomePage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(
-                Icons.email_outlined,
+                Icons.login,
                 size: 24,
                 color: Colors.white,
               ),
               const SizedBox(width: 12),
               Text(
-                'Continuer avec l\'email',
+                'Se connecter',
                 style: GoogleFonts.inter(
                   fontSize: 16,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
               ),
@@ -344,19 +268,19 @@ class _WelcomePageState extends State<WelcomePage> {
 
   Widget _buildSignUpLink(BuildContext context) {
     return Semantics(
-      label: 'Créer un compte par email',
+      label: 'Créer un compte',
       button: true,
       child: InkWell(
         onTap: () => _handleAuthTap(() => Navigator.pushNamed(context, '/auth', arguments: {'mode': 'signup'})),
         borderRadius: BorderRadius.circular(8),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           child: Text(
-            'Créer un compte par email',
+            'Créer un compte',
             style: GoogleFonts.inter(
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: FontWeight.w500,
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withOpacity(0.8),
               decoration: TextDecoration.underline,
             ),
           ),
@@ -428,12 +352,6 @@ class _WelcomePageState extends State<WelcomePage> {
   void _showComingSoon(BuildContext context, String service) {
     String message;
     switch (service) {
-      case 'Google':
-        message = 'Google bientôt dispo — essayez l\'email en attendant';
-        break;
-      case 'Apple':
-        message = 'Apple bientôt dispo — essayez l\'email en attendant';
-        break;
       case 'CGU':
         message = 'Conditions d\'utilisation bientôt disponibles';
         break;
