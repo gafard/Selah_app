@@ -1,0 +1,88 @@
+/* Selah Brand Colors - CSS Tokens */
+
+:root {
+  /* Palette Principale - Blue Serenity */
+  --selah-blue: #1553FF;        /* Couleur principale - confiance & clarté */
+  --selah-marine: #0B2B7E;      /* Texte, contraste fort */
+  --selah-sage: #49C98D;        /* Accent, vivant, apaisant */
+  --selah-white: #FFFFFF;       /* Fond, contraste */
+  --selah-sand: #F4F6F8;        /* Fond alternatif */
+  --selah-night: #0F172A;       /* Texte sombre */
+  
+  /* Palette Alternative - Sage & Sand */
+  --selah-sage-dark: #2F9E75;   /* Sauge foncée */
+  --selah-sage-light: #AEE5C8;  /* Sauge claire */
+  --selah-slate: #22324A;        /* Ardoise */
+  --selah-ivory: #FCFCF8;       /* Ivoire */
+  
+  /* Couleurs Sémantiques */
+  --selah-primary: var(--selah-blue);
+  --selah-secondary: var(--selah-sage);
+  --selah-text: var(--selah-marine);
+  --selah-text-light: var(--selah-slate);
+  --selah-background: var(--selah-white);
+  --selah-background-alt: var(--selah-sand);
+  
+  /* États */
+  --selah-hover: #0D47E8;       /* Bleu Selah au survol */
+  --selah-active: #0B3FD1;      /* Bleu Selah actif */
+  --selah-disabled: #94A3B8;    /* Gris désactivé */
+  
+  /* Transparences */
+  --selah-blue-10: rgba(21, 83, 255, 0.1);
+  --selah-blue-20: rgba(21, 83, 255, 0.2);
+  --selah-blue-50: rgba(21, 83, 255, 0.5);
+  --selah-sage-10: rgba(73, 201, 141, 0.1);
+  --selah-sage-20: rgba(73, 201, 141, 0.2);
+  --selah-sage-50: rgba(73, 201, 141, 0.5);
+}
+
+/* Classes utilitaires pour les couleurs */
+.selah-bg-primary { background-color: var(--selah-blue); }
+.selah-bg-secondary { background-color: var(--selah-sage); }
+.selah-bg-white { background-color: var(--selah-white); }
+.selah-bg-sand { background-color: var(--selah-sand); }
+
+.selah-text-primary { color: var(--selah-blue); }
+.selah-text-secondary { color: var(--selah-sage); }
+.selah-text-dark { color: var(--selah-marine); }
+.selah-text-light { color: var(--selah-slate); }
+
+.selah-border-primary { border-color: var(--selah-blue); }
+.selah-border-secondary { border-color: var(--selah-sage); }
+
+/* Classes pour les états */
+.selah-hover:hover { color: var(--selah-hover); }
+.selah-active:active { color: var(--selah-active); }
+.selah-disabled { color: var(--selah-disabled); }
+
+/* Classes pour les transparences */
+.selah-bg-primary-10 { background-color: var(--selah-blue-10); }
+.selah-bg-primary-20 { background-color: var(--selah-blue-20); }
+.selah-bg-primary-50 { background-color: var(--selah-blue-50); }
+
+.selah-bg-secondary-10 { background-color: var(--selah-sage-10); }
+.selah-bg-secondary-20 { background-color: var(--selah-sage-20); }
+.selah-bg-secondary-50 { background-color: var(--selah-sage-50); }
+
+/* Styles pour le logo */
+.selah-logo {
+  vector-effect: non-scaling-stroke;
+}
+
+/* Responsive - Ajustements pour mobile */
+@media (max-width: 768px) {
+  :root {
+    /* Légères variations pour mobile si nécessaire */
+  }
+}
+
+/* Mode sombre (optionnel) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --selah-background: var(--selah-night);
+    --selah-text: var(--selah-white);
+    --selah-text-light: var(--selah-sage-light);
+    --selah-background-alt: var(--selah-slate);
+  }
+}

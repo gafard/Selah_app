@@ -1,0 +1,106 @@
+name: selah_app
+description: A new Flutter project.
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  google_fonts: ^6.2.1
+  go_router: ^14.2.0
+  flutter_animate: ^4.5.0
+  # Local data
+  # Notifications + alarmes
+  android_alarm_manager_plus: ^3.0.4
+  # Téléchargements background (placeholder, peut être remplacé)
+  background_downloader: ^8.4.0
+
+  # UI / Anim / Utils
+  carousel_slider: ^4.2.1
+  table_calendar: ^3.2.0
+  intl: ^0.20.2
+  font_awesome_flutter: ^10.7.0
+  url_launcher: ^6.3.1
+  flutter_svg: ^2.0.9
+
+  # Images / cache
+  cached_network_image: ^3.4.1
+  flutter_cache_manager: ^3.4.1
+
+  # State / routing
+  provider: ^6.0.5
+  flutter_riverpod: ^2.4.9
+  page_transition: ^2.1.0
+  collection: ^1.19.1
+
+  # Storage local
+  sqflite: ^2.3.3+1
+  sqflite_common: ^2.5.4+3
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  path_provider: ^2.1.3
+
+  # Background tasks
+  workmanager: ^0.5.2
+  flutter_local_notifications: ^17.2.1
+  timezone: ^0.9.4
+  supabase_flutter: ^2.5.6
+
+  # Temps relatif
+  timeago: ^3.7.1
+  
+  # HTTP requests
+  http: ^1.2.2
+  uuid: ^4.4.0
+  connectivity_plus: ^6.0.5
+  
+  # Swipeable stack
+  swipable_stack: ^2.0.0
+  
+  # Fancy stack carousel
+  fancy_stack_carousel: ^0.0.3
+  
+  # Flip card
+  flip_card: ^0.6.0
+  
+  # Circle navigation bar
+  circle_nav_bar: ^1.0.2
+  simple_gradient_text: ^1.0.0
+  flutter_card_swiper: ^7.0.2
+  
+  # Share and save
+  share_plus: ^10.0.0
+  image_gallery_saver: ^2.0.3
+  permission_handler: ^11.3.1
+  
+  # Audio player
+  just_audio: ^0.9.39
+  audio_session: ^0.1.18
+  rxdart: ^0.27.7
+  
+  # Storage
+  shared_preferences: ^2.2.2
+  
+dev_dependencies:
+  flutter_lints: ^4.0.0
+  lints: ^4.0.0
+  flutter_test:
+    sdk: flutter
+  golden_toolkit: ^0.15.0
+  hive_generator: ^2.0.1
+  build_runner: ^2.4.9
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/videos/
+    - assets/audios/
+    - assets/rive_animations/
+    - assets/pdfs/
+    - assets/jsons/
+    - assets/logos/
+    - assets/svg/
+    - assets/css/
+    - assets/presets/

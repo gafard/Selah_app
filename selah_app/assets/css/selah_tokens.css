@@ -1,0 +1,52 @@
+:root {
+  /* Couleurs principales Selah */
+  --selah-primary: #2B1E75; /* Indigo approuvé */
+  --selah-marine: #0B2B7E;  /* Marine */
+  --selah-sage: #49C98D;    /* Sauge */
+  --selah-white: #FFFFFF;   /* Blanc */
+  
+  /* Variantes avec opacité */
+  --selah-primary-10: rgba(43, 30, 117, 0.1);
+  --selah-primary-20: rgba(43, 30, 117, 0.2);
+  --selah-primary-30: rgba(43, 30, 117, 0.3);
+  --selah-primary-50: rgba(43, 30, 117, 0.5);
+  
+  --selah-marine-10: rgba(11, 43, 126, 0.1);
+  --selah-marine-20: rgba(11, 43, 126, 0.2);
+  --selah-marine-30: rgba(11, 43, 126, 0.3);
+  --selah-marine-50: rgba(11, 43, 126, 0.5);
+  
+  --selah-sage-10: rgba(73, 201, 141, 0.1);
+  --selah-sage-20: rgba(73, 201, 141, 0.2);
+  --selah-sage-30: rgba(73, 201, 141, 0.3);
+  --selah-sage-50: rgba(73, 201, 141, 0.5);
+  
+  /* Dégradés */
+  --selah-gradient-primary: linear-gradient(135deg, #1C1740 0%, #2D1B69 100%);
+  --selah-gradient-sage: linear-gradient(135deg, #49C98D 0%, #2B1E75 100%);
+  
+  /* Typographie */
+  --selah-font-primary: 'Outfit', 'Manrope', 'Nunito Sans', system-ui;
+  --selah-font-secondary: 'Inter', system-ui;
+  
+  /* Espacements */
+  --selah-spacing-xs: 4px;
+  --selah-spacing-sm: 8px;
+  --selah-spacing-md: 16px;
+  --selah-spacing-lg: 24px;
+  --selah-spacing-xl: 32px;
+  --selah-spacing-2xl: 48px;
+  
+  /* Rayons de bordure */
+  --selah-radius-sm: 8px;
+  --selah-radius-md: 12px;
+  --selah-radius-lg: 16px;
+  --selah-radius-xl: 20px;
+  --selah-radius-2xl: 24px;
+  
+  /* Ombres */
+  --selah-shadow-sm: 0 2px 8px rgba(43, 30, 117, 0.1);
+  --selah-shadow-md: 0 4px 16px rgba(43, 30, 117, 0.15);
+  --selah-shadow-lg: 0 8px 32px rgba(43, 30, 117, 0.2);
+  --selah-shadow-xl: 0 16px 64px rgba(43, 30, 117, 0.25);
+}

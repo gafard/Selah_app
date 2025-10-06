@@ -1,0 +1,63 @@
+[
+  {
+    "slug": "light_15",
+    "name": "Parcours léger 15 jours",
+    "durationDays": 15,
+    "order": "traditional",
+    "books": "Gospels,Psalms",
+    "coverImage": "https://images.unsplash.com/photo-1519681393784-d120267933ba",
+    "minutesPerDay": 8,
+    "recommended": ["beginner"]
+  },
+  {
+    "slug": "genesis_1_25_14d",
+    "name": "Genèse 1–25 (14 jours)",
+    "durationDays": 14,
+    "order": "historical",
+    "books": "OT",
+    "coverImage": "https://images.unsplash.com/photo-1506801310323-534be5e7f004",
+    "minutesPerDay": 18,
+    "recommended": ["beginner", "regular"]
+  },
+  {
+    "slug": "psalms_40",
+    "name": "Psaumes en 40 jours",
+    "durationDays": 40,
+    "order": "thematic",
+    "books": "Psalms",
+    "coverImage": "https://images.unsplash.com/photo-1519681393784-d120267933ba",
+    "minutesPerDay": 12,
+    "recommended": ["beginner","regular","leader"]
+  },
+  {
+    "slug": "proverbs_31",
+    "name": "Proverbes en 31 jours",
+    "durationDays": 31,
+    "order": "traditional",
+    "books": "Proverbs",
+    "coverImage": "https://images.unsplash.com/photo-1496307042754-b4aa456c4a2d",
+    "minutesPerDay": 10,
+    "recommended": ["regular","leader"]
+  },
+  {
+    "slug": "nt_90",
+    "name": "Nouveau Testament en 90 jours",
+    "durationDays": 90,
+    "order": "traditional",
+    "books": "NT",
+    "coverImage": "https://images.unsplash.com/photo-1520975962204-91a18ad58b54",
+    "minutesPerDay": 15,
+    "recommended": ["regular","leader"]
+  },
+  {
+    "slug": "bible_180",
+    "name": "Toute la Bible en 180 jours",
+    "durationDays": 180,
+    "order": "chronological",
+    "books": "OT,NT",
+    "coverImage": "https://images.unsplash.com/photo-1526779259212-939e64788e3c",
+    "minutesPerDay": 25,
+    "recommended": ["leader"]
+  }
+]
+

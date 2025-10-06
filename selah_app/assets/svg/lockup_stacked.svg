@@ -1,0 +1,8 @@
+<svg width="480" height="560" viewBox="0 0 480 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Selah stacked lockup">
+  <circle cx="240" cy="120" r="84" fill="#2B1E75"/>
+  <text x="240" y="148" text-anchor="middle" font-family="'Outfit','Manrope','Nunito Sans',system-ui" font-size="118" font-weight="800" fill="#FFFFFF">s</text>
+  <ellipse cx="296" cy="92" rx="12" ry="8" fill="#49C98D"/>
+  <g transform="translate(240,368)" text-anchor="middle">
+    <text x="0" y="0" font-family="'Outfit','Manrope','Nunito Sans',system-ui" font-size="120" font-weight="800" fill="#0B2B7E" letter-spacing="-2" dominant-baseline="middle">selah</text>
+  </g>
+</svg>
