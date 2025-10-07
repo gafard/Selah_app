@@ -170,20 +170,23 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
               colors: [Color(0xFF1C1740), Color(0xFF2D1B69)],
             ),
           ),
-          child: SafeArea(
-            child: Column(
-              children: [
-                // Header moderne
-                _buildHeader(),
-                // Bannière réseau
-                _networkBanner(),
-                // Contenu scrollable
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Header moderne
+              _buildHeader(),
+              // Bannière réseau
+              _networkBanner(),
+              // Contenu scrollable
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                             // Nom du plan
                             _buildSection(
                               title: 'Nom du plan',
@@ -273,7 +276,7 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
                             ),
 
                             // Espace pour la barre collante
-                            const SizedBox(height: 96),
+                            const SizedBox(height: 120),
                           ],
                         ),
                       ),
@@ -295,6 +298,7 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
       onBackPressed: () => Navigator.pop(context),
       textColor: Colors.white,
       iconColor: Colors.white,
+      titleAlignment: CrossAxisAlignment.center,
     );
   }
 
@@ -334,12 +338,16 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
       child: TextField(
         controller: controller,
         style: GoogleFonts.inter(color: Colors.white),
+        keyboardType: TextInputType.text,
+        textInputAction: TextInputAction.done,
+        enableInteractiveSelection: true,
+        autocorrect: false,
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: GoogleFonts.inter(color: Colors.white54),
           prefixIcon: Icon(icon, color: Colors.white70),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         ),
       ),
     );
@@ -758,6 +766,8 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
       totalDays: _totalDays,
       startDate: _startDate,
       isActive: true,
+      books: _books,
+      minutesPerDay: 15, // Valeur par défaut
     );
     
     return plan;

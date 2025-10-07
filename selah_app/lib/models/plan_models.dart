@@ -7,6 +7,9 @@ class Plan {
   final DateTime startDate;
   final int totalDays;
   final bool isActive;
+  final String books;
+  final String? specificBooks;
+  final int minutesPerDay;
 
   Plan({
     required this.id,
@@ -15,6 +18,9 @@ class Plan {
     required this.startDate,
     required this.totalDays,
     required this.isActive,
+    required this.books,
+    this.specificBooks,
+    required this.minutesPerDay,
   });
 
   factory Plan.fromJson(Map<String, dynamic> j) => Plan(
@@ -24,6 +30,9 @@ class Plan {
         startDate: DateTime.parse(j['start_date']),
         totalDays: j['total_days'],
         isActive: j['is_active'] ?? false,
+        books: j['books'] ?? '',
+        specificBooks: j['specific_books'],
+        minutesPerDay: j['minutes_per_day'] ?? 15,
       );
 
   Map<String, dynamic> toJson() => {
@@ -33,6 +42,9 @@ class Plan {
         'start_date': startDate.toIso8601String(),
         'total_days': totalDays,
         'is_active': isActive,
+        'books': books,
+        'specific_books': specificBooks,
+        'minutes_per_day': minutesPerDay,
       };
 }
 

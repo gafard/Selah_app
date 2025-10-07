@@ -7,6 +7,7 @@ import '../models/plan_models.dart';
 import 'plan_service.dart';
 import 'sync_queue_hive.dart';
 import 'telemetry_console.dart';
+import 'user_prefs.dart';
 
 class PlanServiceHttp implements PlanService {
   final String baseUrl; // ex: https://api.selah.app
@@ -247,6 +248,167 @@ class PlanServiceHttp implements PlanService {
   }
 
   // —— progress stream (à partir du cache) ————————————————
+  /// Crée un plan localement sans connexion Internet
+  Future<Plan> createLocalPlan({
+    required String name,
+    required int totalDays,
+    required DateTime startDate,
+    required String books,
+    String? specificBooks,
+    required int minutesPerDay,
+    List<Map<String, dynamic>>? customPassages,
+  }) async {
+    // Générer un ID unique pour le plan
+    final planId = const Uuid().v4();
+    
+    // Créer le plan local
+    final plan = Plan(
+      id: planId,
+      userId: 'local_user', // ID utilisateur local
+      name: name,
+      totalDays: totalDays,
+      startDate: startDate,
+      isActive: true,
+      books: books,
+      specificBooks: specificBooks,
+      minutesPerDay: minutesPerDay,
+    );
+    
+    // Sauvegarder localement
+    await cachePlans.put('active_plan', plan.toJson());
+    
+    // Créer des jours de plan avec passages personnalisés ou génériques
+    await _createLocalPlanDays(planId, totalDays, startDate, books, customPassages);
+    
+    telemetry.event('plan_created_locally', {
+      'plan_id': planId,
+      'name': name,
+      'total_days': totalDays,
+      'books': books,
+    });
+    
+    return plan;
+  }
+
+  /// Crée les jours de plan localement
+  Future<void> _createLocalPlanDays(String planId, int totalDays, DateTime startDate, String books, List<Map<String, dynamic>>? customPassages) async {
+    final List<PlanDay> days = [];
+    
+    for (int i = 0; i < totalDays; i++) {
+      final dayDate = startDate.add(Duration(days: i));
+      final day = PlanDay(
+        id: '${planId}_day_${i + 1}',
+        planId: planId,
+        dayIndex: i + 1,
+        date: dayDate,
+        completed: false,
+        // Utiliser des lectures dynamiques selon la durée
+        readings: await _generateLocalReadings(books, i + 1),
+      );
+      days.add(day);
+    }
+    
+    // Sauvegarder les jours
+    await cachePlanDays.put('days:$planId', days.map((d) => d.toJson()).toList());
+  }
+
+  /// Génère des lectures locales basées sur les livres sélectionnés et la durée disponible
+  Future<List<ReadingRef>> _generateLocalReadings(String books, int dayIndex) async {
+    // Récupérer la durée choisie par l'utilisateur depuis le profil
+    final durationMin = await _getUserDurationMin();
+    
+    // Calculer le nombre de versets/chapitres selon la durée
+    final readingLength = _calculateReadingLength(durationMin);
+    
+    // Lectures dynamiques selon les livres et la durée
+    final readings = <ReadingRef>[];
+    
+    if (books.contains('Psalms')) {
+      readings.add(ReadingRef(
+        book: 'Psaumes',
+        range: '${(dayIndex % 150) + 1}:1-${readingLength['psalms']}',
+        url: null,
+      ));
+    }
+    
+    if (books.contains('Proverbs')) {
+      readings.add(ReadingRef(
+        book: 'Proverbes',
+        range: '${(dayIndex % 31) + 1}:1-${readingLength['proverbs']}',
+        url: null,
+      ));
+    }
+    
+    if (books.contains('Gospels')) {
+      final gospels = ['Matthieu', 'Marc', 'Luc', 'Jean'];
+      final gospel = gospels[dayIndex % gospels.length];
+      readings.add(ReadingRef(
+        book: gospel,
+        range: '${(dayIndex % 28) + 1}:1-${readingLength['gospels']}',
+        url: null,
+      ));
+    }
+    
+    if (books.contains('NT') && !books.contains('Gospels')) {
+      readings.add(ReadingRef(
+        book: 'Épîtres',
+        range: '$dayIndex:1-${readingLength['epistles']}',
+        url: null,
+      ));
+    }
+    
+    if (books.contains('OT')) {
+      readings.add(ReadingRef(
+        book: 'Ancien Testament',
+        range: '$dayIndex:1-${readingLength['ot']}',
+        url: null,
+      ));
+    }
+    
+    // Si aucune lecture générée, créer une lecture par défaut
+    if (readings.isEmpty) {
+      readings.add(ReadingRef(
+        book: 'Genèse',
+        range: '$dayIndex:1-${readingLength['default']}',
+        url: null,
+      ));
+    }
+    
+    return readings;
+  }
+
+  /// Récupère la durée quotidienne choisie par l'utilisateur
+  Future<int> _getUserDurationMin() async {
+    try {
+      // Essayer de récupérer depuis UserPrefs
+      final profile = await UserPrefs.loadProfile();
+      return profile['durationMin'] as int? ?? 15; // 15 min par défaut
+    } catch (e) {
+      return 15; // Fallback à 15 minutes
+    }
+  }
+
+  /// Calcule la longueur de lecture selon la durée disponible
+  Map<String, int> _calculateReadingLength(int durationMin) {
+    // Estimation : 1 minute = 2-3 versets moyens
+    final versesPerMinute = 2.5;
+    final totalVerses = (durationMin * versesPerMinute).round();
+    
+    return {
+      'psalms': _clampVerses(totalVerses, 5, 30), // Psaumes : 5-30 versets
+      'proverbs': _clampVerses(totalVerses, 8, 40), // Proverbes : 8-40 versets
+      'gospels': _clampVerses(totalVerses, 6, 35), // Évangiles : 6-35 versets
+      'epistles': _clampVerses(totalVerses, 10, 50), // Épîtres : 10-50 versets
+      'ot': _clampVerses(totalVerses, 8, 45), // AT : 8-45 versets
+      'default': _clampVerses(totalVerses, 6, 30), // Défaut : 6-30 versets
+    };
+  }
+
+  /// Limite le nombre de versets dans une plage raisonnable
+  int _clampVerses(int verses, int min, int max) {
+    return verses.clamp(min, max);
+  }
+
   @override
   Stream<PlanProgress> watchProgress(String planId) async* {
     // Simplifié : recompute sur chaque write dans n'importe quel cache days

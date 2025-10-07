@@ -8,6 +8,7 @@ import '../services/user_prefs_hive.dart';
 import '../services/plan_service.dart';
 import 'package:provider/provider.dart';
 import '../services/dynamic_preset_generator.dart';
+import '../services/intelligent_duration_calculator.dart';
 import '../services/intelligent_local_preset_generator.dart';
 import '../widgets/uniform_back_button.dart';
 
@@ -16,6 +17,14 @@ class GoalsPage extends StatefulWidget {
 
   @override
   State<GoalsPage> createState() => _GoalsPageState();
+}
+
+/// Classe pour contenir le contenu dynamique
+class _DynamicContent {
+  final String title;
+  final String subtitle;
+
+  _DynamicContent({required this.title, required this.subtitle});
 }
 
 class _GoalsPageState extends State<GoalsPage> {
@@ -231,6 +240,7 @@ class _GoalsPageState extends State<GoalsPage> {
       onBackPressed: () => Navigator.pushReplacementNamed(context, '/complete_profile'),
       textColor: Colors.white,
       iconColor: Colors.white,
+      titleAlignment: CrossAxisAlignment.start,
     );
   }
 
@@ -258,11 +268,11 @@ class _GoalsPageState extends State<GoalsPage> {
 
   Widget _buildCardsSection(List<PlanPreset> presets) {
     return SizedBox(
-      height: 280, // Hauteur du carousel encore plus réduite
+      height: 300, // Hauteur du carousel agrandie
       child: FancyStackCarousel(
         items: _carouselItems,
         options: FancyStackCarouselOptions(
-          size: const Size(260, 320), // Hauteur des cartes encore plus réduite
+          size: const Size(280, 340), // Taille des cartes agrandie
           autoPlay: true,
           autoPlayInterval: const Duration(seconds: 6),
           autoplayDirection: AutoplayDirection.bothSide,
@@ -293,7 +303,7 @@ class _GoalsPageState extends State<GoalsPage> {
           },
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 20),
-            height: 260, // Hauteur réduite pour s'adapter au carousel
+            height: 280, // Hauteur agrandie
       decoration: BoxDecoration(
               gradient: _getGradientForPreset(preset),
               borderRadius: BorderRadius.circular(26),
@@ -338,32 +348,35 @@ class _GoalsPageState extends State<GoalsPage> {
                         // Nom du plan centré avec typographie améliorée
                         Expanded(
                           child: Center(
-                            child: Text(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                              child: Text(
                       preset.name,
-                              style: GoogleFonts.roboto(
+                                style: GoogleFonts.roboto(
                         color: Colors.white,
-                                fontSize: 20, // Taille de police réduite
+                                  fontSize: 16, // Taille de police réduite pour Android
                         fontWeight: FontWeight.w800,
-                                height: 1.2,
-                                letterSpacing: 0.8,
-                                shadows: [
-                                  Shadow(
-                                    color: Colors.black.withOpacity(0.3), // Ombre réduite
-                                    offset: const Offset(0, 1), // Offset réduit
-                                    blurRadius: 2, // Blur réduit
-                                  ),
-                                ],
+                                  height: 1.2,
+                                  letterSpacing: 0.8,
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.black.withOpacity(0.3), // Ombre réduite
+                                      offset: const Offset(0, 1), // Offset réduit
+                                      blurRadius: 2, // Blur réduit
+                                    ),
+                                  ],
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 3, // Réduire à 3 lignes
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              textAlign: TextAlign.center,
-                              maxLines: 4,
-                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ),
                         
-                        // Détails en bas (jours et temps)
+                        // Détails en bas (jours et temps calculés intelligemment)
                     Text(
-                      '${preset.durationDays} jours • ${_getEstimatedTime(preset)} min/jour',
+                      _formatDurationDisplay(preset),
                       style: GoogleFonts.inter(
                         color: Colors.white.withOpacity(.85),
                         fontSize: 14,
@@ -374,31 +387,56 @@ class _GoalsPageState extends State<GoalsPage> {
                         
                         const SizedBox(height: 6),
                         
-                    // Livres spécifiques à méditer
+                    // Livres spécifiques et généraux
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      child: Column(
+                        children: [
+                          // Livres spécifiques (priorité)
                     if (preset.specificBooks != null) ...[
                       Text(
                         'Livres: ${preset.specificBooks}',
                         style: GoogleFonts.inter(
-                          color: Colors.white.withOpacity(.75),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w400,
+                                color: Colors.white.withOpacity(.85),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
                           height: 1.3,
                         ),
-                            textAlign: TextAlign.center,
+                              textAlign: TextAlign.center,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
+                            if (preset.books.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                'Catégorie: ${_formatBooksForDisplay(preset.books)}',
+                                style: GoogleFonts.inter(
+                                  color: Colors.white.withOpacity(.65),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                     ] else ...[
+                            // Fallback: seulement les livres généraux
                       Text(
                         'Livres: ${_formatBooksForDisplay(preset.books)}',
                         style: GoogleFonts.inter(
                           color: Colors.white.withOpacity(.75),
-                          fontSize: 12,
+                                fontSize: 11,
                           fontWeight: FontWeight.w400,
                         ),
-                            textAlign: TextAlign.center,
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ],
                       ),
-                    ],
+                    ),
                         
                         const SizedBox(height: 10), // Espacement réduit
                         
@@ -452,24 +490,17 @@ class _GoalsPageState extends State<GoalsPage> {
   }
 
   Widget _buildTextContent() {
-    String title = 'Choisis ton plan de lecture.';
-    String subtitle = 'Découvre des parcours de lecture biblique adaptés à ton rythme et tes objectifs spirituels.';
+    final level = _userProfile?['level'] as String? ?? 'Fidèle régulier';
+    final goal = _userProfile?['goal'] as String? ?? 'Discipline quotidienne';
     
-    // Personnaliser le message selon le profil
-    if (_showBeginnerTracks) {
-      title = 'Commence par les fondations.';
-      subtitle = 'Des plans spécialement conçus pour les nouveaux convertis. Découvre les bases de la foi chrétienne.';
-    } else if (_userGoal == 'Discipline de prière') {
-      title = 'Renforce ta discipline de prière.';
-      subtitle = 'Des parcours pour développer une vie de prière régulière et profonde.';
-    }
+    final content = _getDynamicContentForLevel(level, goal);
     
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Column(
         children: [
           Text(
-            title,
+            content.title,
             style: GoogleFonts.inter(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -479,7 +510,7 @@ class _GoalsPageState extends State<GoalsPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            subtitle,
+            content.subtitle,
             style: GoogleFonts.inter(
               fontSize: 14,
               color: Colors.white70,
@@ -521,6 +552,62 @@ class _GoalsPageState extends State<GoalsPage> {
         ],
       ),
     );
+  }
+
+  /// Contenu dynamique basé sur le niveau spirituel
+  _DynamicContent _getDynamicContentForLevel(String level, String goal) {
+    switch (level) {
+      case 'Nouveau converti':
+        return _DynamicContent(
+          title: 'Commence par les fondations',
+          subtitle: _getNewConvertContent(goal),
+        );
+      case 'Rétrograde':
+        return _DynamicContent(
+          title: 'Retrouve le chemin',
+          subtitle: _getRetrogradeContent(goal),
+        );
+      case 'Fidèle pas si régulier':
+        return _DynamicContent(
+          title: 'Retrouve la constance',
+          subtitle: _getIrregularContent(goal),
+        );
+      case 'Serviteur/leader':
+        return _DynamicContent(
+          title: 'Affermis ton leadership',
+          subtitle: _getLeaderContent(goal),
+        );
+      default: // Fidèle régulier
+        return _DynamicContent(
+          title: 'Approfondis ta marche',
+          subtitle: _getRegularContent(goal),
+        );
+    }
+  }
+
+  /// Contenu pour nouveaux convertis (très court)
+  String _getNewConvertContent(String goal) {
+    return '''Bienvenue dans cette merveilleuse aventure qu'est la vie chrétienne !''';
+  }
+
+  /// Contenu pour rétrogrades (très court)
+  String _getRetrogradeContent(String goal) {
+    return '''Cher ami, ton retour vers Dieu est un moment de grâce infinie.''';
+  }
+
+  /// Contenu pour fidèles irréguliers (très court)
+  String _getIrregularContent(String goal) {
+    return '''Cher ami fidèle, ton désir de retrouver la constance révèle un cœur qui aspire à plus de profondeur.''';
+  }
+
+  /// Contenu pour leaders (très court)
+  String _getLeaderContent(String goal) {
+    return '''Cher leader dans la foi, ton appel à servir Dieu est un privilège immense.''';
+  }
+
+  /// Contenu pour fidèles réguliers (très court)
+  String _getRegularContent(String goal) {
+    return '''Cher ami fidèle, ta constance dans la marche chrétienne est un témoignage précieux.''';
   }
 
   Widget _buildPaginationDots(int totalItems) {
@@ -710,6 +797,29 @@ class _GoalsPageState extends State<GoalsPage> {
     }
   }
 
+  /// Formate l'affichage de la durée avec temps choisi et jours calculés
+  String _formatDurationDisplay(PlanPreset preset) {
+    final durationDays = preset.durationDays;
+    final dailyMinutes = preset.minutesPerDay ?? _getEstimatedTime(preset);
+    
+    // Calculer le temps total
+        final totalMinutes = durationDays * int.parse(dailyMinutes.toString());
+    final totalHours = totalMinutes / 60;
+    
+    // Formater selon la durée totale
+    String totalTimeDisplay;
+    if (totalHours < 1) {
+      totalTimeDisplay = '${totalMinutes}min total';
+    } else if (totalHours < 24) {
+      totalTimeDisplay = '${totalHours.toStringAsFixed(1)}h total';
+    } else {
+      final totalDays = totalHours / 24;
+      totalTimeDisplay = '${totalDays.toStringAsFixed(1)}j total';
+    }
+    
+    return '$durationDays jours • ${dailyMinutes}min/jour • $totalTimeDisplay';
+  }
+
   String _getEstimatedTime(PlanPreset preset) {
     // Utiliser le temps de lecture du preset s'il est défini
     if (preset.minutesPerDay != null) {
@@ -765,17 +875,26 @@ class _GoalsPageState extends State<GoalsPage> {
       final planService = context.read<PlanService>();
       final profile = context.read<UserPrefsHive>().profile;
 
-      // ⚡ super-intelligente côté serveur : preset + profil
+      try {
+        // ⚡ Tentative de création côté serveur
       await planService.createFromPreset(
         presetSlug: preset.slug,
         startDate: startDate,
         profile: profile,
       );
+      } catch (e) {
+        // Si échec en ligne, créer un plan local
+        print('Création en ligne échouée: $e');
+        print('Création d\'un plan local pour le preset: ${preset.name}');
+        
+        // Créer un plan local basé sur le preset
+        await _createLocalPlanFromPreset(preset, startDate);
+      }
 
       if (mounted) Navigator.pop(context);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Plan "${preset.name}" créé.'),
+          content: Text('Plan "${preset.name}" créé avec succès.'),
           backgroundColor: Colors.green,
         ));
       }
@@ -784,39 +903,285 @@ class _GoalsPageState extends State<GoalsPage> {
     } catch (e) {
       if (mounted) Navigator.pop(context);
       if (mounted) {
-        // Gestion d'erreur améliorée pour le mode offline-first
-        String errorMessage = 'Impossible de créer le plan pour le moment.';
-        
-        if (e.toString().contains('Failed to fetch')) {
-          errorMessage = 'Mode hors ligne : Le plan sera créé localement.';
-        } else if (e.toString().contains('ClientException')) {
-          errorMessage = 'Connexion requise pour synchroniser le plan.';
-        }
-        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 3),
-            action: SnackBarAction(
-              label: 'Continuer',
-              textColor: Colors.white,
-              onPressed: () {
-                // Navigation vers l'onboarding même en cas d'erreur
-                Navigator.pushReplacementNamed(context, '/onboarding');
-              },
-            ),
+            content: Text('Erreur lors de la création du plan: ${e.toString()}'),
+            backgroundColor: Colors.red,
           ),
         );
-        
-        // Navigation automatique après 3 secondes
-        Future.delayed(const Duration(seconds: 3), () {
-          if (mounted) {
-            Navigator.pushReplacementNamed(context, '/onboarding');
-          }
+      }
+    }
+  }
+
+  /// Crée un plan local basé sur un preset intelligent
+  Future<void> _createLocalPlanFromPreset(PlanPreset preset, DateTime startDate) async {
+    final planService = context.read<PlanService>();
+    
+    // Générer des passages personnalisés basés sur le preset intelligent
+    final customPassages = _generateIntelligentPassages(preset);
+    
+    // Créer un plan local avec passages personnalisés
+    await planService.createLocalPlan(
+      name: preset.name,
+      totalDays: preset.durationDays,
+      startDate: startDate,
+      books: preset.books,
+      specificBooks: preset.specificBooks,
+      minutesPerDay: preset.minutesPerDay ?? 15,
+      customPassages: customPassages,
+    );
+    
+    print('✅ Plan local intelligent créé: ${preset.name} (${preset.durationDays} jours)');
+    print('📚 Passages générés: ${customPassages.length} passages personnalisés');
+  }
+
+  /// Génère des passages intelligents basés sur les informations du preset, la durée utilisateur et la science comportementale
+  List<Map<String, dynamic>> _generateIntelligentPassages(PlanPreset preset) {
+    final passages = <Map<String, dynamic>>[];
+    
+    // Récupérer la durée choisie par l'utilisateur
+    final userDurationMin = _userProfile?['durationMin'] as int? ?? 15;
+    
+    // Calculer la durée optimale avec le calculateur intelligent pour validation
+    final level = _userProfile?['level'] as String? ?? 'Fidèle régulier';
+    final goal = _userProfile?['goal'] as String? ?? 'Discipline quotidienne';
+    final meditationType = _userProfile?['meditation'] as String? ?? 'Méditation biblique';
+    
+    final durationCalculation = IntelligentDurationCalculator.calculateOptimalDuration(
+      goal: goal,
+      level: level,
+      dailyMinutes: userDurationMin,
+      meditationType: meditationType,
+    );
+    
+    print('🧠 Génération de passages avec science comportementale:');
+    print('   📊 Durée optimale calculée: ${durationCalculation.optimalDays} jours');
+    print('   🔬 Base scientifique: ${durationCalculation.behavioralType}');
+    print('   💡 Raisonnement: ${durationCalculation.reasoning}');
+    
+    // Priorité 1: Utiliser les livres spécifiques du preset s'ils existent
+    if (preset.specificBooks != null && preset.specificBooks!.isNotEmpty) {
+      return _generatePassagesFromSpecificBooks(preset.specificBooks!, preset.durationDays, userDurationMin);
+    }
+    
+    // Priorité 2: Analyser le nom du preset pour extraire les informations
+    final name = preset.name.toLowerCase();
+    
+    // Générer des passages selon le thème du preset
+    if (name.contains('philippiens')) {
+      for (int i = 1; i <= preset.durationDays; i++) {
+        final chapter = ((i - 1) % 4) + 1; // Philippiens a 4 chapitres
+        passages.add({
+          'reference': 'Philippiens $chapter:${((i - 1) % 10) + 1}-${((i - 1) % 10) + 5}',
+          'text': 'Lecture de Philippiens - Chapitre $chapter - Jour $i',
+          'book': 'Philippiens',
+          'theme': 'Joie en Christ',
+          'focus': 'Paix et contentement',
+        });
+      }
+    } else if (name.contains('colossiens')) {
+      for (int i = 1; i <= preset.durationDays; i++) {
+        final chapter = ((i - 1) % 4) + 1; // Colossiens a 4 chapitres
+        passages.add({
+          'reference': 'Colossiens $chapter:${((i - 1) % 10) + 1}-${((i - 1) % 10) + 5}',
+          'text': 'Lecture de Colossiens - Chapitre $chapter - Jour $i',
+          'book': 'Colossiens',
+          'theme': 'Plénitude en Christ',
+          'focus': 'Supériorité de Christ',
+        });
+      }
+    } else if (name.contains('éphésiens')) {
+      for (int i = 1; i <= preset.durationDays; i++) {
+        final chapter = ((i - 1) % 6) + 1; // Éphésiens a 6 chapitres
+        passages.add({
+          'reference': 'Éphésiens $chapter:${((i - 1) % 10) + 1}-${((i - 1) % 10) + 5}',
+          'text': 'Lecture d\'Éphésiens - Chapitre $chapter - Jour $i',
+          'book': 'Éphésiens',
+          'theme': 'Église corps de Christ',
+          'focus': 'Unité et amour',
+        });
+      }
+    } else if (name.contains('romains')) {
+      for (int i = 1; i <= preset.durationDays; i++) {
+        final chapter = ((i - 1) % 16) + 1; // Romains a 16 chapitres
+        passages.add({
+          'reference': 'Romains $chapter:${((i - 1) % 10) + 1}-${((i - 1) % 10) + 5}',
+          'text': 'Lecture de Romains - Chapitre $chapter - Jour $i',
+          'book': 'Romains',
+          'theme': 'Justification par la foi',
+          'focus': 'Salut et grâce',
+        });
+      }
+    } else if (name.contains('évangiles') || name.contains('matthieu') || name.contains('jean')) {
+      final gospels = ['Matthieu', 'Marc', 'Luc', 'Jean'];
+      for (int i = 1; i <= preset.durationDays; i++) {
+        final gospel = gospels[((i - 1) % gospels.length)];
+        final chapter = ((i - 1) % 28) + 1;
+        passages.add({
+          'reference': '$gospel $chapter:${((i - 1) % 10) + 1}-${((i - 1) % 10) + 5}',
+          'text': 'Évangile selon $gospel - Chapitre $chapter - Jour $i',
+          'book': gospel,
+          'theme': 'Vie de Jésus',
+          'focus': 'Paroles et miracles',
+        });
+      }
+    } else {
+      // Fallback: utiliser les livres spécifiés dans le preset
+      final bookList = preset.specificBooks?.split(',') ?? preset.books.split(',');
+      for (int i = 1; i <= preset.durationDays; i++) {
+        final book = bookList[((i - 1) % bookList.length)].trim();
+        passages.add({
+          'reference': '$book ${((i - 1) % 30) + 1}:1-10',
+          'text': 'Lecture de $book - Jour $i',
+          'book': book,
+          'theme': 'Méditation biblique',
+          'focus': 'Croissance spirituelle',
         });
       }
     }
+    
+    return passages;
+  }
+
+  /// Génère des passages à partir des livres spécifiques du preset avec durée adaptative
+  List<Map<String, dynamic>> _generatePassagesFromSpecificBooks(String specificBooks, int durationDays, int userDurationMin) {
+    final passages = <Map<String, dynamic>>[];
+    
+    // Récupérer les informations du profil pour enrichir la génération
+    final level = _userProfile?['level'] as String? ?? 'Fidèle régulier';
+    final goal = _userProfile?['goal'] as String? ?? 'Discipline quotidienne';
+    
+    print('📚 Génération de passages spécifiques avec adaptation comportementale:');
+    print('   📖 Livres: $specificBooks');
+    print('   ⏱️ Durée: $durationDays jours, ${userDurationMin}min/jour');
+    print('   🎯 Objectif: $goal');
+    print('   👤 Niveau: $level');
+    
+    // Parser les livres spécifiques (ex: "Jean & Luc (Jean 3:16, Luc 19:10)")
+    final bookPattern = RegExp(r'([^&(]+)(?:&([^&(]+))?');
+    final versePattern = RegExp(r'\(([^)]+)\)');
+    
+    final bookMatch = bookPattern.firstMatch(specificBooks);
+    final verseMatch = versePattern.firstMatch(specificBooks);
+    
+    if (bookMatch != null) {
+      final book1 = bookMatch.group(1)?.trim() ?? '';
+      final book2 = bookMatch.group(2)?.trim() ?? '';
+      
+      // Extraire les versets de référence
+      final verseRefs = <String>[];
+      if (verseMatch != null) {
+        final verseText = verseMatch.group(1) ?? '';
+        verseRefs.addAll(verseText.split(',').map((v) => v.trim()));
+      }
+      
+      // Calculer la longueur de lecture selon la durée utilisateur
+      final readingLength = _calculateAdaptiveReadingLength(userDurationMin, book1, book2);
+      
+      // Générer des passages pour chaque jour
+      for (int i = 1; i <= durationDays; i++) {
+        // Alterner entre les livres
+        final currentBook = (i % 2 == 1) ? book1 : (book2.isNotEmpty ? book2 : book1);
+        
+        // Générer des références de chapitres et versets adaptatifs
+        final chapter = ((i - 1) % 30) + 1;
+        final startVerse = ((i - 1) % 10) + 1;
+        final endVerse = startVerse + readingLength[currentBook.toLowerCase()]!;
+        
+        passages.add({
+          'reference': '$currentBook $chapter:$startVerse-$endVerse',
+          'text': 'Lecture de $currentBook - Chapitre $chapter - Jour $i (${userDurationMin} min)',
+          'book': currentBook,
+          'theme': _getThemeForBook(currentBook),
+          'focus': _getFocusForBook(currentBook),
+          'verseRefs': verseRefs.isNotEmpty ? verseRefs : null,
+          'duration': userDurationMin,
+          'estimatedVerses': readingLength[currentBook.toLowerCase()],
+        });
+      }
+    }
+    
+    return passages;
+  }
+
+  /// Retourne le thème spirituel pour un livre biblique
+  String _getThemeForBook(String book) {
+    final bookLower = book.toLowerCase();
+    if (bookLower.contains('philippiens')) return 'Joie en Christ';
+    if (bookLower.contains('colossiens')) return 'Plénitude en Christ';
+    if (bookLower.contains('éphésiens')) return 'Église corps de Christ';
+    if (bookLower.contains('romains')) return 'Justification par la foi';
+    if (bookLower.contains('jean')) return 'Amour de Dieu';
+    if (bookLower.contains('matthieu')) return 'Royaume des cieux';
+    if (bookLower.contains('luc')) return 'Salut universel';
+    if (bookLower.contains('marc')) return 'Évangile du serviteur';
+    if (bookLower.contains('psaumes')) return 'Louange et adoration';
+    if (bookLower.contains('proverbes')) return 'Sagesse divine';
+    return 'Méditation biblique';
+  }
+
+  /// Retourne le focus spirituel pour un livre biblique
+  String _getFocusForBook(String book) {
+    final bookLower = book.toLowerCase();
+    if (bookLower.contains('philippiens')) return 'Paix et contentement';
+    if (bookLower.contains('colossiens')) return 'Supériorité de Christ';
+    if (bookLower.contains('éphésiens')) return 'Unité et amour';
+    if (bookLower.contains('romains')) return 'Salut et grâce';
+    if (bookLower.contains('jean')) return 'Vie éternelle';
+    if (bookLower.contains('matthieu')) return 'Enseignements de Jésus';
+    if (bookLower.contains('luc')) return 'Compassion divine';
+    if (bookLower.contains('marc')) return 'Ministère de Jésus';
+    if (bookLower.contains('psaumes')) return 'Relation avec Dieu';
+    if (bookLower.contains('proverbes')) return 'Vie pratique';
+    return 'Croissance spirituelle';
+  }
+
+  /// Calcule la longueur de lecture adaptative selon la durée et le type de livre
+  Map<String, int> _calculateAdaptiveReadingLength(int durationMin, String book1, String book2) {
+    // Estimation : 1 minute = 2-3 versets moyens selon le type de livre
+    final versesPerMinute = 2.5;
+    final baseVerses = (durationMin * versesPerMinute).round();
+    
+    // Ajustements selon le type de livre
+    final book1Lower = book1.toLowerCase();
+    final book2Lower = book2.toLowerCase();
+    
+    final result = <String, int>{};
+    
+    // Calcul pour le premier livre
+    if (book1Lower.contains('philippiens') || book1Lower.contains('colossiens') || book1Lower.contains('éphésiens')) {
+      result[book1Lower] = _clampVerses(baseVerses, 6, 25); // Épîtres courtes
+    } else if (book1Lower.contains('romains')) {
+      result[book1Lower] = _clampVerses(baseVerses, 8, 30); // Romains plus dense
+    } else if (book1Lower.contains('psaumes')) {
+      result[book1Lower] = _clampVerses(baseVerses, 4, 20); // Psaumes courts
+    } else if (book1Lower.contains('proverbes')) {
+      result[book1Lower] = _clampVerses(baseVerses, 5, 25); // Proverbes courts
+    } else {
+      result[book1Lower] = _clampVerses(baseVerses, 6, 30); // Défaut
+    }
+    
+    // Calcul pour le deuxième livre (si différent)
+    if (book2.isNotEmpty && book2Lower != book1Lower) {
+      if (book2Lower.contains('philippiens') || book2Lower.contains('colossiens') || book2Lower.contains('éphésiens')) {
+        result[book2Lower] = _clampVerses(baseVerses, 6, 25);
+      } else if (book2Lower.contains('romains')) {
+        result[book2Lower] = _clampVerses(baseVerses, 8, 30);
+      } else if (book2Lower.contains('psaumes')) {
+        result[book2Lower] = _clampVerses(baseVerses, 4, 20);
+      } else if (book2Lower.contains('proverbes')) {
+        result[book2Lower] = _clampVerses(baseVerses, 5, 25);
+      } else {
+        result[book2Lower] = _clampVerses(baseVerses, 6, 30);
+      }
+    }
+    
+    return result;
+  }
+
+  /// Limite le nombre de versets dans une plage raisonnable
+  int _clampVerses(int verses, int min, int max) {
+    return verses.clamp(min, max);
   }
 
   /// Affiche un dialogue pour sélectionner la date de début

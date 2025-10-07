@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/plan_preset.dart';
+import 'intelligent_duration_calculator.dart';
 
 /// -------- EXPLANATIONS DTO --------
 class PresetExplanation {
@@ -57,7 +58,7 @@ class IntelligentLocalPresetGenerator {
   };
 
   /// Historique des plans pour éviter les redondances
-  static final List<String> _userPlanHistory = [];
+  static final List<Map<String, dynamic>> _userPlanHistory = [];
 
   /// Feedback utilisateur pour apprentissage
   static final Map<String, double> _userFeedback = {};
@@ -827,7 +828,7 @@ class IntelligentLocalPresetGenerator {
     return baseDuration.clamp(7, 90);
   }
 
-  /// Génère un nom intelligent avancé
+  /// Génère un nom intelligent avancé avec poésie biblique
   static String _generateAdvancedIntelligentName(
     String theme, 
     String focus, 
@@ -835,50 +836,132 @@ class IntelligentLocalPresetGenerator {
     List<String> emotions,
     [int randomSeed = 0]
   ) {
-    // Variantes de noms pour plus de dynamisme
-    final themeNames = {
-      'spiritual_growth': ['Croissance Spirituelle', 'Évolution de la Foi', 'Développement Chrétien', 'Progression Spirituelle'],
-      'prayer_life': ['Vie de Prière', 'Communion Divine', 'Dialogue avec Dieu', 'Intimité Spirituelle'],
-      'wisdom_understanding': ['Sagesse Divine', 'Compréhension Biblique', 'Intelligence Spirituelle', 'Discernement Chrétien'],
-      'faith_foundation': ['Fondements de la Foi', 'Bases Chrétiennes', 'Piliers de la Foi', 'Racines Spirituelles'],
-      'christian_character': ['Caractère Chrétien', 'Transformation Intérieure', 'Santé Spirituelle', 'Intégrité Chrétienne'],
-      'hope_encouragement': ['Espérance & Encouragement', 'Renaissance Spirituelle', 'Restauration du Cœur', 'Nouvelle Espérance'],
-      'forgiveness_healing': ['Pardon & Guérison', 'Libération Spirituelle', 'Guérison Intérieure', 'Rédemption Personnelle'],
-      'mission_evangelism': ['Mission & Évangélisation', 'Appel Missionnaire', 'Témoignage Chrétien', 'Service Divin'],
+    // Noms poétiques et bibliques inspirés des Écritures
+    final poeticNames = {
+      'spiritual_growth': [
+        'Comme un arbre planté près des eaux',
+        'La graine qui grandit en secret',
+        'De la force en force',
+        'Croître dans la grâce',
+        'L\'homme nouveau qui se renouvelle',
+        'Comme l\'épi qui mûrit',
+        'Le chemin de la vie',
+        'De gloire en gloire'
+      ],
+      'prayer_life': [
+        'L\'encens qui monte vers le ciel',
+        'Le murmure du cœur',
+        'L\'intimité du sanctuaire',
+        'Le dialogue de l\'âme',
+        'L\'oraison du matin',
+        'La supplication du soir',
+        'L\'élévation de l\'esprit',
+        'La communion silencieuse'
+      ],
+      'wisdom_understanding': [
+        'La perle de grand prix',
+        'Le trésor caché',
+        'La sagesse qui descend d\'en haut',
+        'L\'intelligence du cœur',
+        'Le discernement des temps',
+        'La connaissance qui éclaire',
+        'L\'entendement des mystères',
+        'La révélation qui transforme'
+      ],
+      'faith_foundation': [
+        'La pierre angulaire',
+        'Les fondements inébranlables',
+        'La maison bâtie sur le roc',
+        'L\'ancre de l\'âme',
+        'La citadelle de la foi',
+        'Le rempart de la vérité',
+        'L\'assise éternelle',
+        'Le socle de l\'espérance'
+      ],
+      'christian_character': [
+        'Le fruit de l\'Esprit',
+        'L\'image du Fils',
+        'La nouvelle créature',
+        'Le vase d\'honneur',
+        'Le parfum de Christ',
+        'La lumière du monde',
+        'Le sel de la terre',
+        'L\'ambassadeur du ciel'
+      ],
+      'hope_encouragement': [
+        'L\'aurore qui se lève',
+        'La consolation des affligés',
+        'L\'espérance qui ne déçoit point',
+        'Le baume de Galaad',
+        'La source qui jaillit',
+        'L\'étoile du matin',
+        'Le refuge des faibles',
+        'La force des découragés'
+      ],
+      'forgiveness_healing': [
+        'Le pardon qui restaure',
+        'La guérison de l\'âme',
+        'La libération des chaînes',
+        'La rédemption qui transforme',
+        'L\'eau vive qui purifie',
+        'Le sang qui efface',
+        'La grâce qui relève',
+        'L\'amour qui guérit'
+      ],
+      'mission_evangelism': [
+        'La semence qui porte fruit',
+        'Le témoignage de la lumière',
+        'L\'appel des sentinelles',
+        'La moisson des âmes',
+        'L\'évangile de paix',
+        'La proclamation de la joie',
+        'Le service de l\'amour',
+        'L\'œuvre de la foi'
+      ],
     };
     
-    final baseNameOptions = themeNames[theme] ?? ['Plan Spirituel', 'Parcours Biblique', 'Découverte Divine'];
+    final baseNameOptions = poeticNames[theme] ?? [
+      'Le sentier de la vie',
+      'La voie de la vérité',
+      'Le chemin de la paix',
+      'La route de l\'amour'
+    ];
     final baseName = baseNameOptions[randomSeed % baseNameOptions.length];
     
-    // Ajouter des qualificatifs basés sur les émotions avec variété
-    final emotionQualifiers = {
-      'encouragement': ['Inspirant', 'Motivant', 'Stimulant', 'Enrichissant'],
-      'peace': ['Apaisant', 'Serein', 'Tranquille', 'Calmant'],
-      'wisdom': ['Sage', 'Profond', 'Réfléchi', 'Éclairant'],
-      'hope': ['Espérant', 'Optimiste', 'Révélateur', 'Prometteur'],
-      'healing': ['Guérissant', 'Restaureur', 'Libérateur', 'Rénovateur'],
-      'mission': ['Missionnaire', 'Évangélique', 'Témoin', 'Serviteur'],
-      'growth': ['Transformateur', 'Évolutif', 'Progressif', 'Développeur'],
-      'intimacy': ['Intime', 'Personnel', 'Authentique', 'Vrai'],
+    // Ajouter des qualificatifs poétiques basés sur les émotions
+    final poeticQualifiers = {
+      'encouragement': ['bénédiction', 'consolation', 'réconfort', 'soutien'],
+      'peace': ['sérénité', 'tranquillité', 'repos', 'harmonie'],
+      'wisdom': ['sagesse', 'prudence', 'réflexion', 'éclairement'],
+      'hope': ['espérance', 'confiance', 'attente', 'promesse'],
+      'healing': ['guérison', 'restauration', 'libération', 'rénovation'],
+      'mission': ['mission', 'évangélisation', 'témoignage', 'service'],
+      'growth': ['transformation', 'évolution', 'progression', 'développement'],
+      'intimacy': ['intimité', 'communion', 'authenticité', 'vérité'],
     };
     
-    String qualifier = '';
+    String poeticQualifier = '';
     for (final emotion in emotions) {
-      if (emotionQualifiers.containsKey(emotion)) {
-        final options = emotionQualifiers[emotion]!;
-        qualifier = ' ${options[randomSeed % options.length]}';
+      if (poeticQualifiers.containsKey(emotion)) {
+        final options = poeticQualifiers[emotion]!;
+        poeticQualifier = ' de ${options[randomSeed % options.length]}';
         break;
       }
     }
     
-    // Formater les livres avec des variantes
-    final bookNames = _formatBookNames(bookCombo.join(','));
+    // Formater les livres avec références bibliques poétiques
+    final bookNames = _formatBookNamesPoetically(bookCombo.join(','));
     
-    // Ajouter des variantes de séparateurs
-    final separators = [' — ', ' • ', ' : ', ' - '];
-    final separator = separators[randomSeed % separators.length];
+    // Utiliser des séparateurs poétiques variés
+    final poeticSeparators = [' • ', ' — ', ' : ', ' • '];
+    final separator = poeticSeparators[randomSeed % poeticSeparators.length];
     
-    return '$baseName$qualifier$separator$bookNames';
+    // Construire le nom final avec une structure poétique
+    if (bookNames.isNotEmpty) {
+      return '$baseName$poeticQualifier$separator$bookNames';
+    } else {
+      return '$baseName$poeticQualifier';
+    }
   }
 
   /// Génère une description enrichie
@@ -967,6 +1050,104 @@ class IntelligentLocalPresetGenerator {
     };
     
     return bookMapping[books] ?? books.replaceAll(',', ' & ');
+  }
+
+  /// Formate les noms des livres avec poésie biblique
+  static String _formatBookNamesPoetically(String books) {
+    final poeticBookNames = {
+      // Ancien Testament
+      'Genèse': 'Genèse (les commencements)',
+      'Exode': 'Exode (la délivrance)',
+      'Lévitique': 'Lévitique (la sainteté)',
+      'Nombres': 'Nombres (le désert)',
+      'Deutéronome': 'Deutéronome (la loi renouvelée)',
+      'Josué': 'Josué (la conquête)',
+      'Juges': 'Juges (le cycle de l\'infidélité)',
+      'Ruth': 'Ruth (la fidélité)',
+      '1 Samuel': '1 Samuel (l\'onction royale)',
+      '2 Samuel': '2 Samuel (le roi selon le cœur de Dieu)',
+      '1 Rois': '1 Rois (la gloire et la chute)',
+      '2 Rois': '2 Rois (l\'exil annoncé)',
+      '1 Chroniques': '1 Chroniques (l\'histoire sacrée)',
+      '2 Chroniques': '2 Chroniques (la fidélité divine)',
+      'Esdras': 'Esdras (la restauration)',
+      'Néhémie': 'Néhémie (le rebâtisseur)',
+      'Esther': 'Esther (la providence cachée)',
+      'Job': 'Job (la souffrance et la sagesse)',
+      'Psaumes': 'Psaumes (le chant de l\'âme)',
+      'Proverbes': 'Proverbes (la sagesse pratique)',
+      'Ecclésiaste': 'Ecclésiaste (la vanité et la sagesse)',
+      'Cantique': 'Cantique (l\'amour en fleur)',
+      'Ésaïe': 'Ésaïe (le prophète de l\'Emmanuel)',
+      'Jérémie': 'Jérémie (le prophète des larmes)',
+      'Lamentations': 'Lamentations (le deuil de Jérusalem)',
+      'Ézéchiel': 'Ézéchiel (la gloire de l\'Éternel)',
+      'Daniel': 'Daniel (le prophète des temps)',
+      'Osée': 'Osée (l\'amour fidèle)',
+      'Joël': 'Joël (le jour de l\'Éternel)',
+      'Amos': 'Amos (la justice sociale)',
+      'Abdias': 'Abdias (le jugement d\'Édom)',
+      'Jonas': 'Jonas (la miséricorde divine)',
+      'Michée': 'Michée (la justice et la miséricorde)',
+      'Nahum': 'Nahum (la chute de Ninive)',
+      'Habacuc': 'Habacuc (le juste vivra par la foi)',
+      'Sophonie': 'Sophonie (le jour de l\'Éternel)',
+      'Aggée': 'Aggée (réveillez-vous !)',
+      'Zacharie': 'Zacharie (les visions messianiques)',
+      'Malachie': 'Malachie (le messager)',
+      
+      // Nouveau Testament
+      'Matthieu': 'Matthieu (le Messie roi)',
+      'Marc': 'Marc (le Serviteur)',
+      'Luc': 'Luc (le Fils de l\'homme)',
+      'Jean': 'Jean (le Fils de Dieu)',
+      'Actes': 'Actes (l\'Église naissante)',
+      'Romains': 'Romains (la justification par la foi)',
+      '1 Corinthiens': '1 Corinthiens (l\'Église locale)',
+      '2 Corinthiens': '2 Corinthiens (le ministère apostolique)',
+      'Galates': 'Galates (la liberté en Christ)',
+      'Éphésiens': 'Éphésiens (l\'Église corps de Christ)',
+      'Philippiens': 'Philippiens (la joie en Christ)',
+      'Colossiens': 'Colossiens (la plénitude en Christ)',
+      '1 Thessaloniciens': '1 Thessaloniciens (l\'espérance du retour)',
+      '2 Thessaloniciens': '2 Thessaloniciens (le jour du Seigneur)',
+      '1 Timothée': '1 Timothée (les instructions pastorales)',
+      '2 Timothée': '2 Timothée (le testament spirituel)',
+      'Tite': 'Tite (l\'ordre dans l\'Église)',
+      'Philémon': 'Philémon (la réconciliation)',
+      'Hébreux': 'Hébreux (la supériorité de Christ)',
+      'Jacques': 'Jacques (la foi en action)',
+      '1 Pierre': '1 Pierre (l\'espérance vivante)',
+      '2 Pierre': '2 Pierre (la croissance spirituelle)',
+      '1 Jean': '1 Jean (l\'amour divin)',
+      '2 Jean': '2 Jean (la vérité et l\'amour)',
+      '3 Jean': '3 Jean (l\'hospitalité chrétienne)',
+      'Jude': 'Jude (contendre pour la foi)',
+      'Apocalypse': 'Apocalypse (la révélation finale)',
+      
+      // Combinaisons poétiques
+      'OT,NT': 'de Genèse à l\'Apocalypse',
+      'NT': 'les Écrits de la Nouvelle Alliance',
+      'OT': 'les Rouleaux de l\'Ancienne Alliance',
+      'Gospels,Psalms': 'les Évangiles et les Psaumes',
+      'Gospels': 'les quatre Évangiles',
+      'Psalms,Proverbs': 'les Psaumes et Proverbes',
+      'Psalms': 'le Livre des Psaumes',
+      'Proverbs,James': 'Proverbes et Jacques',
+      'Gospels,Psalms,Proverbs': 'Évangiles, Psaumes et Proverbes',
+    };
+    
+    // Si c'est une combinaison de livres individuels
+    if (books.contains(',')) {
+      final bookList = books.split(',');
+      if (bookList.length == 2) {
+        final firstBook = poeticBookNames[bookList[0]] ?? bookList[0];
+        final secondBook = poeticBookNames[bookList[1]] ?? bookList[1];
+        return '$firstBook et $secondBook';
+      }
+    }
+    
+    return poeticBookNames[books] ?? books;
   }
 
   /// Calcule les minutes par jour selon le niveau et la durée
@@ -1380,8 +1561,12 @@ class IntelligentLocalPresetGenerator {
   // === ENRICHISSEMENTS AVANCÉS ===
 
   /// 1. Historique des plans suivis → pour éviter les redondances et proposer une continuité spirituelle
-  static void addToPlanHistory(String planSlug) {
-    _userPlanHistory.add(planSlug);
+  static void addToPlanHistory(String planSlug, int durationDays) {
+    _userPlanHistory.add({
+      'slug': planSlug,
+      'date': DateTime.now(),
+      'durationDays': durationDays,
+    });
     // Garder seulement les 10 derniers plans
     if (_userPlanHistory.length > 10) {
       _userPlanHistory.removeAt(0);
@@ -1390,7 +1575,7 @@ class IntelligentLocalPresetGenerator {
 
   /// Vérifie si un preset a déjà été utilisé récemment
   static bool _hasRecentPlan(String slug) {
-    return _userPlanHistory.contains(slug);
+    return _userPlanHistory.any((plan) => plan['slug'] == slug);
   }
 
   /// 2. Feedback utilisateur → ajuster les propositions par apprentissage
@@ -1447,9 +1632,31 @@ class IntelligentLocalPresetGenerator {
 
   /// Génération enrichie avec tous les facteurs d'apprentissage
   static List<PlanPreset> generateEnrichedPresets(Map<String, dynamic>? profile) {
+    final level = profile?['level'] as String? ?? 'Fidèle régulier';
+    final goal = profile?['goal'] as String? ?? 'Discipline quotidienne';
+    final meditationType = profile?['meditation'] as String? ?? 'Méditation biblique';
+    final durationMin = profile?['durationMin'] as int? ?? 15;
+    
+    print('🧠 Génération enrichie pour: $level | $goal | ${durationMin}min/jour');
+    
+    // 1. Calculer la durée optimale basée sur la science comportementale et témoignages chrétiens
+    final durationCalculation = IntelligentDurationCalculator.calculateOptimalDuration(
+      goal: goal,
+      level: level,
+      dailyMinutes: durationMin,
+      meditationType: meditationType,
+    );
+    
+    print('📊 Durée calculée intelligemment: ${durationCalculation.optimalDays} jours (${durationCalculation.intensity})');
+    print('📚 Base scientifique: ${durationCalculation.behavioralType}');
+    print('🔬 Études référencées: ${durationCalculation.scientificBasis.join(', ')}');
+    print('💡 Raisonnement complet: ${durationCalculation.reasoning}');
+    print('⏱️ Temps total: ${durationCalculation.totalHours.toStringAsFixed(1)}h');
+    
+    // 2. Générer les presets de base avec toutes les informations enrichies
     final basePresets = generateIntelligentPresets(profile);
     
-    // Appliquer les enrichissements
+    // 3. Appliquer les enrichissements avec durée intelligente
     final enrichedPresets = basePresets.where((preset) {
       // Éviter les plans récents
       if (_hasRecentPlan(preset.slug)) return false;
@@ -1457,6 +1664,18 @@ class IntelligentLocalPresetGenerator {
       // Appliquer le feedback utilisateur
       final feedbackScore = _getFeedbackScore(preset.slug);
       return feedbackScore >= 0.3; // Seuil minimum de satisfaction
+    }).map((preset) {
+      // Utiliser la durée optimale calculée intelligemment
+      final optimalDuration = durationCalculation.optimalDays;
+      
+      // Adapter selon l'historique si nécessaire
+      final adaptedDuration = _adaptDurationFromHistory(optimalDuration, profile);
+      
+      return preset.copyWith(
+        durationDays: adaptedDuration,
+        minutesPerDay: durationMin, // Utiliser le temps choisi par l'utilisateur
+        name: _updatePresetNameWithDuration(preset.name, adaptedDuration, durationMin),
+      );
     }).toList();
 
     // Si pas assez de presets après filtrage, ajouter des nouveaux
@@ -1465,13 +1684,124 @@ class IntelligentLocalPresetGenerator {
       for (final preset in additionalPresets) {
         if (!enrichedPresets.any((p) => p.slug == preset.slug) && 
             !_hasRecentPlan(preset.slug)) {
-          enrichedPresets.add(preset);
+          
+          // Appliquer la durée intelligente aux nouveaux presets
+          final optimalDuration = durationCalculation.optimalDays;
+          final adaptedDuration = _adaptDurationFromHistory(optimalDuration, profile);
+          
+          final enrichedPreset = preset.copyWith(
+            durationDays: adaptedDuration,
+            minutesPerDay: durationMin,
+            name: _updatePresetNameWithDuration(preset.name, adaptedDuration, durationMin),
+          );
+          
+          enrichedPresets.add(enrichedPreset);
           if (enrichedPresets.length >= 6) break;
         }
       }
     }
 
-    return enrichedPresets.take(6).toList();
+    print('✅ ${enrichedPresets.length} presets enrichis générés avec durée intelligente');
+    return enrichedPresets.take(6).toList().cast<PlanPreset>();
+  }
+
+  /// Adapte la durée selon l'historique de l'utilisateur et les témoignages spirituels
+  static int _adaptDurationFromHistory(int baseDays, Map<String, dynamic>? profile) {
+    if (profile == null) return baseDays;
+    
+    var adaptedDays = baseDays;
+    
+    // 1. Ajustement basé sur l'historique des plans
+    final recentPlans = _userPlanHistory.where((plan) => 
+      DateTime.now().difference(plan['date'] as DateTime).inDays < 90
+    ).toList();
+    
+    if (recentPlans.isNotEmpty) {
+      final avgRecentDuration = recentPlans.map((p) => p['durationDays'] as int).reduce((a, b) => a + b) / recentPlans.length;
+      
+      // Si les plans récents étaient courts, proposer plus long
+      if (avgRecentDuration < 30) {
+        adaptedDays = (adaptedDays * 1.2).round();
+        print('📈 Durée augmentée (+20%) basée sur l\'historique: plans courts récents');
+      }
+      // Si les plans récents étaient longs, proposer plus court
+      else if (avgRecentDuration > 90) {
+        adaptedDays = (adaptedDays * 0.8).round();
+        print('📉 Durée réduite (-20%) basée sur l\'historique: plans longs récents');
+      }
+    }
+    
+    // 2. Ajustement basé sur les témoignages spirituels et l'état émotionnel
+    final level = profile['level'] as String? ?? 'Fidèle régulier';
+    final goal = profile['goal'] as String? ?? 'Discipline quotidienne';
+    
+    // Ajustement spécial pour les objectifs liés aux témoignages chrétiens
+    if (goal.contains('Renforcer ma foi') || goal.contains('Vivre un miracle') || 
+        goal.contains('Expérimenter la restauration') || goal.contains('Transformer ma vie')) {
+      adaptedDays = (adaptedDays * 1.15).round();
+      print('✨ Durée augmentée (+15%) pour objectif de témoignage spirituel: $goal');
+    }
+    
+    // Ajustement pour les niveaux spirituels spécifiques
+    if (level == 'Nouveau converti' && adaptedDays > 45) {
+      adaptedDays = 45; // Limiter pour éviter l'overwhelm
+      print('🛡️ Durée limitée à 45 jours pour nouveau converti (protection contre l\'overwhelm)');
+    } else if (level == 'Serviteur/leader' && adaptedDays < 60) {
+      adaptedDays = 60; // Minimum pour les leaders
+      print('👑 Durée minimum de 60 jours pour serviteur/leader');
+    }
+    
+    // 3. Ajustement basé sur le journal spirituel
+    final recentJournalEntries = _spiritualJournal.where((entry) => 
+      DateTime.now().difference(entry.date).inDays < 30
+    ).toList();
+    
+    if (recentJournalEntries.isNotEmpty) {
+      final avgSatisfaction = recentJournalEntries.map((e) => e.satisfaction).reduce((a, b) => a + b) / recentJournalEntries.length;
+      
+      if (avgSatisfaction > 0.8) {
+        // Si satisfaction élevée, augmenter légèrement la durée
+        adaptedDays = (adaptedDays * 1.1).round();
+        print('😊 Durée augmentée (+10%) basée sur satisfaction élevée du journal spirituel');
+      } else if (avgSatisfaction < 0.4) {
+        // Si satisfaction faible, réduire la durée
+        adaptedDays = (adaptedDays * 0.9).round();
+        print('😔 Durée réduite (-10%) basée sur satisfaction faible du journal spirituel');
+      }
+    }
+    
+    // 4. Contraintes finales de bon sens
+    adaptedDays = adaptedDays.clamp(7, 365); // Entre 1 semaine et 1 an
+    
+    if (adaptedDays != baseDays) {
+      print('🔄 Durée adaptée: $baseDays → $adaptedDays jours (${((adaptedDays - baseDays) / baseDays * 100).toStringAsFixed(1)}%)');
+    }
+    
+    return adaptedDays;
+  }
+  
+  /// Met à jour le nom du preset avec la durée calculée intelligemment
+  static String _updatePresetNameWithDuration(String originalName, int days, int minutes) {
+    // Extraire le nom de base (avant les parenthèses ou tirets)
+    final cleanName = originalName.split('(')[0].split('—')[0].trim();
+    
+    // Calculer le temps total
+    final totalMinutes = days * minutes;
+    final totalHours = totalMinutes / 60;
+    
+    // Formater selon la durée totale
+    String totalTimeDisplay;
+    if (totalHours < 1) {
+      totalTimeDisplay = '${totalMinutes}min total';
+    } else if (totalHours < 24) {
+      totalTimeDisplay = '${totalHours.toStringAsFixed(1)}h total';
+    } else {
+      final totalDays = totalHours / 24;
+      totalTimeDisplay = '${totalDays.toStringAsFixed(1)}j total';
+    }
+    
+    // Ajouter la durée calculée intelligemment avec toutes les informations
+    return '$cleanName • $days jours • ${minutes}min/jour • $totalTimeDisplay';
   }
 
   /// Obtient des recommandations basées sur l'historique spirituel

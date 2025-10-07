@@ -165,9 +165,8 @@ class _SlideCard extends StatelessWidget {
           Align(
             alignment: Alignment.center,
             child: Container(
-              padding: const EdgeInsets.fromLTRB(22, 26, 22, 22),
+              height: 420,
               decoration: BoxDecoration(
-                color: Colors.white,
                 borderRadius: BorderRadius.circular(28),
                 boxShadow: [
                   BoxShadow(
@@ -177,34 +176,203 @@ class _SlideCard extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  // hero
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(22),
-                    child: AspectRatio(
-                      aspectRatio: 1.4,
-                      child: Image.network(card.imageUrl, fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(color: const Color(0xFFEFF1F5)),
+                  // Fond principal avec dégradé
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(28),
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFF2D1B69),
+                          Color(0xFF1C1740),
+                          Color(0xFF0B1025),
+                        ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 18),
-                  Text(card.title,
-                      textAlign: TextAlign.center,
+                  
+                  // Contenu principal
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Logo/icône en haut à gauche
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.white.withOpacity(0.2)),
+                              ),
+                              child: const Icon(
+                                Icons.lightbulb_outline,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'SELAH',
+                                  style: GoogleFonts.inter(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                                Text(
+                                  'MÉDITATION',
+                                  style: GoogleFonts.inter(
+                                    color: Colors.white.withOpacity(0.8),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        
+                        const Spacer(),
+                        
+                        // Texte principal centré
+                        Center(
+                          child: RichText(
+                            textAlign: TextAlign.center,
+                            text: TextSpan(
+                              style: GoogleFonts.inter(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                height: 1.4,
+                              ),
+                              children: [
+                                const TextSpan(text: 'You can be sure our allegiance to '),
+                                TextSpan(
+                                  text: 'GOD',
+                                  style: GoogleFonts.inter(
+                                    color: const Color(0xFFFFD700), // Jaune doré
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const TextSpan(text: ' will always affects our business.'),
+                              ],
+                            ),
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 16),
+                        
+                        // Attribution
+                        Center(
+                          child: Text(
+                            '- SELAH MEDITATION',
+                            style: GoogleFonts.inter(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                        
+                        const Spacer(),
+                      ],
+                    ),
+                  ),
+                  
+                  // Grande citation stylisée en bas à droite
+                  Positioned(
+                    bottom: 20,
+                    right: 20,
+                    child: Text(
+                      '"66"',
                       style: GoogleFonts.inter(
-                        fontSize: 22, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A))),
-                  const SizedBox(height: 6),
-                  Text(card.subtitle,
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
-                        fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF2563EB))),
-                  const SizedBox(height: 10),
-                  Text(card.content,
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
-                        fontSize: 14, height: 1.55, color: const Color(0xFF475569))),
+                        color: const Color(0xFFFFD700).withOpacity(0.8),
+                        fontSize: 48,
+                        fontWeight: FontWeight.w900,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                  
+                  // Section blanche en bas
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(28),
+                          bottomRight: Radius.circular(28),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          // Icône téléphone
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2D1B69).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.phone,
+                              color: Color(0xFF2D1B69),
+                              size: 16,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '08062108070',
+                            style: GoogleFonts.inter(
+                              color: const Color(0xFF2D1B69),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const Spacer(),
+                          // Icône Instagram
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2D1B69).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              color: Color(0xFF2D1B69),
+                              size: 16,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'selahmeditation',
+                            style: GoogleFonts.inter(
+                              color: const Color(0xFF2D1B69),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

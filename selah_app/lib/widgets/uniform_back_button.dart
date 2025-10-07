@@ -82,6 +82,7 @@ class UniformHeader extends StatelessWidget {
   final Color? textColor;
   final Color? iconColor;
   final Widget? trailing;
+  final CrossAxisAlignment titleAlignment;
 
   const UniformHeader({
     super.key,
@@ -92,6 +93,7 @@ class UniformHeader extends StatelessWidget {
     this.textColor,
     this.iconColor,
     this.trailing,
+    this.titleAlignment = CrossAxisAlignment.start,
   });
 
   @override
@@ -107,7 +109,7 @@ class UniformHeader extends StatelessWidget {
           const SizedBox(width: 16),
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: titleAlignment,
               children: [
                 Text(
                   title,
@@ -116,6 +118,7 @@ class UniformHeader extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                     color: textColor ?? Colors.white,
                   ),
+                  textAlign: titleAlignment == CrossAxisAlignment.center ? TextAlign.center : TextAlign.left,
                 ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 4),
@@ -125,6 +128,7 @@ class UniformHeader extends StatelessWidget {
                       fontSize: 14,
                       color: (textColor ?? Colors.white).withOpacity(0.7),
                     ),
+                    textAlign: titleAlignment == CrossAxisAlignment.center ? TextAlign.center : TextAlign.left,
                   ),
                 ],
               ],

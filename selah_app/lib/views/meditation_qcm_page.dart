@@ -449,42 +449,13 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
   }
 
   Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              UniformBackButton(
-                onPressed: () => Navigator.pop(context),
-                iconColor: Colors.white,
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  'Méditation Guidée',
-                  style: GoogleFonts.inter(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              const SizedBox(width: 56), // Ajuster pour centrer avec le bouton
-            ],
-          ),
-          const SizedBox(height: 16),
-          if (widget.passageRef != null)
-            Text(
-              widget.passageRef!,
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                color: Colors.white70,
-              ),
-            ),
-        ],
-      ),
+    return UniformHeader(
+      title: 'Méditation Guidée',
+      subtitle: widget.passageRef,
+      onBackPressed: () => Navigator.pop(context),
+      textColor: Colors.white,
+      iconColor: Colors.white,
+      titleAlignment: CrossAxisAlignment.center,
     );
   }
 
@@ -671,6 +642,10 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
           color: Colors.white,
           fontSize: 14,
         ),
+        keyboardType: TextInputType.multiline,
+        textInputAction: TextInputAction.newline,
+        enableInteractiveSelection: true,
+        autocorrect: false,
         decoration: InputDecoration(
           hintText: '… ou j\'écris ma propre réponse',
           hintStyle: GoogleFonts.inter(

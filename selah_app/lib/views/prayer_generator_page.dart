@@ -149,6 +149,10 @@ class _PrayerGeneratorPageState extends State<PrayerGeneratorPage> {
               fontSize: 16,
               color: Colors.white,
             ),
+            keyboardType: TextInputType.text,
+            textInputAction: TextInputAction.next,
+            enableInteractiveSelection: true,
+            autocorrect: false,
             decoration: InputDecoration(
               hintText: 'Ex: Ma famille, Mon travail, Ma santé...',
               hintStyle: GoogleFonts.inter(
@@ -185,6 +189,10 @@ class _PrayerGeneratorPageState extends State<PrayerGeneratorPage> {
               fontSize: 16,
               color: Colors.white,
             ),
+            keyboardType: TextInputType.multiline,
+            textInputAction: TextInputAction.newline,
+            enableInteractiveSelection: true,
+            autocorrect: false,
             decoration: InputDecoration(
               hintText: 'Décrivez la situation ou les circonstances...',
               hintStyle: GoogleFonts.inter(

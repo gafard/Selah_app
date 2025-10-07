@@ -627,6 +627,10 @@ class _JournalPageState extends State<JournalPage> with TickerProviderStateMixin
         content: TextField(
           controller: _searchController,
           style: GoogleFonts.inter(color: Colors.white),
+          keyboardType: TextInputType.text,
+          textInputAction: TextInputAction.search,
+          enableInteractiveSelection: true,
+          autocorrect: false,
           decoration: InputDecoration(
             hintText: 'Rechercher dans vos notes...',
             hintStyle: GoogleFonts.inter(color: const Color(0xFF9CA3AF)),
@@ -703,6 +707,10 @@ class _JournalPageState extends State<JournalPage> with TickerProviderStateMixin
             TextField(
               controller: _titleController,
               style: GoogleFonts.inter(color: Colors.white),
+              keyboardType: TextInputType.text,
+              textInputAction: TextInputAction.next,
+              enableInteractiveSelection: true,
+              autocorrect: false,
               decoration: InputDecoration(
                 labelText: 'Titre',
                 labelStyle: GoogleFonts.inter(color: const Color(0xFF9CA3AF)),
@@ -717,6 +725,10 @@ class _JournalPageState extends State<JournalPage> with TickerProviderStateMixin
             TextField(
               controller: _passageController,
               style: GoogleFonts.inter(color: Colors.white),
+              keyboardType: TextInputType.text,
+              textInputAction: TextInputAction.next,
+              enableInteractiveSelection: true,
+              autocorrect: false,
               decoration: InputDecoration(
                 labelText: 'Passage biblique (optionnel)',
                 labelStyle: GoogleFonts.inter(color: const Color(0xFF9CA3AF)),
@@ -732,6 +744,10 @@ class _JournalPageState extends State<JournalPage> with TickerProviderStateMixin
               controller: _contentController,
               maxLines: 5,
               style: GoogleFonts.inter(color: Colors.white),
+              keyboardType: TextInputType.multiline,
+              textInputAction: TextInputAction.newline,
+              enableInteractiveSelection: true,
+              autocorrect: false,
               decoration: InputDecoration(
                 labelText: 'Contenu',
                 labelStyle: GoogleFonts.inter(color: const Color(0xFF9CA3AF)),

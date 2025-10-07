@@ -50,4 +50,33 @@ class PlanPreset {
 
   static List<PlanPreset> listFromJson(String raw) =>
       (jsonDecode(raw) as List).map((e) => PlanPreset.fromJson(e)).toList();
+
+  /// Crée une copie du preset avec des valeurs modifiées
+  PlanPreset copyWith({
+    String? slug,
+    String? name,
+    int? durationDays,
+    String? order,
+    String? books,
+    String? coverImage,
+    int? minutesPerDay,
+    List<PresetLevel>? recommended,
+    String? description,
+    List<Color>? gradient,
+    String? specificBooks,
+  }) {
+    return PlanPreset(
+      slug: slug ?? this.slug,
+      name: name ?? this.name,
+      durationDays: durationDays ?? this.durationDays,
+      order: order ?? this.order,
+      books: books ?? this.books,
+      coverImage: coverImage ?? this.coverImage,
+      minutesPerDay: minutesPerDay ?? this.minutesPerDay,
+      recommended: recommended ?? this.recommended,
+      description: description ?? this.description,
+      gradient: gradient ?? this.gradient,
+      specificBooks: specificBooks ?? this.specificBooks,
+    );
+  }
 }

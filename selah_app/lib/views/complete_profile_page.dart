@@ -77,33 +77,32 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
         child: SafeArea(
           child: Column(
             children: [
-              // Contenu scrollable
               Expanded(
-                child: Stack(
-                  children: [
-                    // Ornements légers
-                    Positioned(
-                      right: -60,
-                      top: -40,
-                      child: _softBlob(180),
-                    ),
-                    Positioned(
-                      left: -40,
-                      bottom: -50,
-                      child: _softBlob(220),
-                    ),
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  child: Stack(
+                    children: [
+                      // Ornements légers en arrière-plan
+                      Positioned(
+                        right: -60,
+                        top: -40,
+                        child: _softBlob(180),
+                      ),
+                      Positioned(
+                        left: -40,
+                        bottom: -50,
+                        child: _softBlob(220),
+                      ),
 
-                    // Contenu centré avec scroll
-                    SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: Padding(
+                      // Contenu principal
+                      Padding(
                         padding: const EdgeInsets.all(20),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(20),
                           child: BackdropFilter(
                             filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
                             child: Container(
-                              constraints: const BoxConstraints(maxWidth: 480),
                               padding: const EdgeInsets.all(20),
                               decoration: BoxDecoration(
                                 color: Colors.white.withOpacity(0.12),
@@ -129,8 +128,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -299,7 +298,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     required Function(String) onChanged,
   }) {
     return Container(
-      height: 52, // Hauteur légèrement réduite
+      height: 48, // Hauteur réduite pour Android
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.10),
         borderRadius: BorderRadius.circular(12),
@@ -307,19 +306,22 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
       ),
       child: DropdownButtonHideUnderline(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12), // Padding réduit
+          padding: const EdgeInsets.symmetric(horizontal: 6), // Padding encore plus réduit pour Android
           child: DropdownButton<String>(
             value: value,
             dropdownColor: const Color(0xFF2D1B69),
-            style: GoogleFonts.inter(color: Colors.white, fontSize: 13), // Taille réduite
-            isExpanded: true, // Permet au dropdown de prendre toute la largeur
+            style: GoogleFonts.inter(color: Colors.white, fontSize: 12), // Taille encore plus réduite
+            isExpanded: true,
             items: items.map((e) => DropdownMenuItem(
               value: e,
-              child: Text(
-                e, 
-                style: GoogleFonts.inter(color: Colors.white, fontSize: 13), // Taille réduite
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 280), // Limiter la largeur pour Android
+                child: Text(
+                  e, 
+                  style: GoogleFonts.inter(color: Colors.white, fontSize: 11), // Police encore plus petite
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
               ),
             )).toList(),
             onChanged: (v) {
@@ -333,8 +335,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
 
   Widget _buildDurationSlider() {
     return Container(
-      height: 52, // Hauteur légèrement réduite
-      padding: const EdgeInsets.symmetric(horizontal: 12), // Padding réduit
+      height: 48, // Hauteur réduite pour Android
+      padding: const EdgeInsets.symmetric(horizontal: 10), // Padding réduit pour Android
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.10),
         borderRadius: BorderRadius.circular(12),
@@ -364,8 +366,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
 
   Widget _buildSwitchTile() {
     return Container(
-      height: 52, // Hauteur légèrement réduite
-      padding: const EdgeInsets.symmetric(horizontal: 12), // Padding réduit
+      height: 48, // Hauteur réduite pour Android
+      padding: const EdgeInsets.symmetric(horizontal: 10), // Padding réduit pour Android
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.10),
         borderRadius: BorderRadius.circular(12),
@@ -400,7 +402,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
 
   Widget _buildTimePicker() {
     return Container(
-      height: 52, // Hauteur légèrement réduite
+      height: 48, // Hauteur réduite pour Android
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.10),
         borderRadius: BorderRadius.circular(12),
@@ -416,7 +418,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
         },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12), // Padding réduit
+          padding: const EdgeInsets.symmetric(horizontal: 10), // Padding réduit pour Android
           child: Center(
             child: Row(
               children: [

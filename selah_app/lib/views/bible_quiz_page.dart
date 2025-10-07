@@ -339,24 +339,12 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
                 child: Column(
                   children: [
                     // Header
-                    Row(
-                      children: [
-                        UniformBackButton(
-                          onPressed: () => Navigator.pop(context),
-                          iconColor: Colors.white,
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Text(
-                            'Quiz Biblique',
-                            style: GoogleFonts.inter(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
+                    UniformHeader(
+                      title: 'Quiz Biblique',
+                      onBackPressed: () => Navigator.pop(context),
+                      textColor: Colors.white,
+                      iconColor: Colors.white,
+                      titleAlignment: CrossAxisAlignment.center,
                     ),
                     
                     const SizedBox(height: 32),

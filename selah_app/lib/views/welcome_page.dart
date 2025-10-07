@@ -176,11 +176,11 @@ class _WelcomePageState extends State<WelcomePage> {
 
   Widget _buildSubtitle() {
     return Semantics(
-      label: 'Arrêtez, et sachez que je suis Dieu : je domine sur les nations, je domine sur la terre.',
+      label: 'À l\'Éternel la terre et ce qu\'elle renferme, le monde et ceux qui l\'habitent.',
       child: Column(
         children: [
           Text(
-            '"Arrêtez, et sachez que je suis Dieu :\nje domine sur les nations, je domine sur la terre."',
+            '"À l\'Éternel la terre et ce qu\'elle renferme,\nle monde et ceux qui l\'habitent."',
             style: GoogleFonts.playfairDisplay(
               fontSize: 18,
               fontWeight: FontWeight.w400,
@@ -200,7 +200,7 @@ class _WelcomePageState extends State<WelcomePage> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Psaume 46:10',
+            'Psaume 24:10',
             style: GoogleFonts.inter(
               fontSize: 14,
               fontWeight: FontWeight.w500,

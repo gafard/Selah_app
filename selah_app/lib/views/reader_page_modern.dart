@@ -315,6 +315,10 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                     maxLines: null,
                     expands: true,
                     textAlignVertical: TextAlignVertical.top,
+                    keyboardType: TextInputType.multiline,
+                    textInputAction: TextInputAction.newline,
+                    enableInteractiveSelection: true,
+                    autocorrect: false,
                     style: GoogleFonts.inter(
                       fontSize: 16,
                       color: Colors.black87,
@@ -450,55 +454,27 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
   }
 
   Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Row(
-        children: [
-          UniformBackButton(
-            onPressed: () => Navigator.pop(context),
-            backgroundColor: Colors.grey.shade200,
-            iconColor: Colors.grey.shade700,
+    return UniformHeader(
+      title: _dayTitle,
+      subtitle: _passageRef,
+      onBackPressed: () => Navigator.pop(context),
+      textColor: Colors.grey.shade800,
+      iconColor: Colors.grey.shade700,
+      titleAlignment: CrossAxisAlignment.center,
+      trailing: GestureDetector(
+        onTap: () => Navigator.pushNamed(context, '/reader_settings'),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade200,
+            borderRadius: BorderRadius.circular(12),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _dayTitle,
-                  style: GoogleFonts.inter(
-                    color: Colors.grey.shade800,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  _passageRef,
-                  style: GoogleFonts.inter(
-                    color: Colors.grey.shade600,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
+          child: Icon(
+            Icons.settings_rounded,
+            color: Colors.grey.shade700,
+            size: 20,
           ),
-          GestureDetector(
-            onTap: () => Navigator.pushNamed(context, '/reader_settings'),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                Icons.settings_rounded,
-                color: Colors.grey.shade700,
-                size: 20,
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

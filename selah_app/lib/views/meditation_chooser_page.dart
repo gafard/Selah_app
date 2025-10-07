@@ -21,18 +21,12 @@ class MeditationChooserPage extends StatelessWidget {
       body: Column(
         children: [
           // Header avec navigation
-          Container(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                UniformBackButton(
-                  onPressed: () => Navigator.pop(context),
-                  iconColor: Colors.black,
-                  backgroundColor: Colors.grey.shade100,
-                ),
-                const Text('Méditation'),
-              ],
-            ),
+          UniformHeader(
+            title: 'Méditation',
+            onBackPressed: () => Navigator.pop(context),
+            textColor: Colors.white,
+            iconColor: Colors.black,
+            titleAlignment: CrossAxisAlignment.center,
           ),
           
           // Titre principal

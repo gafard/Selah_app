@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 // import 'package:supabase_flutter/supabase_flutter.dart'; // Temporairement désactivé
 import 'package:provider/provider.dart';
 import '../services/app_state.dart';
-import '../widgets/selah_logo.dart';
 import '../widgets/uniform_back_button.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -14,21 +13,6 @@ class ProfilePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1C1C1E),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Row(
-          children: [
-            const SelahAppIcon(size: 28),
-            const SizedBox(width: 12),
-            Text('Mon parcours', style: GoogleFonts.playfairDisplay(color: const Color(0xFFF5F5F5))),
-          ],
-        ),
-        leading: UniformBackButtonAppBar(
-          onPressed: () => context.pop(),
-          iconColor: const Color(0xFF8B7355),
-        ),
-      ),
       body: FutureBuilder<Map<String, dynamic>>(
         future: _fetchProfileStats(context),
         builder: (context, snapshot) {
@@ -43,18 +27,31 @@ class ProfilePage extends StatelessWidget {
           }
 
           final stats = snapshot.data!;
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                _buildProfileHeader(context),
-                const SizedBox(height: 24),
-                _buildStatCard('Fidélité', 'Jour ${stats['currentStreak']} d\'affilée', Icons.local_fire_department, Colors.orange),
-                _buildStatCard('Plans terminés', '${stats['completedPlans']}', Icons.check_circle, Colors.green),
-                _buildStatCard('Notes écrites', '${stats['totalNotes']}', Icons.note, const Color(0xFF8B7355)),
-                _buildStatCard('Versets surlignés', '${stats['totalHighlights']}', Icons.highlight, Colors.blue),
-              ],
-            ),
+          return Column(
+            children: [
+              UniformHeader(
+                title: 'Mon parcours',
+                onBackPressed: () => context.pop(),
+                textColor: const Color(0xFFF5F5F5),
+                iconColor: const Color(0xFF8B7355),
+                titleAlignment: CrossAxisAlignment.center,
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      _buildProfileHeader(context),
+                      const SizedBox(height: 24),
+                      _buildStatCard('Fidélité', 'Jour ${stats['currentStreak']} d\'affilée', Icons.local_fire_department, Colors.orange),
+                      _buildStatCard('Plans terminés', '${stats['completedPlans']}', Icons.check_circle, Colors.green),
+                      _buildStatCard('Notes écrites', '${stats['totalNotes']}', Icons.note, const Color(0xFF8B7355)),
+                      _buildStatCard('Versets surlignés', '${stats['totalHighlights']}', Icons.highlight, Colors.blue),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           );
         },
       ),
