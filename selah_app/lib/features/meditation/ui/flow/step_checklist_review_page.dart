@@ -110,7 +110,7 @@ class _StepChecklistReviewPageState extends ConsumerState<StepChecklistReviewPag
       'passageRef': widget.passageRef,
     }));
 
-    final progress = 0.8; // 4ème étape sur 5
+    const progress = 0.8; // 4ème étape sur 5
 
     return GradientScaffold(
       appBar: ProgressHeader(

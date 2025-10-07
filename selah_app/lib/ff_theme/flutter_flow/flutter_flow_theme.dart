@@ -18,7 +18,7 @@ class FlutterFlowTheme {
   Color get primaryBackground => Colors.white;
   Color get secondaryText => Colors.grey;
 
-  TextStyle get bodyMedium => TextStyle(
+  TextStyle get bodyMedium => const TextStyle(
     fontSize: 14,
     fontWeight: FontWeight.normal,
     fontStyle: FontStyle.normal,

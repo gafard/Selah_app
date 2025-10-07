@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
 import '../widgets/selah_logo.dart';
 
 class WelcomePage extends StatefulWidget {
@@ -236,57 +237,47 @@ class _WelcomePageState extends State<WelcomePage> {
     return Semantics(
       label: 'Se connecter',
       button: true,
-      child: Container(
+      child: SizedBox(
         width: double.infinity,
         height: 56,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          gradient: const LinearGradient(
-            colors: [
-              Color(0xFF1553FF),
-              Color(0xFF0D47A1),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF1553FF), Color(0xFF0D47A1)],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF1553FF).withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
             ],
           ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF1553FF).withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
+          child: ElevatedButton(
+            onPressed: _isNavigating ? null : () => _handleAuthTap(() => context.go('/auth', extra: {'mode': 'login'})),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shadowColor: Colors.transparent,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-          ],
-        ),
-        child: ElevatedButton(
-          onPressed: _isNavigating ? null : () => _handleAuthTap(() => Navigator.pushNamed(context, '/auth', arguments: {'mode': 'login'})),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            shadowColor: Colors.transparent,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.login,
-                size: 24,
+            child: Text(
+              'Se connecter',
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
                 color: Colors.white,
               ),
-              const SizedBox(width: 12),
-              Text(
-                'Se connecter',
-                style: GoogleFonts.inter(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
-      ),
+      )
+      .animate()
+      .fadeIn(duration: 600.ms, delay: 1400.ms)
+      .slideY(begin: 0.2, end: 0, duration: 600.ms, delay: 1400.ms),
     );
   }
 
@@ -294,22 +285,36 @@ class _WelcomePageState extends State<WelcomePage> {
     return Semantics(
       label: 'Créer un compte',
       button: true,
-      child: InkWell(
-        onTap: _isNavigating ? null : () => _handleAuthTap(() => Navigator.pushNamed(context, '/auth', arguments: {'mode': 'signup'})),
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          child: Text(
-            'Créer un compte',
-            style: GoogleFonts.inter(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Colors.white.withOpacity(0.8),
-              decoration: TextDecoration.underline,
-            ),
-          ),
+      child: TextButton(
+        onPressed: _isNavigating ? null : () => _handleAuthTap(() => context.go('/auth', extra: {'mode': 'signup'})),
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
         ),
-      ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Pas encore de compte ? ',
+              style: GoogleFonts.inter(
+                fontSize: 15,
+                color: Colors.white.withOpacity(0.7),
+              ),
+            ),
+            Text(
+              'Créer un compte',
+              style: GoogleFonts.inter(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF49C98D),
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ],
+        ),
+      )
+      .animate()
+      .fadeIn(duration: 600.ms, delay: 1600.ms)
+      .slideY(begin: 0.2, end: 0, duration: 600.ms, delay: 1600.ms),
     );
   }
 

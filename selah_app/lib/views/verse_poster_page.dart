@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/rendering.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:cross_file/cross_file.dart';
 // import 'package:image_gallery_saver/image_gallery_saver.dart'; // Temporairement désactivé
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:ui' as ui;

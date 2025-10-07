@@ -1,5 +1,4 @@
 import '../services/intelligent_prayer_generator.dart';
-import '../services/user_prefs_hive.dart';
 
 /// Exemple d'intégration du générateur de prières intelligentes
 class IntelligentPrayerIntegrationExample {

@@ -20,6 +20,7 @@ abstract class PlanService {
     String? specificBooks,
     required int minutesPerDay,
     List<Map<String, dynamic>>? customPassages,
+    List<int>? daysOfWeek, // ✅ NOUVEAU - Jours de lecture (1=Lun, 7=Dim)
   });
   Future<void> setActivePlan(String planId);
   Future<void> setDayCompleted(String planId, int dayIndex, bool completed);

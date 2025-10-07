@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 class ConnectivityService extends ChangeNotifier {
   static final ConnectivityService _instance = ConnectivityService._internal();
   factory ConnectivityService() => _instance;
+  static ConnectivityService get instance => _instance;
   ConnectivityService._internal();
 
   final Connectivity _connectivity = Connectivity();
@@ -13,12 +14,17 @@ class ConnectivityService extends ChangeNotifier {
 
   bool get isOnline => _isOnline;
   List<ConnectivityResult> get connectionStatus => _connectionStatus;
+  
+  /// Stream des changements de connectivité (online/offline)
+  Stream<bool> get onConnectivityChanged => _connectivity.onConnectivityChanged.map((result) {
+    return result != [ConnectivityResult.none] && result.isNotEmpty;
+  });
 
   /// Initialise le service et écoute les changements de connectivité
   Future<void> init() async {
     // Vérifier l'état initial
     _connectionStatus = await _connectivity.checkConnectivity();
-    _isOnline = _connectionStatus != [ConnectivityResult.none];
+    _isOnline = _connectionStatus != [ConnectivityResult.none] && _connectionStatus.isNotEmpty;
     
     // Écouter les changements
     _connectivity.onConnectivityChanged.listen(_updateConnectionStatus);
@@ -30,7 +36,7 @@ class ConnectivityService extends ChangeNotifier {
   void _updateConnectionStatus(List<ConnectivityResult> result) {
     _connectionStatus = result;
     final wasOnline = _isOnline;
-    _isOnline = result != [ConnectivityResult.none];
+    _isOnline = result != [ConnectivityResult.none] && result.isNotEmpty;
     
     if (wasOnline != _isOnline) {
       notifyListeners();

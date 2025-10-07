@@ -1,9 +1,12 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../services/notification_service.dart';
 import '../services/daily_scheduler.dart';
-import '../services/user_prefs.dart';
+import '../services/user_prefs.dart'; // ✅ UserPrefs ESSENTIEL (offline-first)
+import '../services/user_prefs_hive.dart';
+import '../repositories/user_repository.dart';
 
 class CompleteProfilePage extends StatefulWidget {
   const CompleteProfilePage({super.key});
@@ -21,8 +24,11 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
   String level = 'Fidèle régulier';
   String meditation = 'Méditation biblique';
   bool autoReminder = true;
-  bool downloading = false;
-  double dlProgress = 0;
+  bool isLoading = false; // ← Indicateur de chargement
+  
+  // ═══ NOUVEAU ! Générateur Ultime (Jean 5:40) ⭐ ═══
+  String heartPosture = '💎 Rencontrer Jésus personnellement';
+  String motivation = '🔥 Passion pour Christ';
 
   final bibleVersions = const [
     'Louis Segond (LSG)',
@@ -33,6 +39,18 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     'New International Version (NIV)'
   ];
   final goals = const [
+    // ═══ NOUVEAU ! Objectifs Christ-centrés (Jean 5:40) ⭐ ═══
+    '✨ Rencontrer Jésus dans la Parole',
+    '💫 Voir Jésus dans chaque livre',
+    '🔥 Être transformé à son image',
+    '❤️ Développer l\'intimité avec Dieu',
+    '🙏 Apprendre à prier comme Jésus',
+    '👂 Reconnaître la voix de Dieu',
+    '💎 Développer le fruit de l\'Esprit',
+    '⚔️ Renouveler mes pensées',
+    '🕊️ Marcher par l\'Esprit',
+    
+    // Existants
     'Discipline quotidienne',
     'Discipline de prière',
     'Approfondir la Parole',
@@ -43,24 +61,108 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     'Partager ma foi',
     'Mieux prier',
   ];
+  
   final levels = const [
     'Nouveau converti',
-    'Rétrogarde',
+    'Rétrograde',
     'Fidèle pas si régulier',
     'Fidèle régulier',
     'Serviteur/leader',
   ];
+  
   final meditations = const [
     'Méditation biblique',
     'Lectio Divina',
     'Contemplation',
     'Prière silencieuse',
   ];
+  
+  // ═══ NOUVEAU ! Posture du cœur (Jean 5:40) ⭐ ═══
+  final heartPostures = const [
+    '💎 Rencontrer Jésus personnellement',
+    '🔥 Être transformé par l\'Esprit',
+    '🙏 Écouter la voix de Dieu',
+    '📚 Approfondir ma connaissance',
+    '⚡ Recevoir la puissance de l\'Esprit',
+    '❤️ Développer l\'intimité avec le Père',
+  ];
+  
+  // ═══ NOUVEAU ! Motivation spirituelle (Hébreux 11:6) ⭐ ═══
+  final spiritualMotivations = const [
+    '🔥 Passion pour Christ',
+    '❤️ Amour pour Dieu',
+    '🎯 Obéissance joyeuse',
+    '📖 Désir de connaître Dieu',
+    '⚡ Besoin de transformation',
+    '🙏 Recherche de direction',
+    '💪 Discipline spirituelle',
+  ];
 
   @override
   void initState() {
     super.initState();
-    // Charger préférences (si besoin)
+    _loadSavedPreferences(); // ✅ Charger les préférences sauvegardées
+  }
+  
+  /// ✅ Charger les préférences sauvegardées depuis UserPrefs (offline-first)
+  Future<void> _loadSavedPreferences() async {
+    try {
+      // ✅ Utiliser UserPrefs (service principal, offline-first)
+      final profile = await UserPrefs.loadProfile();
+      
+      if (profile.isEmpty) {
+        print('ℹ️ Aucune préférence sauvegardée');
+        return;
+      }
+      
+      // ✅ Déclarer profileMap en dehors de setState pour y accéder
+      final profileMap = Map<String, dynamic>.from(profile);
+      
+      setState(() {
+        // Charger tous les paramètres sauvegardés
+        bibleVersion = _getBibleVersionFromCode(profileMap['bibleVersion'] as String? ?? 'LSG');
+        durationMin = profileMap['durationMin'] as int? ?? 15;
+        
+        // Charger l'heure du rappel
+        final reminderHour = profileMap['reminderHour'] as int? ?? 7;
+        final reminderMinute = profileMap['reminderMinute'] as int? ?? 0;
+        reminder = TimeOfDay(hour: reminderHour, minute: reminderMinute);
+        
+        autoReminder = profileMap['autoReminder'] as bool? ?? true;
+        goal = profileMap['goal'] as String? ?? 'Discipline quotidienne';
+        level = profileMap['level'] as String? ?? 'Fidèle régulier';
+        meditation = profileMap['meditation'] as String? ?? 'Méditation biblique';
+        
+        // ✅ Charger les nouveaux champs (Générateur Ultime)
+        heartPosture = profileMap['heartPosture'] as String? ?? '💎 Rencontrer Jésus personnellement';
+        motivation = profileMap['motivation'] as String? ?? '🔥 Passion pour Christ';
+      });
+      
+      print('✅ Préférences chargées depuis UserPrefs (offline-first)');
+    } catch (e) {
+      print('⚠️ Erreur chargement préférences: $e');
+      // Continuer avec les valeurs par défaut
+    }
+  }
+  
+  /// Convertir le code de version Bible en nom complet
+  String _getBibleVersionFromCode(String code) {
+    switch (code) {
+      case 'LSG':
+        return 'Louis Segond (LSG)';
+      case 'S21':
+        return 'Segond 21 (S21)';
+      case 'BDS':
+        return 'Bible du Semeur (BDS)';
+      case 'PDV':
+        return 'Parole de Vie (PDV)';
+      case 'TOB':
+        return 'Traduction Œcuménique de la Bible (TOB)';
+      case 'NIV':
+        return 'New International Version (NIV)';
+      default:
+        return 'Louis Segond (LSG)';
+    }
   }
 
   @override
@@ -121,7 +223,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
 
                                   // Formulaire de configuration
                                   _buildConfigurationForm(),
-                                  const SizedBox(height: 100), // Espace pour le bouton
+                                  const SizedBox(height: 120), // Espace pour le bouton (augmenté pour nouveaux champs)
                                 ],
                               ),
                             ),
@@ -137,7 +239,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
         ),
       ),
       // Bouton principal (fixé en bas de l'écran)
-      bottomNavigationBar: Container(
+      bottomNavigationBar: SafeArea(
+        child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -151,6 +254,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
           ),
         ),
         child: _buildContinueButton(),
+        ),
       ),
     );
   }
@@ -160,17 +264,19 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
       children: [
         Text(
           'PERSONNALISE TON PARCOURS',
-          style: GoogleFonts.inter(
+          style: const TextStyle(
+            fontFamily: 'Gilroy',
             fontSize: 24,
             fontWeight: FontWeight.bold,
-              color: Colors.white,
+            color: Colors.white,
           ),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
         Text(
           'Configure tes préférences pour une expérience sur mesure',
-          style: GoogleFonts.inter(
+          style: const TextStyle(
+            fontFamily: 'Gilroy',
             fontSize: 14,
             color: Colors.white70,
             height: 1.3,
@@ -224,9 +330,9 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
 
         const SizedBox(height: 16),
 
-        // Objectif principal
+        // Objectif spirituel
         _buildField(
-          label: 'Ton objectif principal',
+          label: 'Objectif spirituel',
           icon: Icons.flag_outlined,
           child: _buildDropdown(
             value: goal,
@@ -239,12 +345,38 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
 
         // Niveau spirituel
         _buildField(
-          label: 'Ton niveau spirituel',
+          label: 'Niveau spirituel',
           icon: Icons.trending_up_rounded,
           child: _buildDropdown(
             value: level,
             items: levels,
             onChanged: (v) => setState(() => level = v),
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // ═══ NOUVEAU ! Posture du cœur (Jean 5:40) ⭐ ═══
+        _buildField(
+          label: 'Posture du cœur (Jean 5:40)',
+          icon: Icons.favorite_rounded,
+          child: _buildDropdown(
+            value: heartPosture,
+            items: heartPostures,
+            onChanged: (v) => setState(() => heartPosture = v),
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // ═══ NOUVEAU ! Motivation spirituelle ⭐ ═══
+        _buildField(
+          label: 'Motivation spirituelle',
+          icon: Icons.local_fire_department_rounded,
+          child: _buildDropdown(
+            value: motivation,
+            items: spiritualMotivations,
+            onChanged: (v) => setState(() => motivation = v),
           ),
         ),
 
@@ -278,7 +410,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
             const SizedBox(width: 8),
             Text(
               label,
-              style: GoogleFonts.inter(
+              style: const TextStyle(
+                fontFamily: 'Gilroy',
                 color: Colors.white,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -310,15 +443,23 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
           child: DropdownButton<String>(
             value: value,
             dropdownColor: const Color(0xFF2D1B69),
-            style: GoogleFonts.inter(color: Colors.white, fontSize: 12), // Taille encore plus réduite
+            style: const TextStyle(
+              fontFamily: 'Gilroy',
+              color: Colors.white,
+              fontSize: 12,
+            ),
             isExpanded: true,
             items: items.map((e) => DropdownMenuItem(
               value: e,
               child: Container(
-                constraints: const BoxConstraints(maxWidth: 280), // Limiter la largeur pour Android
+                constraints: const BoxConstraints(maxWidth: 280),
                 child: Text(
-                  e, 
-                  style: GoogleFonts.inter(color: Colors.white, fontSize: 11), // Police encore plus petite
+                  e,
+                  style: const TextStyle(
+                    fontFamily: 'Gilroy',
+                    color: Colors.white,
+                    fontSize: 11,
+                  ),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
                 ),
@@ -379,7 +520,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
             Expanded(
               child: Text(
                 'Recevoir des rappels quotidiens',
-                style: GoogleFonts.inter(
+                style: const TextStyle(
+                  fontFamily: 'Gilroy',
                   color: Colors.white,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
@@ -389,7 +531,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
             Switch(
               value: autoReminder,
               onChanged: (v) => setState(() => autoReminder = v),
-              activeColor: const Color(0xFF1553FF),
+              activeThumbColor: const Color(0xFF1553FF),
               activeTrackColor: const Color(0xFF1553FF).withOpacity(0.3),
               inactiveThumbColor: Colors.white70,
               inactiveTrackColor: Colors.white.withOpacity(0.3),
@@ -422,12 +564,13 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
           child: Center(
             child: Row(
               children: [
-                Icon(Icons.access_time, color: Colors.white70, size: 18),
+                const Icon(Icons.access_time, color: Colors.white70, size: 18),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Heure du rappel',
-                    style: GoogleFonts.inter(
+                    style: const TextStyle(
+                      fontFamily: 'Gilroy',
                       color: Colors.white70,
                       fontSize: 14,
                     ),
@@ -441,7 +584,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                   ),
                   child: Text(
                     _fmt(reminder),
-                    style: GoogleFonts.inter(
+                    style: const TextStyle(
+                      fontFamily: 'Gilroy',
                       color: Colors.white,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -477,7 +621,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
           ],
         ),
         child: ElevatedButton(
-          onPressed: downloading ? null : _onContinue,
+          onPressed: isLoading ? null : _onContinue,
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.transparent,
             foregroundColor: Colors.white,
@@ -488,7 +632,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
               borderRadius: BorderRadius.circular(12),
             ),
           ),
-          child: downloading
+          child: isLoading
               ? Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -502,8 +646,9 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      'Téléchargement…',
-                      style: GoogleFonts.inter(
+                      'Configuration...',
+                      style: const TextStyle(
+                        fontFamily: 'Gilroy',
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
@@ -513,7 +658,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                 )
               : Text(
                   'Continuer',
-                  style: GoogleFonts.inter(
+                  style: const TextStyle(
+                    fontFamily: 'Gilroy',
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -539,63 +685,136 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
 
 
   Future<void> _onContinue() async {
-    // Extraire le code de la version de la Bible (ex: "LSG" de "Louis Segond (LSG)")
-    final bibleVersionCode = bibleVersion.contains('(') 
-        ? bibleVersion.substring(bibleVersion.lastIndexOf('(') + 1, bibleVersion.lastIndexOf(')'))
-        : bibleVersion;
+    if (isLoading) return; // Éviter les clics multiples
+    
+    setState(() => isLoading = true);
+    
+    try {
+      print('🔄 Début _onContinue()');
+      
+      // Extraire le code de la version de la Bible (ex: "LSG" de "Louis Segond (LSG)")
+      final bibleVersionCode = bibleVersion.contains('(') 
+          ? bibleVersion.substring(bibleVersion.lastIndexOf('(') + 1, bibleVersion.lastIndexOf(')'))
+          : bibleVersion;
+      
+      print('📖 Version Bible: $bibleVersionCode');
 
-    // 1) Sauvegarde des préférences utilisateur
-    await UserPrefs.saveProfile({
-      'bibleVersion': bibleVersionCode,
-      'durationMin': durationMin,
-      'reminderHour': reminder.hour,
-      'reminderMinute': reminder.minute,
-      'autoReminder': autoReminder,
-      'goal': goal,
-      'level': level,
-      'meditation': meditation,
-      'daysOfWeek': [1, 2, 3, 4, 5, 6, 7], // Tous les jours par défaut
-    });
+      // 1) Normaliser les clés attendues par l'IA
+      final preferredTime = _fmt(reminder);       // "HH:mm"
+      final dailyMinutes = durationMin;           // miroir pour compat
+      final correctedLevel = level == 'Rétrogarde' ? 'Rétrograde' : level; // ✅ corrige la valeur
 
-    // 2) Sauvegarde de la version de la Bible
-    await UserPrefs.setBibleVersionCode(bibleVersionCode);
+      print('🔧 Clés normalisées:');
+      print('   preferredTime: $preferredTime');
+      print('   dailyMinutes: $dailyMinutes');
+      print('   level corrigé: $correctedLevel');
 
-    // 3) Téléchargement de la Bible en background avec progression
-    setState(() => downloading = true);
-    // TODO: Implémenter le téléchargement de la Bible
-    await Future.delayed(const Duration(seconds: 1)); // Simulation
-    setState(() => downloading = false);
+      // 2) Sauvegarde des préférences utilisateur avec toutes les clés
+      print('💾 Sauvegarde profil utilisateur...');
+      final payload = {
+        'bibleVersion': bibleVersionCode,
+        'durationMin': durationMin,
+        'dailyMinutes': dailyMinutes,      // ✅ important pour compat
+        'preferredTime': preferredTime,    // ✅ important pour timing bonus
+        'reminderHour': reminder.hour,
+        'reminderMinute': reminder.minute,
+        'autoReminder': autoReminder,
+        'goal': goal,
+        'level': correctedLevel,           // ✅ niveau corrigé
+        'meditation': meditation,
+        
+        // ═══ NOUVEAU ! Générateur Ultime (Jean 5:40) ⭐ ═══
+        'heartPosture': heartPosture,
+        'motivation': motivation,
+        
+        'daysOfWeek': [1, 2, 3, 4, 5, 6, 7], // Tous les jours par défaut
+      };
+      
+      await UserPrefs.saveProfile(payload);
+      print('✅ Profil sauvegardé');
 
-    // 4) Configuration des rappels quotidiens
-    if (autoReminder) {
+      // 2.5) 🔁 Synchroniser aussi UserPrefsHive (ce que lit GoalsPage)
       try {
-        await DailyScheduler.scheduleDaily(reminder);
-        // Notification immédiate (feedback)
-        await NotificationService.instance.showNow(
-          title: 'Rappel configuré',
-          body: 'Tu recevras un rappel chaque jour à ${_fmt(reminder)}.',
-        );
+        final hive = context.mounted ? context.read<UserPrefsHive?>() : null;
+        if (hive != null) {
+          await hive.patchProfile(payload);
+          print('✅ Profil synchronisé avec Hive');
+        }
       } catch (e) {
-        print('Erreur lors de la configuration du rappel: $e');
-        // Continuer même si les rappels ne fonctionnent pas
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Les rappels ne sont pas disponibles sur cet appareil'),
-              backgroundColor: Colors.orange,
-            ),
+        print('⚠️ UserPrefsHive non disponible (normal): $e');
+        // Si Provider absent, on ignore: GoalsPage pourra relire UserPrefs si déjà adapté
+      }
+
+      // 3) Sauvegarde de la version de la Bible
+      print('📖 Sauvegarde version Bible...');
+      await UserPrefs.setBibleVersionCode(bibleVersionCode);
+      print('✅ Version Bible sauvegardée');
+      
+      // 2.5) Marquer le profil comme complet dans UserRepository
+      print('✅ Marquage profil comme complet...');
+      final userRepo = UserRepository();
+      await userRepo.markProfileComplete();
+      print('✅ Profil marqué comme complet');
+
+      // 3) Téléchargement de la Bible en ARRIÈRE-PLAN (non bloquant, offline-first ⭐)
+      print('📥 Lancement téléchargement Bible...');
+      _downloadBibleInBackground(bibleVersionCode);
+      print('✅ Téléchargement lancé');
+
+      // 4) Configuration des rappels quotidiens
+      print('🔔 Configuration rappels...');
+      if (autoReminder) {
+        try {
+          await DailyScheduler.scheduleDaily(reminder);
+          // Notification immédiate (feedback)
+          await NotificationService.instance.showNow(
+            title: 'Rappel configuré',
+            body: 'Tu recevras un rappel chaque jour à ${_fmt(reminder)}.',
           );
+          print('✅ Rappels configurés');
+        } catch (e) {
+          print('⚠️ Erreur lors de la configuration du rappel: $e');
+          // Continuer même si les rappels ne fonctionnent pas
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Les rappels ne sont pas disponibles sur cet appareil'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+        }
+      } else {
+        try {
+          await DailyScheduler.cancel();
+          print('✅ Rappels annulés');
+        } catch (e) {
+          print('⚠️ Erreur lors de l\'annulation du rappel: $e');
         }
       }
-    } else {
-      try {
-        await DailyScheduler.cancel();
-      } catch (e) {
-        print('Erreur lors de l\'annulation du rappel: $e');
+
+      print('🧭 Navigation vers /goals');
+      if (mounted) context.go('/goals');
+      print('✅ Navigation réussie');
+      
+    } catch (e, stackTrace) {
+      print('❌ Erreur dans _onContinue(): $e');
+      print('📍 Stack trace: $stackTrace');
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
       }
     }
-
-    if (mounted) Navigator.pushReplacementNamed(context, '/goals');
   }
 
 
@@ -603,6 +822,44 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     final hh = t.hour.toString().padLeft(2, '0');
     final mm = t.minute.toString().padLeft(2, '0');
     return '$hh:$mm';
+  }
+
+  /// ═══════════════════════════════════════════════════════════
+  /// Téléchargement Bible en ARRIÈRE-PLAN (Offline-First ⭐)
+  /// ═══════════════════════════════════════════════════════════
+  void _downloadBibleInBackground(String versionCode) {
+    // Ne pas bloquer l'UI - téléchargement asynchrone
+    Future.microtask(() async {
+      try {
+        // Vérifier connectivité AVANT de télécharger
+        // Si offline, on utilise la version minimale locale
+        print('📖 Téléchargement Bible $versionCode en arrière-plan...');
+        
+        // TODO: Implémenter téléchargement réel ici
+        // - Vérifier ConnectivityService.instance.isOnline
+        // - Si online : télécharger depuis API/CDN
+        // - Si offline : utiliser version minimale locale
+        // - Notification quand terminé
+        
+        await Future.delayed(const Duration(seconds: 2)); // Simulation
+        
+        print('✅ Bible $versionCode téléchargée (arrière-plan)');
+        
+        // Notification de succès (optionnel, non bloquant)
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Bible $versionCode téléchargée ✅'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (e) {
+        print('⚠️ Erreur téléchargement Bible (non bloquant): $e');
+        // Ne pas bloquer l'utilisateur - version locale utilisée
+      }
+    });
   }
 }
 

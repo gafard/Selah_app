@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
+
 /// Service de gestion de l'état global de l'application
-class AppState {
+class AppState extends ChangeNotifier {
   bool _isLoading = false;
   bool _isFirstLaunch = true;
   String? _currentUser;

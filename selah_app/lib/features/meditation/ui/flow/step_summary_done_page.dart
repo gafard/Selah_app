@@ -116,7 +116,7 @@ class _StepSummaryDonePageState extends ConsumerState<StepSummaryDonePage>
     }));
 
     final pack = MeditationQuestions.getPackByOption(state.selectedOption!);
-    final progress = 1.0; // Dernière étape
+    const progress = 1.0; // Dernière étape
 
     return GradientScaffold(
       appBar: ProgressHeader(

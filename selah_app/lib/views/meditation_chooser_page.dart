@@ -73,8 +73,8 @@ class MeditationChooserPage extends StatelessWidget {
                       HapticFeedback.lightImpact();
                       Navigator.push(context, MaterialPageRoute(
                         builder: (_) => MeditationFreePage(
-                          passageRef: passagePayload.ref.isNotEmpty ? passagePayload.ref : 'Jean 3:16',
-                          passageText: passagePayload.text.isNotEmpty ? passagePayload.text : 'Car Dieu a tant aimé le monde qu\'il a donné son Fils unique, afin que quiconque croit en lui ne périsse point, mais qu\'il ait la vie éternelle.',
+                          passageRef: passagePayload.ref.isNotEmpty ? passagePayload.ref : null,
+                          passageText: passagePayload.text.isNotEmpty ? passagePayload.text : null,
                         ),
                       ));
                     },

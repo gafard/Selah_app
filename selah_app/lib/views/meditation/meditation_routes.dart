@@ -2,6 +2,7 @@
 /// 
 /// Ce fichier sert de référence pour éviter la confusion entre les différentes
 /// pages de méditation et leurs routes.
+library;
 
 class MeditationRoutes {
   // Route principale - Chooser

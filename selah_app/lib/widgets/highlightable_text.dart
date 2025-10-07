@@ -22,7 +22,7 @@ class _HighlightableTextState extends State<HighlightableText>
   String _selectedText = '';
   bool _isTextSelected = false;
   TextSelection? _currentSelection;
-  List<TextRange> _highlightedRanges = []; // Store highlighted ranges
+  final List<TextRange> _highlightedRanges = []; // Store highlighted ranges
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
@@ -119,16 +119,16 @@ class _HighlightableTextState extends State<HighlightableText>
                               Container(
                                 width: double.infinity,
                                 padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
+                                decoration: const BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: [
-                                      const Color(0xFFF8F9FA),
-                                      const Color(0xFFF1F3F4),
+                                      Color(0xFFF8F9FA),
+                                      Color(0xFFF1F3F4),
                                     ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                   ),
-                                  borderRadius: const BorderRadius.only(
+                                  borderRadius: BorderRadius.only(
                                     topLeft: Radius.circular(28),
                                     topRight: Radius.circular(28),
                                   ),
@@ -360,16 +360,16 @@ class _HighlightableTextState extends State<HighlightableText>
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          const Color(0xFF007AFF),
-                          const Color(0xFF5AC8FA),
+                          Color(0xFF007AFF),
+                          Color(0xFF5AC8FA),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      borderRadius: const BorderRadius.only(
+                      borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(24),
                         topRight: Radius.circular(24),
                       ),
@@ -552,7 +552,7 @@ class _HighlightableTextState extends State<HighlightableText>
       SnackBar(
         content: Row(
           children: [
-            Icon(
+            const Icon(
               Icons.check_circle,
               color: Colors.white,
               size: 20,

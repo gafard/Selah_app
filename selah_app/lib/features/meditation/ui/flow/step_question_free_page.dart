@@ -47,7 +47,7 @@ class _StepQuestionFreePageState extends ConsumerState<StepQuestionFreePage> {
     const question = "Partagez vos réflexions personnelles sur ce passage...";
     
     return GradientScaffold(
-      appBar: ProgressHeader(
+      appBar: const ProgressHeader(
         title: 'Réflexion',
         progress: 0.6,
       ),

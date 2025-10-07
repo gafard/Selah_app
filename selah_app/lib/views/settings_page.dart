@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../services/app_state.dart';
-import '../widgets/selah_logo.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});

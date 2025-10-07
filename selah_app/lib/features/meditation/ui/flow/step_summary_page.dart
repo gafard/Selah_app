@@ -36,7 +36,7 @@ class _StepSummaryPageState extends ConsumerState<StepSummaryPage> {
     final controller = ref.read(meditationControllerProvider(params).notifier);
 
     return GradientScaffold(
-      appBar: ProgressHeader(
+      appBar: const ProgressHeader(
         title: 'Résumé',
         progress: 1.0,
       ),
@@ -96,7 +96,7 @@ class _StepSummaryPageState extends ConsumerState<StepSummaryPage> {
                           ),
                         ),
                       );
-                    }).toList(),
+                    }),
                     const SizedBox(height: 24),
                   ],
 

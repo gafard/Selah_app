@@ -29,7 +29,7 @@ class PresetExplanationExample {
       
       for (final reason in explanation.reasons) {
         final sign = reason.weight >= 0 ? '+' : '';
-        print('     • ${reason.label}: ${sign}${reason.weight.toStringAsFixed(2)}');
+        print('     • ${reason.label}: $sign${reason.weight.toStringAsFixed(2)}');
         print('       ${reason.detail}');
       }
     }
@@ -125,7 +125,7 @@ class PresetExplanationExample {
                   ),
                 ],
               ),
-            )).toList(),
+            )),
           ],
         ),
       ),

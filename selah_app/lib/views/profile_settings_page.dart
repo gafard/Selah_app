@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../services/user_prefs_hive.dart';
 import '../services/plan_service.dart';
 import '../services/telemetry_console.dart';
-import '../services/background_tasks.dart';
 
 /// Page unifiée Profil + Paramètres avec design Calm/Superlist
 class ProfileSettingsPage extends StatefulWidget {

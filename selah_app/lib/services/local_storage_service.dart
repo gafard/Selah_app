@@ -31,7 +31,9 @@ class LocalStorageService {
   
   /// Récupère l'utilisateur local
   static Map<String, dynamic>? getLocalUser() {
-    return _userBox?.get('current_user') as Map<String, dynamic>?;
+    final userData = _userBox?.get('current_user');
+    if (userData == null) return null;
+    return Map<String, dynamic>.from(userData as Map);
   }
   
   /// Vérifie si un utilisateur local existe
@@ -42,6 +44,30 @@ class LocalStorageService {
   /// Supprime l'utilisateur local
   static Future<void> clearLocalUser() async {
     await _userBox?.delete('current_user');
+  }
+  
+  /// ✅ Récupère le profil utilisateur (offline-first)
+  static Future<Map<String, dynamic>> getProfile() async {
+    try {
+      // Vérifier dans la box 'prefs' (UserPrefs utilise SharedPreferences)
+      final prefsBox = await Hive.openBox('prefs');
+      final profile = prefsBox.get('profile');
+      
+      if (profile != null && profile is Map) {
+        return Map<String, dynamic>.from(profile as Map);
+      }
+      
+      // Fallback : lire depuis current_user si présent
+      final user = getLocalUser();
+      if (user != null) {
+        return user;
+      }
+      
+      return {};
+    } catch (e) {
+      print('⚠️ Erreur getProfile: $e');
+      return {};
+    }
   }
   
   // ===== GESTION PLANS LOCAUX =====
@@ -174,7 +200,18 @@ class LocalStorageService {
   
   /// Marque des données comme nécessitant une synchronisation
   static Future<void> markForSync(String dataType, String dataId) async {
-    final syncQueue = _progressBox?.get('sync_queue') as List<Map<String, dynamic>>? ?? [];
+    final rawQueue = _progressBox?.get('sync_queue');
+    final syncQueue = <Map<String, dynamic>>[];
+    
+    // ✅ Convertir List<dynamic> en List<Map<String, dynamic>>
+    if (rawQueue != null && rawQueue is List) {
+      for (final item in rawQueue) {
+        if (item is Map) {
+          syncQueue.add(Map<String, dynamic>.from(item));
+        }
+      }
+    }
+    
     syncQueue.add({
       'type': dataType,
       'id': dataId,
@@ -185,7 +222,19 @@ class LocalStorageService {
   
   /// Récupère la queue de synchronisation
   static List<Map<String, dynamic>> getSyncQueue() {
-    return _progressBox?.get('sync_queue') as List<Map<String, dynamic>>? ?? [];
+    final rawQueue = _progressBox?.get('sync_queue');
+    final syncQueue = <Map<String, dynamic>>[];
+    
+    // ✅ Convertir List<dynamic> en List<Map<String, dynamic>>
+    if (rawQueue != null && rawQueue is List) {
+      for (final item in rawQueue) {
+        if (item is Map) {
+          syncQueue.add(Map<String, dynamic>.from(item));
+        }
+      }
+    }
+    
+    return syncQueue;
   }
   
   /// Vide la queue de synchronisation

@@ -25,7 +25,7 @@ class ScanBibleBanner extends StatelessWidget {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Scanner la page de Bible (optionnel)', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 2),
-                Text('Prends une photo pour garder la référence et relire hors-ligne.', style: GoogleFonts.inter(color: Color(0xFF6B7280), fontSize: 13)),
+                Text('Prends une photo pour garder la référence et relire hors-ligne.', style: GoogleFonts.inter(color: const Color(0xFF6B7280), fontSize: 13)),
               ]),
             ),
             const Icon(Icons.chevron_right_rounded, color: Color(0xFF9CA3AF)),

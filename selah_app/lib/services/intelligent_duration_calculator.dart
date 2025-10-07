@@ -70,8 +70,53 @@ class IntelligentDurationCalculator {
   
   // ============ BLENDING INTELLIGENT MIN/AVG/MAX ============
   
+  /// Calcule les poids de blending selon le contexte utilisateur
+  static ({double minW, double avgW, double maxW}) _calculateTimeBlendWeights({
+    required int dailyMinutes, 
+    required String level
+  }) {
+    // Base: centrée sur avg
+    double minW = 0.2, avgW = 0.6, maxW = 0.2;
+
+    // Plus de minutes/jour → tirer vers min (plan plus court et plus dense)
+    if (dailyMinutes >= 25) { 
+      minW += 0.15; 
+      avgW -= 0.10; 
+      maxW -= 0.05; 
+    }
+    if (dailyMinutes <= 10) { 
+      maxW += 0.15; 
+      avgW -= 0.10; 
+      minW -= 0.05; 
+    }
+
+    // Niveau: nouveaux convertis/rétrogrades → tolérer plus long (maxW ↑)
+    if (level == 'Nouveau converti' || level == 'Rétrograde') { 
+      maxW += 0.10; 
+      avgW -= 0.10; 
+    }
+    
+    // Serviteur/leader → plans plus longs et structurés (minW ↑)
+    if (level == 'Serviteur/leader') {
+      minW += 0.05;
+      maxW -= 0.05;
+    }
+
+    // Normalisation pour garantir que la somme = 1
+    final sum = minW + avgW + maxW;
+    return (
+      minW: minW / sum, 
+      avgW: avgW / sum, 
+      maxW: maxW / sum
+    );
+  }
+  
   /// Calcule un blending intelligent entre min, avg et max selon le contexte
-  static int _blendBaseDays(Map<String, dynamic> behavioralData) {
+  static int _blendBaseDays(
+    Map<String, dynamic> behavioralData, {
+    required int dailyMinutes,
+    required String level,
+  }) {
     final minD = behavioralData['min_days'] as int;
     final avgD = behavioralData['avg_days'] as int;
     final maxD = behavioralData['max_days'] as int;
@@ -82,9 +127,18 @@ class IntelligentDurationCalculator {
       return avgD;
     }
     
-    // Pour l'instant, on utilise avg comme base (sera enrichi plus tard avec le contexte)
-    // TODO: Implémenter le blending contextuel avec _calculateTimeBlendWeights
-    return avgD;
+    // Calcul des poids contextuels
+    final w = _calculateTimeBlendWeights(dailyMinutes: dailyMinutes, level: level);
+    
+    // Blending pondéré
+    final blended = (minD * w.minW + avgD * w.avgW + maxD * w.maxW).round();
+    
+    // Clamp avec logging
+    final result = _safeClamp(blended, minD, maxD, context: 'blending min/avg/max');
+    
+    print('📊 Blending: min=$minD (${(w.minW*100).round()}%), avg=$avgD (${(w.avgW*100).round()}%), max=$maxD (${(w.maxW*100).round()}%) → $result jours');
+    
+    return result;
   }
   
   
@@ -451,7 +505,11 @@ class IntelligentDurationCalculator {
     
     // 2. Récupérer les données comportementales avec blending intelligent
     final behavioralData = _behavioralScience[behavioralType]!;
-    final baseDays = _blendBaseDays(behavioralData);
+    final baseDays = _blendBaseDays(
+      behavioralData,
+      dailyMinutes: dailyMinutes,
+      level: level,
+    );
     
     // 3. Appliquer les ajustements du niveau avec états émotionnels
     final levelData = _levelAdjustments[level] ?? _levelAdjustments['Fidèle régulier']!;
@@ -606,9 +664,27 @@ class IntelligentDurationCalculator {
       alignment *= _EmotionalAdjustments.complacencyBoost;
     }
     
-    // Bonus : utiliser emotionalFocus (du goal)
-    if (emotionalFocus.split(',').any((f) => emotionalState.contains(f.trim()))) {
-      alignment *= _EmotionalAdjustments.focusMatch;
+    // Amélioration : utiliser emotionalFocus (du goal) de manière plus intelligente
+    final focusElements = emotionalFocus.split(',').map((f) => f.trim()).toList();
+    
+    // 1. Vérifier si le focus est présent dans l'état émotionnel actuel
+    final focusInState = focusElements.where((f) => emotionalState.contains(f)).length;
+    final focusAlignment = _safeRatio(focusInState, focusElements.length, fallback: 0.0);
+    
+    // 2. Bonus si focus bien aligné (meilleure efficacité du plan)
+    if (focusAlignment > 0.5) {
+      alignment *= _EmotionalAdjustments.focusMatch; // -5% (plan plus efficace)
+      print('🎯 Focus émotionnel aligné à ${(focusAlignment*100).round()}% → réduction durée');
+    }
+    
+    // 3. Vérifier si le focus correspond aux besoins (double check de pertinence)
+    final focusMatchesNeeds = focusElements.any((f) => 
+      emotionalNeeds.any((need) => need.contains(f) || f.contains(need.split('_').first))
+    );
+    
+    if (focusMatchesNeeds) {
+      alignment *= 0.98; // -2% supplémentaire si le focus répond aux besoins
+      print('💡 Focus répond aux besoins émotionnels → optimisation');
     }
     
     return alignment.clamp(0.75, 1.3);

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/plan_preset.dart';
 import 'intelligent_duration_calculator.dart';
+// ═══ NOUVEAU ! Générateur Ultime (Jean 5:40) ⭐ ═══
+import 'intelligent_heart_posture.dart';
+import 'intelligent_motivation.dart';
 
 /// -------- EXPLANATIONS DTO --------
 class PresetExplanation {
@@ -76,7 +79,7 @@ class IntelligentLocalPresetGenerator {
       'duration': [14, 21, 30, 50],
       'keyVerses': ['1:1', '12:1-3', '15:6', '50:20'],
       'studyPoints': ['Origines du monde', 'Promesses divines', 'Foi d\'Abraham', 'Providence divine'],
-      'recommendedFor': ['Nouveau converti', 'Rétrogarde', 'Fidèle pas si régulier', 'Fidèle régulier'],
+      'recommendedFor': ['Nouveau converti', 'Rétrograde', 'Fidèle pas si régulier', 'Fidèle régulier'],
       'emotionalTone': 'foundational'
     },
     'Exode': {
@@ -128,7 +131,7 @@ class IntelligentLocalPresetGenerator {
       'duration': [14, 21, 24],
       'keyVerses': ['1:8-9', '24:15'],
       'studyPoints': ['Fidélité divine', 'Promesses accomplies', 'Conquête spirituelle'],
-      'recommendedFor': ['Nouveau converti', 'Rétrogarde', 'Fidèle pas si régulier', 'Fidèle régulier'],
+      'recommendedFor': ['Nouveau converti', 'Rétrograde', 'Fidèle pas si régulier', 'Fidèle régulier'],
       'emotionalTone': 'victorious'
     },
     'Juges': {
@@ -148,7 +151,7 @@ class IntelligentLocalPresetGenerator {
       'duration': [4, 7, 14],
       'keyVerses': ['1:16-17', '4:14'],
       'studyPoints': ['Loyauté', 'Providence divine', 'Rédemption', 'Amour inconditionnel'],
-      'recommendedFor': ['Nouveau converti', 'Rétrogarde', 'Fidèle pas si régulier', 'Fidèle régulier'],
+      'recommendedFor': ['Nouveau converti', 'Rétrograde', 'Fidèle pas si régulier', 'Fidèle régulier'],
       'emotionalTone': 'loving'
     },
     '1 Samuel': {
@@ -304,7 +307,7 @@ class IntelligentLocalPresetGenerator {
       'duration': [14, 21, 30],
       'keyVerses': ['1:15', '8:34', '10:45', '16:15'],
       'studyPoints': ['Action de Jésus', 'Serviteur souffrant', 'Miracles', 'Urgence du message'],
-      'recommendedFor': ['Nouveau converti', 'Rétrogarde', 'Fidèle pas si régulier', 'Fidèle régulier'],
+      'recommendedFor': ['Nouveau converti', 'Rétrograde', 'Fidèle pas si régulier', 'Fidèle régulier'],
       'emotionalTone': 'urgent'
     },
     'Luc': {
@@ -416,7 +419,7 @@ class IntelligentLocalPresetGenerator {
       'duration': [14, 21],
       'keyVerses': ['4:13-18', '5:17', '5:23-24'],
       'studyPoints': ['Retour de Christ', 'Vie sainte', 'Prière continuelle', 'Sanctification'],
-      'recommendedFor': ['Nouveau converti', 'Rétrogarde', 'Fidèle pas si régulier', 'Fidèle régulier'],
+      'recommendedFor': ['Nouveau converti', 'Rétrograde', 'Fidèle pas si régulier', 'Fidèle régulier'],
       'emotionalTone': 'expectant'
     },
     '2 Thessaloniciens': {
@@ -466,7 +469,7 @@ class IntelligentLocalPresetGenerator {
       'duration': [1, 3, 7],
       'keyVerses': ['15-16', '17'],
       'studyPoints': ['Réconciliation', 'Grâce transformatrice', 'Fraternité en Christ', 'Amour pratique'],
-      'recommendedFor': ['Nouveau converti', 'Rétrogarde', 'Fidèle pas si régulier', 'Fidèle régulier'],
+      'recommendedFor': ['Nouveau converti', 'Rétrograde', 'Fidèle pas si régulier', 'Fidèle régulier'],
       'emotionalTone': 'reconciling'
     },
 
@@ -575,7 +578,7 @@ class IntelligentLocalPresetGenerator {
       'focus': 'Croissance spirituelle et maturité',
       'verses': ['Philippiens 1:6', 'Colossiens 2:6-7', 'Éphésiens 4:15'],
       'emotions': ['encouragement', 'growth', 'maturity'],
-      'targetAudience': ['Rétrogarde', 'Fidèle pas si régulier', 'Fidèle régulier', 'Serviteur/leader']
+      'targetAudience': ['Rétrograde', 'Fidèle pas si régulier', 'Fidèle régulier', 'Serviteur/leader']
     },
     'prayer_life': {
       'books': ['Psaumes', 'Luc', 'Matthieu', '1 Thessaloniciens'],
@@ -583,7 +586,7 @@ class IntelligentLocalPresetGenerator {
       'focus': 'Développement de la vie de prière',
       'verses': ['Matthieu 6:9-13', 'Luc 11:1-13', '1 Thessaloniciens 5:17'],
       'emotions': ['peace', 'communion', 'intimacy'],
-      'targetAudience': ['Nouveau converti', 'Rétrogarde', 'Fidèle pas si régulier', 'Fidèle régulier', 'Serviteur/leader']
+      'targetAudience': ['Nouveau converti', 'Rétrograde', 'Fidèle pas si régulier', 'Fidèle régulier', 'Serviteur/leader']
     },
     'wisdom_understanding': {
       'books': ['Proverbes', 'Jacques', 'Ecclésiaste', 'Job'],
@@ -599,7 +602,7 @@ class IntelligentLocalPresetGenerator {
       'focus': 'Fondements de la foi chrétienne',
       'verses': ['Jean 3:16', 'Romains 10:17', 'Hébreux 11:1'],
       'emotions': ['foundation', 'assurance', 'confidence'],
-      'targetAudience': ['Nouveau converti', 'Rétrogarde', 'Fidèle pas si régulier', 'Fidèle régulier']
+      'targetAudience': ['Nouveau converti', 'Rétrograde', 'Fidèle pas si régulier', 'Fidèle régulier']
     },
     'christian_character': {
       'books': ['Galates', 'Éphésiens', 'Colossiens', '1 Pierre'],
@@ -607,7 +610,7 @@ class IntelligentLocalPresetGenerator {
       'focus': 'Développement du caractère chrétien',
       'verses': ['Galates 5:22-23', 'Éphésiens 4:32', '1 Pierre 2:9'],
       'emotions': ['transformation', 'character', 'holiness'],
-      'targetAudience': ['Rétrogarde', 'Fidèle pas si régulier', 'Fidèle régulier', 'Serviteur/leader']
+      'targetAudience': ['Rétrograde', 'Fidèle pas si régulier', 'Fidèle régulier', 'Serviteur/leader']
     },
     'hope_encouragement': {
       'books': ['Romains', 'Philippiens', '1 Pierre', 'Apocalypse'],
@@ -615,7 +618,7 @@ class IntelligentLocalPresetGenerator {
       'focus': 'Espérance et encouragement',
       'verses': ['Romains 8:28', 'Philippiens 4:13', '1 Pierre 1:3'],
       'emotions': ['hope', 'encouragement', 'comfort'],
-      'targetAudience': ['Nouveau converti', 'Rétrogarde', 'Fidèle pas si régulier', 'Fidèle régulier', 'Serviteur/leader']
+      'targetAudience': ['Nouveau converti', 'Rétrograde', 'Fidèle pas si régulier', 'Fidèle régulier', 'Serviteur/leader']
     },
     'forgiveness_healing': {
       'books': ['Matthieu', 'Luc', '1 Jean', 'Psaumes'],
@@ -623,7 +626,7 @@ class IntelligentLocalPresetGenerator {
       'focus': 'Pardon et guérison spirituelle',
       'verses': ['Matthieu 6:14-15', 'Luc 15:11-32', '1 Jean 1:9'],
       'emotions': ['healing', 'forgiveness', 'restoration'],
-      'targetAudience': ['Nouveau converti', 'Rétrogarde', 'Fidèle pas si régulier', 'Fidèle régulier', 'Serviteur/leader']
+      'targetAudience': ['Nouveau converti', 'Rétrograde', 'Fidèle pas si régulier', 'Fidèle régulier', 'Serviteur/leader']
     },
     'mission_evangelism': {
       'books': ['Actes', 'Matthieu', 'Marc', 'Luc'],
@@ -684,7 +687,7 @@ class IntelligentLocalPresetGenerator {
     // Ajouter des presets spécialisés selon le niveau avec timestamp
     if (level == 'Nouveau converti') {
       presets.addAll(_generateBeginnerPresets(durationMin, meditation, randomSeed));
-    } else if (level == 'Rétrogarde') {
+    } else if (level == 'Rétrograde') {
       presets.addAll(_generateRetrogradePresets(durationMin, meditation, randomSeed));
     } else if (level == 'Fidèle pas si régulier') {
       presets.addAll(_generateIrregularPresets(durationMin, meditation, randomSeed));
@@ -726,7 +729,7 @@ class IntelligentLocalPresetGenerator {
     switch (level) {
       case 'Nouveau converti':
         return 0.7; // Plus facile, moins de jours
-      case 'Rétrogarde':
+      case 'Rétrograde':
         return 0.6; // Très facile, pour encourager la reprise
       case 'Fidèle pas si régulier':
         return 0.8; // Légèrement plus facile pour la constance
@@ -990,21 +993,21 @@ class IntelligentLocalPresetGenerator {
   static List<Color> _getAdvancedThemeGradient(String theme, List<String> emotions) {
     // Gradients basés sur les émotions
     if (emotions.contains('peace')) {
-      return [Color(0xFF4FD1C5), Color(0xFF06B6D4)]; // Teal apaisant
+      return [const Color(0xFF4FD1C5), const Color(0xFF06B6D4)]; // Teal apaisant
     } else if (emotions.contains('encouragement')) {
-      return [Color(0xFFF59E0B), Color(0xFFFBBF24)]; // Orange encourageant
+      return [const Color(0xFFF59E0B), const Color(0xFFFBBF24)]; // Orange encourageant
     } else if (emotions.contains('wisdom')) {
-      return [Color(0xFF8B5CF6), Color(0xFFA78BFA)]; // Violet sage
+      return [const Color(0xFF8B5CF6), const Color(0xFFA78BFA)]; // Violet sage
     } else if (emotions.contains('hope')) {
-      return [Color(0xFF06B6D4), Color(0xFF67E8F9)]; // Cyan espérant
+      return [const Color(0xFF06B6D4), const Color(0xFF67E8F9)]; // Cyan espérant
     } else if (emotions.contains('healing')) {
-      return [Color(0xFFEC4899), Color(0xFFF472B6)]; // Rose guérissant
+      return [const Color(0xFFEC4899), const Color(0xFFF472B6)]; // Rose guérissant
     } else if (emotions.contains('mission')) {
-      return [Color(0xFFEF4444), Color(0xFFF87171)]; // Rouge missionnaire
+      return [const Color(0xFFEF4444), const Color(0xFFF87171)]; // Rouge missionnaire
     } else if (emotions.contains('growth')) {
-      return [Color(0xFF34D399), Color(0xFF6EE7B7)]; // Vert transformateur
+      return [const Color(0xFF34D399), const Color(0xFF6EE7B7)]; // Vert transformateur
     } else if (emotions.contains('intimacy')) {
-      return [Color(0xFF7C3AED), Color(0xFFA855F7)]; // Violet intime
+      return [const Color(0xFF7C3AED), const Color(0xFFA855F7)]; // Violet intime
     }
     
     return _getThemeGradient(theme);
@@ -1190,17 +1193,17 @@ class IntelligentLocalPresetGenerator {
   /// Obtient le gradient pour un thème
   static List<Color> _getThemeGradient(String theme) {
     final gradients = {
-      'spiritual_growth': [Color(0xFF4CAF50), Color(0xFF2E7D32)],
-      'prayer_life': [Color(0xFF9C27B0), Color(0xFF6A1B9A)],
-      'wisdom_understanding': [Color(0xFFFF9800), Color(0xFFE65100)],
-      'faith_foundation': [Color(0xFF2196F3), Color(0xFF0D47A1)],
-      'christian_character': [Color(0xFF00BCD4), Color(0xFF006064)],
-      'hope_encouragement': [Color(0xFFFFEB3B), Color(0xFFF57F17)],
-      'forgiveness_healing': [Color(0xFFE91E63), Color(0xFF880E4F)],
-      'mission_evangelism': [Color(0xFF795548), Color(0xFF3E2723)],
+      'spiritual_growth': [const Color(0xFF4CAF50), const Color(0xFF2E7D32)],
+      'prayer_life': [const Color(0xFF9C27B0), const Color(0xFF6A1B9A)],
+      'wisdom_understanding': [const Color(0xFFFF9800), const Color(0xFFE65100)],
+      'faith_foundation': [const Color(0xFF2196F3), const Color(0xFF0D47A1)],
+      'christian_character': [const Color(0xFF00BCD4), const Color(0xFF006064)],
+      'hope_encouragement': [const Color(0xFFFFEB3B), const Color(0xFFF57F17)],
+      'forgiveness_healing': [const Color(0xFFE91E63), const Color(0xFF880E4F)],
+      'mission_evangelism': [const Color(0xFF795548), const Color(0xFF3E2723)],
     };
     
-    return gradients[theme] ?? [Color(0xFF6366F1), Color(0xFF8B5CF6)];
+    return gradients[theme] ?? [const Color(0xFF6366F1), const Color(0xFF8B5CF6)];
   }
 
   /// Obtient la description des livres spécifiques
@@ -1225,7 +1228,7 @@ class IntelligentLocalPresetGenerator {
         description: 'Plan spécialement conçu pour les nouveaux convertis. '
                     'Découvrez Jésus à travers les Évangiles de Jean et Luc '
                     'en 21 jours de lecture quotidienne.',
-        gradient: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
+        gradient: [const Color(0xFF4CAF50), const Color(0xFF2E7D32)],
         specificBooks: 'Jean & Luc (Jean 3:16, Luc 19:10)',
       ),
       PlanPreset(
@@ -1239,7 +1242,7 @@ class IntelligentLocalPresetGenerator {
         recommended: [PresetLevel.beginner],
         description: 'Introduction aux Psaumes pour nouveaux convertis. '
                     'Découvrez la prière et la louange à travers les premiers psaumes.',
-        gradient: [Color(0xFFF59E0B), Color(0xFFFBBF24)],
+        gradient: [const Color(0xFFF59E0B), const Color(0xFFFBBF24)],
         specificBooks: 'Psaumes 1-30 (Psaumes 23, 27)',
       ),
     ];
@@ -1260,7 +1263,7 @@ class IntelligentLocalPresetGenerator {
         description: 'Plan doux pour retrouver Dieu. '
                     'Redécouvrez l\'amour divin à travers les Psaumes '
                     'et l\'Évangile de Jean en 14 jours.',
-        gradient: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
+        gradient: [const Color(0xFF8B5CF6), const Color(0xFF7C3AED)],
         specificBooks: 'Psaumes & Jean (Psaumes 51, Jean 21:15-17)',
       ),
       PlanPreset(
@@ -1274,7 +1277,7 @@ class IntelligentLocalPresetGenerator {
         recommended: [PresetLevel.beginner],
         description: 'Renouez avec la grâce de Dieu. '
                     'Découvrez Sa miséricorde à travers Luc et 1 Jean.',
-        gradient: [Color(0xFF06B6D4), Color(0xFF0891B2)],
+        gradient: [const Color(0xFF06B6D4), const Color(0xFF0891B2)],
         specificBooks: 'Luc & 1 Jean (Luc 15:11-32, 1 Jean 1:9)',
       ),
     ];
@@ -1294,7 +1297,7 @@ class IntelligentLocalPresetGenerator {
         recommended: [PresetLevel.regular],
         description: 'Plan pour retrouver une discipline régulière. '
                     'Développez la sagesse et la constance avec Proverbes et Matthieu.',
-        gradient: [Color(0xFF10B981), Color(0xFF059669)],
+        gradient: [const Color(0xFF10B981), const Color(0xFF059669)],
         specificBooks: 'Proverbes & Matthieu (Proverbes 6:6-11, Matthieu 6:33)',
       ),
       PlanPreset(
@@ -1308,7 +1311,7 @@ class IntelligentLocalPresetGenerator {
         recommended: [PresetLevel.regular],
         description: 'Retrouvez la joie et la motivation. '
                     'Laissez-vous encourager par Philippiens et les Psaumes.',
-        gradient: [Color(0xFFF59E0B), Color(0xFFD97706)],
+        gradient: [const Color(0xFFF59E0B), const Color(0xFFD97706)],
         specificBooks: 'Philippiens & Psaumes (Philippiens 4:13, Psaumes 27)',
       ),
     ];
@@ -1329,7 +1332,7 @@ class IntelligentLocalPresetGenerator {
         description: 'Plan approfondi pour les leaders spirituels. '
                     'Étude approfondie des doctrines fondamentales '
                     'et des principes de leadership chrétien.',
-        gradient: [Color(0xFF9C27B0), Color(0xFF6A1B9A)],
+        gradient: [const Color(0xFF9C27B0), const Color(0xFF6A1B9A)],
         specificBooks: 'Romains & Éphésiens (Romains 8:28, Éphésiens 4:32)',
       ),
       PlanPreset(
@@ -1343,7 +1346,7 @@ class IntelligentLocalPresetGenerator {
         recommended: [PresetLevel.regular],
         description: 'Étude approfondie des prophètes majeurs pour leaders. '
                     'Découvrez les prophéties messianiques et la nouvelle alliance.',
-        gradient: [Color(0xFFEF4444), Color(0xFFF87171)],
+        gradient: [const Color(0xFFEF4444), const Color(0xFFF87171)],
         specificBooks: 'Ésaïe & Jérémie (Ésaïe 53:5, Jérémie 31:33)',
       ),
     ];
@@ -1363,7 +1366,7 @@ class IntelligentLocalPresetGenerator {
         recommended: [PresetLevel.regular],
         description: 'Étude équilibrée des Évangiles synoptique et johannique. '
                     'Découvrez Jésus à travers deux perspectives complémentaires.',
-        gradient: [Color(0xFF10B981), Color(0xFF34D399)],
+        gradient: [const Color(0xFF10B981), const Color(0xFF34D399)],
         specificBooks: 'Matthieu & Jean (Matthieu 6:33, Jean 14:6)',
       ),
     ];
@@ -1385,7 +1388,7 @@ class IntelligentLocalPresetGenerator {
             recommended: [PresetLevel.regular],
             description: 'Pratique de la Lectio Divina avec les Psaumes et l\'Évangile de Jean. '
                         'Méthode contemplative de lecture spirituelle.',
-            gradient: [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
+            gradient: [const Color(0xFF8B5CF6), const Color(0xFFA78BFA)],
             specificBooks: 'Psaumes & Jean (Psaumes 46:10, Jean 1:1)',
           ),
         ];
@@ -1402,7 +1405,7 @@ class IntelligentLocalPresetGenerator {
             recommended: [PresetLevel.regular],
             description: 'Temps de contemplation avec l\'Évangile et l\'Épître de Jean. '
                         'Méditation profonde sur l\'amour et la vérité.',
-            gradient: [Color(0xFF7C3AED), Color(0xFFA855F7)],
+            gradient: [const Color(0xFF7C3AED), const Color(0xFFA855F7)],
             specificBooks: 'Jean & 1 Jean (Jean 3:16, 1 Jean 4:8)',
           ),
         ];
@@ -1419,7 +1422,7 @@ class IntelligentLocalPresetGenerator {
             recommended: [PresetLevel.regular],
             description: 'Prière silencieuse avec les Psaumes et l\'Évangile de Luc. '
                         'Développez une vie de prière contemplative.',
-            gradient: [Color(0xFF4FD1C5), Color(0xFF06B6D4)],
+            gradient: [const Color(0xFF4FD1C5), const Color(0xFF06B6D4)],
             specificBooks: 'Psaumes & Luc (Psaumes 23:1, Luc 11:1-13)',
           ),
         ];
@@ -1436,7 +1439,7 @@ class IntelligentLocalPresetGenerator {
             recommended: [PresetLevel.regular],
             description: 'Méditation biblique équilibrée avec les Évangiles et les Épîtres. '
                         'Approfondissez votre compréhension de la Parole.',
-            gradient: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+            gradient: [const Color(0xFF6366F1), const Color(0xFF8B5CF6)],
             specificBooks: 'Matthieu & Philippiens (Matthieu 5:3-12, Philippiens 4:13)',
           ),
         ];
@@ -1637,7 +1640,13 @@ class IntelligentLocalPresetGenerator {
     final meditationType = profile?['meditation'] as String? ?? 'Méditation biblique';
     final durationMin = profile?['durationMin'] as int? ?? 15;
     
+    // ═══ NOUVEAU ! Générateur Ultime (Jean 5:40) ⭐ ═══
+    final heartPosture = profile?['heartPosture'] as String?;
+    final motivation = profile?['motivation'] as String?;
+    
     print('🧠 Génération enrichie pour: $level | $goal | ${durationMin}min/jour');
+    if (heartPosture != null) print('💎 Posture du cœur: $heartPosture');
+    if (motivation != null) print('🔥 Motivation: $motivation');
     
     // 1. Calculer la durée optimale basée sur la science comportementale et témoignages chrétiens
     final durationCalculation = IntelligentDurationCalculator.calculateOptimalDuration(
@@ -1665,11 +1674,12 @@ class IntelligentLocalPresetGenerator {
       final feedbackScore = _getFeedbackScore(preset.slug);
       return feedbackScore >= 0.3; // Seuil minimum de satisfaction
     }).map((preset) {
-      // Utiliser la durée optimale calculée intelligemment
-      final optimalDuration = durationCalculation.optimalDays;
+      // ═══ CORRECTION : Calculer durée UNIQUE pour chaque preset ═══
+      // Varier la durée selon le type de preset (30, 45, 60, 90, 120 jours)
+      final baseDuration = _getDurationForPreset(preset, durationCalculation.optimalDays);
       
       // Adapter selon l'historique si nécessaire
-      final adaptedDuration = _adaptDurationFromHistory(optimalDuration, profile);
+      final adaptedDuration = _adaptDurationFromHistory(baseDuration, profile);
       
       return preset.copyWith(
         durationDays: adaptedDuration,
@@ -1685,9 +1695,9 @@ class IntelligentLocalPresetGenerator {
         if (!enrichedPresets.any((p) => p.slug == preset.slug) && 
             !_hasRecentPlan(preset.slug)) {
           
-          // Appliquer la durée intelligente aux nouveaux presets
-          final optimalDuration = durationCalculation.optimalDays;
-          final adaptedDuration = _adaptDurationFromHistory(optimalDuration, profile);
+          // ═══ CORRECTION : Calculer durée UNIQUE pour chaque preset ═══
+          final baseDuration = _getDurationForPreset(preset, durationCalculation.optimalDays);
+          final adaptedDuration = _adaptDurationFromHistory(baseDuration, profile);
           
           final enrichedPreset = preset.copyWith(
             durationDays: adaptedDuration,
@@ -1701,8 +1711,139 @@ class IntelligentLocalPresetGenerator {
       }
     }
 
-    print('✅ ${enrichedPresets.length} presets enrichis générés avec durée intelligente');
-    return enrichedPresets.take(6).toList().cast<PlanPreset>();
+    // ═══════════════════════════════════════════════════════════
+    // NOUVEAU ! ENRICHISSEMENT ULTIME (Jean 5:40) ⭐
+    // ═══════════════════════════════════════════════════════════
+    
+    var finalPresets = enrichedPresets;
+    
+    // ÉTAPE 1 : Filtrage par posture du cœur (si disponible) - SOUPLE
+    if (heartPosture != null) {
+      final filteredByPosture = finalPresets.where((preset) {
+        final books = preset.books; // Utilise le champ books directement
+        if (books.isEmpty) return true; // Garder si pas de livres définis
+        
+        final relevance = IntelligentHeartPosture.calculatePostureRelevance(
+          books,
+          heartPosture,
+        );
+        
+        return relevance > 0.1; // ✅ Seuil abaissé (0.3 → 0.1) pour garder plus de presets
+      }).toList();
+      
+      if (filteredByPosture.isNotEmpty && filteredByPosture.length >= 3) {
+        // ✅ Garder le filtre SEULEMENT si on a au moins 3 presets
+        finalPresets = filteredByPosture;
+        print('💎 Filtré par posture "$heartPosture": ${finalPresets.length} presets pertinents');
+      } else {
+        // ✅ Sinon, garder tous les presets (filtre trop restrictif)
+        print('💎 Posture "$heartPosture": Filtre trop restrictif, tous les presets gardés (${finalPresets.length})');
+      }
+    }
+    
+    // ÉTAPE 2 : Ajustement par motivation (si disponible)
+    if (motivation != null) {
+      finalPresets = finalPresets.map((preset) {
+        // Ajuster durée selon motivation
+        final adjustedDays = IntelligentMotivation.adjustDuration(
+          preset.durationDays,
+          motivation,
+        );
+        
+        // Ajuster intensité selon motivation
+        final adjustedMinutes = IntelligentMotivation.adjustIntensity(
+          preset.minutesPerDay ?? durationMin, // Fallback à durationMin si null
+          motivation,
+        );
+        
+        // Calculer bonus de posture pour enrichir la description
+        final postureBonus = heartPosture != null
+            ? IntelligentHeartPosture.getPostureBonus(
+                preset.books.split(',').first.trim(),
+                heartPosture,
+              )
+            : 0.0;
+        
+        // Enrichir la description avec les nouvelles informations
+        final enrichedDescription = _buildEnrichedDescription(
+          preset.description,
+          heartPosture,
+          motivation,
+          postureBonus,
+        );
+        
+        return preset.copyWith(
+          durationDays: adjustedDays,
+          minutesPerDay: adjustedMinutes,
+          description: enrichedDescription,
+        );
+      }).toList();
+      
+      print('🔥 Ajusté par motivation "$motivation": durée et intensité optimisées');
+    }
+
+    print('✅ ${finalPresets.length} presets enrichis générés avec durée intelligente');
+    return finalPresets.take(6).toList().cast<PlanPreset>();
+  }
+  
+  /// ═══════════════════════════════════════════════════════════
+  /// NOUVEAU ! Helper pour enrichir la description (Jean 5:40)
+  /// ═══════════════════════════════════════════════════════════
+  static String? _buildEnrichedDescription(
+    String? baseDescription,
+    String? heartPosture,
+    String? motivation,
+    double postureBonus,
+  ) {
+    if (heartPosture == null && motivation == null) {
+      return baseDescription; // Pas d'enrichissement si pas de données
+    }
+    
+    final parts = <String>[];
+    
+    // Ajouter la description de base si elle existe
+    if (baseDescription != null && baseDescription.isNotEmpty) {
+      parts.add(baseDescription);
+    }
+    
+    // Ajouter la posture du cœur
+    if (heartPosture != null) {
+      parts.add('💎 Posture: $heartPosture');
+    }
+    
+    // Ajouter la motivation
+    if (motivation != null) {
+      parts.add('🔥 Motivation: $motivation');
+    }
+    
+    // Ajouter le bonus de posture si significatif
+    if (postureBonus > 0.15) {
+      final bonusPercent = (postureBonus * 100).round();
+      parts.add('⭐ Bonus posture: +$bonusPercent%');
+    }
+    
+    // Ajouter la référence biblique
+    parts.add('📖 Jean 5:40 - "Venez à moi pour avoir la vie"');
+    
+    return parts.join(' • ');
+  }
+
+  /// ═══════════════════════════════════════════════════════════
+  /// CORRECTION : Génère une durée unique pour chaque preset
+  /// ═══════════════════════════════════════════════════════════
+  static int _getDurationForPreset(PlanPreset preset, int optimalDays) {
+    // Variations possibles : 70%, 85%, 100%, 115%, 130% de la durée optimale
+    final variations = [0.7, 0.85, 1.0, 1.15, 1.3];
+    
+    // Utiliser le hashCode du slug pour assigner une variation stable
+    final variationIndex = preset.slug.hashCode.abs() % variations.length;
+    final multiplier = variations[variationIndex];
+    
+    // Calculer la durée avec variation
+    final variedDuration = (optimalDays * multiplier).round();
+    
+    // Contraintes de bon sens
+    return variedDuration.clamp(14, 365); // Entre 2 semaines et 1 an
   }
 
   /// Adapte la durée selon l'historique de l'utilisateur et les témoignages spirituels

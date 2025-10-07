@@ -41,7 +41,7 @@ class EnrichedGeneratorExample {
       print('\n   📋 ${explanation.name} (Score: ${explanation.totalScore})');
       for (final reason in explanation.reasons) {
         final sign = reason.weight >= 0 ? '+' : '';
-        print('      • ${reason.label}: ${sign}${reason.weight.toStringAsFixed(2)}');
+        print('      • ${reason.label}: $sign${reason.weight.toStringAsFixed(2)}');
       }
     }
 
@@ -96,13 +96,13 @@ class EnrichedGeneratorExample {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
-                const Icon(Icons.favorite, color: Colors.pink),
-                const SizedBox(width: 8),
+                Icon(Icons.favorite, color: Colors.pink),
+                SizedBox(width: 8),
                 Text(
                   'État émotionnel adapté',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
@@ -157,11 +157,11 @@ class EnrichedGeneratorExample {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                const Row(
                   children: [
-                    const Icon(Icons.lightbulb, color: Colors.amber),
-                    const SizedBox(width: 8),
-                    const Text(
+                    Icon(Icons.lightbulb, color: Colors.amber),
+                    SizedBox(width: 8),
+                    Text(
                       'Recommandations spirituelles',
                       style: TextStyle(
                         fontSize: 16,
@@ -193,7 +193,7 @@ class EnrichedGeneratorExample {
                       ),
                     ],
                   ),
-                )).toList(),
+                )),
               ],
             ),
           ),

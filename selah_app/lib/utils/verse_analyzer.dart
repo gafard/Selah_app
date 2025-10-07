@@ -343,7 +343,7 @@ class VerseAnalyzer {
     final longer = word1.length > word2.length ? word1 : word2;
     final shorter = word1.length > word2.length ? word2 : word1;
     
-    if (longer.length == 0) return true;
+    if (longer.isEmpty) return true;
     
     final distance = _levenshteinDistance(longer, shorter);
     return (longer.length - distance) / longer.length > 0.7;

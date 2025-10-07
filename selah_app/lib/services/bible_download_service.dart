@@ -1,7 +1,3 @@
-import 'dart:convert';
-import 'dart:io';
-import 'package:http/http.dart' as http;
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'local_storage_service.dart';
 
 /// Service de téléchargement et stockage local des versions de Bible

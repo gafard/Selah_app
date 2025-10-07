@@ -30,10 +30,6 @@ class HomeVM extends ChangeNotifier {
 
   HomeVM({required this.prefs, required this.telemetry, required this.planService});
 
-  @override
-  void dispose() { 
-    super.dispose(); 
-  }
 
   Future<void> load() async {
     final p = prefs.profile;

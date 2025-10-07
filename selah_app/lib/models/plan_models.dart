@@ -1,4 +1,3 @@
-import 'dart:convert';
 
 class Plan {
   final String id;
@@ -10,6 +9,7 @@ class Plan {
   final String books;
   final String? specificBooks;
   final int minutesPerDay;
+  final List<int>? daysOfWeek; // ✅ NOUVEAU - Jours de lecture (1=Lun, 7=Dim)
 
   Plan({
     required this.id,
@@ -21,6 +21,7 @@ class Plan {
     required this.books,
     this.specificBooks,
     required this.minutesPerDay,
+    this.daysOfWeek, // ✅ NOUVEAU
   });
 
   factory Plan.fromJson(Map<String, dynamic> j) => Plan(
@@ -33,6 +34,7 @@ class Plan {
         books: j['books'] ?? '',
         specificBooks: j['specific_books'],
         minutesPerDay: j['minutes_per_day'] ?? 15,
+        daysOfWeek: (j['days_of_week'] as List?)?.cast<int>(), // ✅ NOUVEAU
       );
 
   Map<String, dynamic> toJson() => {
@@ -45,6 +47,7 @@ class Plan {
         'books': books,
         'specific_books': specificBooks,
         'minutes_per_day': minutesPerDay,
+        'days_of_week': daysOfWeek, // ✅ NOUVEAU
       };
 }
 

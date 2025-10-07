@@ -1,18 +1,21 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
 import '../widgets/selah_logo.dart';
 
 class AuthPage extends StatefulWidget {
-  const AuthPage({super.key});
+  final String? initialMode; // 'login' ou 'signup'
+  
+  const AuthPage({super.key, this.initialMode});
 
   @override
   State<AuthPage> createState() => _AuthPageState();
 }
 
 class _AuthPageState extends State<AuthPage> {
-  bool _isLogin = true;
+  late bool _isLogin;
   final _formKey = GlobalKey<FormState>();
   final _nameC = TextEditingController();
   final _emailC = TextEditingController();
@@ -23,15 +26,8 @@ class _AuthPageState extends State<AuthPage> {
   @override
   void initState() {
     super.initState();
-    // Vérifier les arguments passés lors de la navigation
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-      if (args != null && args['mode'] == 'signup') {
-        setState(() {
-          _isLogin = false;
-        });
-      }
-    });
+    // Définir le mode initial depuis le paramètre GoRouter
+    _isLogin = widget.initialMode != 'signup';
   }
 
   @override
@@ -53,15 +49,368 @@ class _AuthPageState extends State<AuthPage> {
           _emailC.text.trim(),
           _passC.text.trim(),
         );
+        
+        // ✅ Attendre que LocalStorage soit mis à jour
+        await Future.delayed(const Duration(milliseconds: 200));
+        
+        // Login : navigation après sauvegarde locale
+        if (!mounted) return;
+        context.go('/complete_profile');
       } else {
-        await AuthService.instance.signUpWithEmail(
+        // Signup : récupérer si online ou offline
+        final isOnline = await AuthService.instance.signUpWithEmail(
           name: _nameC.text.trim(),
           email: _emailC.text.trim(),
           password: _passC.text.trim(),
         );
+        
+        // ✅ Attendre que LocalStorage soit mis à jour
+        await Future.delayed(const Duration(milliseconds: 200));
+        
+        // Afficher dialogue de succès AVANT navigation
+        if (!mounted) return;
+        await _showSignupSuccessDialog(isOnline, _emailC.text.trim());
+        
+        // Puis naviguer
+        if (!mounted) return;
+        context.go('/complete_profile');
       }
+    } on AuthException catch (e) {
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/complete_profile');
+      _showErrorDialogWithActions(e);
+    } catch (e) {
+      _toast('Erreur: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+  
+  /// Affiche le dialogue de succès après création de compte
+  Future<void> _showSignupSuccessDialog(bool isOnline, String email) async {
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1D29),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF49C98D).withOpacity(0.2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.check_circle, color: Color(0xFF49C98D), size: 28),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Compte créé !',
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (isOnline) ...[
+              // Mode ONLINE : Email de confirmation envoyé
+              Text(
+                '📧 Un email de confirmation a été envoyé à :',
+                style: GoogleFonts.inter(color: Colors.white70, fontSize: 14),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF49C98D).withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.email, color: Color(0xFF49C98D), size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        email,
+                        style: GoogleFonts.inter(
+                          color: const Color(0xFF49C98D),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '✅ Vérifiez votre boîte email',
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Cliquez sur le lien de confirmation pour activer votre compte.',
+                style: GoogleFonts.inter(color: Colors.white60, fontSize: 13, height: 1.4),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1553FF).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF1553FF).withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline, color: Color(0xFF1553FF), size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'En attendant, vous pouvez commencer à configurer votre profil',
+                        style: GoogleFonts.inter(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ] else ...[
+              // Mode OFFLINE : Compte local créé
+              Text(
+                '📱 Compte local créé avec succès !',
+                style: GoogleFonts.inter(color: Colors.white70, fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF49C98D).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF49C98D).withOpacity(0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.offline_bolt, color: Color(0xFF49C98D), size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Mode Offline',
+                          style: GoogleFonts.inter(
+                            color: const Color(0xFF49C98D),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Votre compte est disponible localement. Il sera automatiquement synchronisé avec le serveur lors de votre prochaine connexion.',
+                      style: GoogleFonts.inter(
+                        color: Colors.white70,
+                        fontSize: 12,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '✅ Vous pouvez maintenant utiliser l\'application !',
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF49C98D), Color(0xFF2D8B6E)],
+              ),
+            ),
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shadowColor: Colors.transparent,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                'Continuer',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  void _showErrorDialogWithActions(AuthException e) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E2230),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Color(0xFFFF6B6B), size: 28),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                e.code == 'invalid_credentials' ? 'Identifiants incorrects' :
+                e.code == 'email_already_exists' ? 'Compte existant' :
+                e.code == 'offline_no_account' ? 'Mode hors-ligne' :
+                'Erreur',
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              e.message,
+              style: GoogleFonts.inter(
+                color: Colors.white.withOpacity(0.9),
+                fontSize: 15,
+                height: 1.4,
+              ),
+            ),
+            if (e.suggestion != null) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF49C98D).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF49C98D).withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.lightbulb_outline, color: Color(0xFF49C98D), size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        e.suggestion!,
+                        style: GoogleFonts.inter(
+                          color: const Color(0xFF49C98D),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          // Action selon le type d'erreur
+          if (e.code == 'invalid_credentials' && _isLogin) ...[
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                setState(() => _isLogin = false); // Passer en mode inscription
+              },
+              child: Text(
+                'Créer un compte',
+                style: GoogleFonts.inter(color: const Color(0xFF49C98D)),
+              ),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _resetPassword();
+              },
+              child: Text(
+                'Mot de passe oublié',
+                style: GoogleFonts.inter(color: const Color(0xFF1553FF)),
+              ),
+            ),
+          ] else if (e.code == 'email_already_exists' && !_isLogin) ...[
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                setState(() => _isLogin = true); // Passer en mode connexion
+              },
+              child: Text(
+                'Se connecter',
+                style: GoogleFonts.inter(color: const Color(0xFF1553FF)),
+              ),
+            ),
+          ],
+          
+          // Bouton OK par défaut
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'OK',
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Future<void> _resetPassword() async {
+    if (_emailC.text.trim().isEmpty) {
+      _toast('Entrez votre email d\'abord');
+      return;
+    }
+    
+    setState(() => _isLoading = true);
+    try {
+      await AuthService.instance.resetPassword(_emailC.text.trim());
+      _toast('Email de réinitialisation envoyé ! Vérifiez votre boîte.');
+    } on AuthException catch (e) {
+      _toast(e.message);
     } catch (e) {
       _toast('Erreur: $e');
     } finally {

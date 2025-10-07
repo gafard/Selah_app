@@ -1,0 +1,72 @@
+[
+  {
+    "motivation": "🔥 Passion pour Christ",
+    "duration_factor": 0.85,
+    "intensity_factor": 1.25,
+    "timing_hint": "05:00-08:00",
+    "recommended_genres": ["gospel", "epistle_doctrinal", "gospel_theological"],
+    "min_minutes": 20,
+    "max_minutes": 60,
+    "description": "Ferveur intense, préfère lectures profondes mais plus courtes"
+  },
+  {
+    "motivation": "❤️ Amour pour Dieu",
+    "duration_factor": 1.0,
+    "intensity_factor": 1.15,
+    "timing_hint": "06:00-09:00",
+    "recommended_genres": ["poetry", "gospel", "wisdom"],
+    "min_minutes": 15,
+    "max_minutes": 45,
+    "description": "Amour stable, lectures contemplatives et régulières"
+  },
+  {
+    "motivation": "🎯 Obéissance joyeuse",
+    "duration_factor": 1.1,
+    "intensity_factor": 1.0,
+    "timing_hint": "07:00-10:00",
+    "recommended_genres": ["wisdom", "epistle_practical", "law"],
+    "min_minutes": 10,
+    "max_minutes": 30,
+    "description": "Discipline constante, préfère applications pratiques"
+  },
+  {
+    "motivation": "📖 Désir de connaître Dieu",
+    "duration_factor": 1.3,
+    "intensity_factor": 1.2,
+    "timing_hint": "06:30-09:30",
+    "recommended_genres": ["epistle_doctrinal", "prophetic", "epistle_complex"],
+    "min_minutes": 20,
+    "max_minutes": 60,
+    "description": "Soif d'apprendre, préfère lectures longues et approfondies"
+  },
+  {
+    "motivation": "⚡ Besoin de transformation",
+    "duration_factor": 0.9,
+    "intensity_factor": 1.3,
+    "timing_hint": "05:30-08:00",
+    "recommended_genres": ["gospel", "epistle_practical", "prophetic"],
+    "min_minutes": 15,
+    "max_minutes": 40,
+    "description": "Urgence de changement, lectures courtes mais intenses"
+  },
+  {
+    "motivation": "🙏 Recherche de direction",
+    "duration_factor": 1.0,
+    "intensity_factor": 1.1,
+    "timing_hint": "06:00-09:00",
+    "recommended_genres": ["wisdom", "prophetic", "gospel"],
+    "min_minutes": 15,
+    "max_minutes": 45,
+    "description": "Quête de guidance, lectures équilibrées avec prière"
+  },
+  {
+    "motivation": "💪 Discipline spirituelle",
+    "duration_factor": 1.2,
+    "intensity_factor": 0.9,
+    "timing_hint": "07:00-10:00",
+    "recommended_genres": ["law", "epistle_practical", "wisdom"],
+    "min_minutes": 10,
+    "max_minutes": 30,
+    "description": "Engagement à long terme, préfère consistance sur intensité"
+  }
+]

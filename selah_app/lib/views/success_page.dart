@@ -30,8 +30,8 @@ class SuccessPage extends StatelessWidget {
               Container(
                 width: 120,
                 height: 120,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4CAF50),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF4CAF50),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(

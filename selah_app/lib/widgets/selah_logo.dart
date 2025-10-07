@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import '../brand/selah_logo.dart' as brand;
 
 enum SelahLogoType {
   round,
@@ -28,33 +28,43 @@ class SelahLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String assetPath = _getAssetPath();
+    // Utiliser le nouveau logo de la charte graphique (CustomPainter)
+    final size = width ?? height ?? 100.0;
     
-    return SvgPicture.asset(
-      assetPath,
-      width: width,
-      height: height,
-      fit: fit,
-      colorFilter: color != null 
-          ? ColorFilter.mode(color!, BlendMode.srcIn)
-          : null,
-    );
-  }
-
-  String _getAssetPath() {
     switch (type) {
       case SelahLogoType.round:
-        return 'assets/svg/logo_round.svg';
+        return brand.SelahHybridIcon(
+          size: size,
+          badge: brand.SelahBadge.round,
+        );
       case SelahLogoType.squircle:
-        return 'assets/svg/logo_squircle.svg';
+        return brand.SelahHybridIcon(
+          size: size,
+          badge: brand.SelahBadge.squircle,
+        );
       case SelahLogoType.transparent:
-        return 'assets/svg/icon_transparent.svg';
+        return brand.SelahHybridIcon(
+          size: size,
+          badge: brand.SelahBadge.none,
+        );
       case SelahLogoType.wordmark:
-        return 'assets/svg/wordmark.svg';
+        return SizedBox(
+          width: width ?? 120,
+          height: height ?? 40,
+          child: const brand.SelahWordmark(),
+        );
       case SelahLogoType.lockupHorizontal:
-        return 'assets/svg/lockup_horizontal.svg';
+        return SizedBox(
+          width: width ?? 200,
+          height: height ?? 60,
+          child: const brand.SelahLogo(),
+        );
       case SelahLogoType.lockupStacked:
-        return 'assets/svg/lockup_stacked.svg';
+        return SizedBox(
+          width: width ?? 150,
+          height: height ?? 180,
+          child: const brand.SelahLogo(),
+        );
     }
   }
 

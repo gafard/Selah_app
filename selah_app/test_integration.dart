@@ -106,7 +106,7 @@ class IntegrationTestWidget extends StatelessWidget {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            Text('URL Supabase: ${const String.fromEnvironment('SUPABASE_URL', defaultValue: 'Non configurée')}'),
+            const Text('URL Supabase: ${String.fromEnvironment('SUPABASE_URL', defaultValue: 'Non configurée')}'),
             Text('Auth: ${SupabaseAuthService.isAuthenticated ? "Connecté" : "Non connecté"}'),
           ],
         ),

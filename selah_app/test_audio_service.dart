@@ -7,6 +7,8 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -18,6 +20,8 @@ class MyApp extends StatelessWidget {
 }
 
 class AudioTestPage extends StatefulWidget {
+  const AudioTestPage({super.key});
+
   @override
   _AudioTestPageState createState() => _AudioTestPageState();
 }
@@ -81,33 +85,33 @@ class _AudioTestPageState extends State<AudioTestPage> {
         : _pos.inMilliseconds / _dur.inMilliseconds;
 
     return Scaffold(
-      appBar: AppBar(title: Text('Audio Service Test')),
+      appBar: AppBar(title: const Text('Audio Service Test')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
+            const Text(
               'Audio Service Test',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Text('Status: ${_isInitialized ? "Initialized" : "Not initialized"}'),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             if (_isInitialized) ...[
               Text('Position: ${_fmt(_pos)}'),
               Text('Duration: ${_fmt(_dur)}'),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               LinearProgressIndicator(
                 value: progress,
                 minHeight: 8,
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _toggleAudio,
                 child: Text(_audio.isPlaying ? 'Pause' : 'Play'),
               ),
             ] else
-              CircularProgressIndicator(),
+              const CircularProgressIndicator(),
           ],
         ),
       ),

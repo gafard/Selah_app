@@ -249,6 +249,7 @@ class PlanServiceHttp implements PlanService {
 
   // —— progress stream (à partir du cache) ————————————————
   /// Crée un plan localement sans connexion Internet
+  @override
   Future<Plan> createLocalPlan({
     required String name,
     required int totalDays,
@@ -257,6 +258,7 @@ class PlanServiceHttp implements PlanService {
     String? specificBooks,
     required int minutesPerDay,
     List<Map<String, dynamic>>? customPassages,
+    List<int>? daysOfWeek, // ✅ NOUVEAU - Jours de lecture (1=Lun, 7=Dim)
   }) async {
     // Générer un ID unique pour le plan
     final planId = const Uuid().v4();
@@ -272,44 +274,97 @@ class PlanServiceHttp implements PlanService {
       books: books,
       specificBooks: specificBooks,
       minutesPerDay: minutesPerDay,
+      daysOfWeek: daysOfWeek, // ✅ NOUVEAU
     );
     
     // Sauvegarder localement
     await cachePlans.put('active_plan', plan.toJson());
     
     // Créer des jours de plan avec passages personnalisés ou génériques
-    await _createLocalPlanDays(planId, totalDays, startDate, books, customPassages);
+    await _createLocalPlanDays(planId, totalDays, startDate, books, customPassages, daysOfWeek);
     
     telemetry.event('plan_created_locally', {
       'plan_id': planId,
       'name': name,
       'total_days': totalDays,
       'books': books,
+      'days_of_week': daysOfWeek?.join(','), // ✅ NOUVEAU
     });
     
     return plan;
   }
 
   /// Crée les jours de plan localement
-  Future<void> _createLocalPlanDays(String planId, int totalDays, DateTime startDate, String books, List<Map<String, dynamic>>? customPassages) async {
+  Future<void> _createLocalPlanDays(
+    String planId,
+    int totalDays,
+    DateTime startDate,
+    String books,
+    List<Map<String, dynamic>>? customPassages,
+    List<int>? daysOfWeek, // ✅ NOUVEAU
+  ) async {
     final List<PlanDay> days = [];
     
-    for (int i = 0; i < totalDays; i++) {
-      final dayDate = startDate.add(Duration(days: i));
-      final day = PlanDay(
-        id: '${planId}_day_${i + 1}',
-        planId: planId,
-        dayIndex: i + 1,
-        date: dayDate,
-        completed: false,
-        // Utiliser des lectures dynamiques selon la durée
-        readings: await _generateLocalReadings(books, i + 1),
-      );
-      days.add(day);
+    // ═══════════════════════════════════════════════════════════
+    // PRIORITÉ : Utiliser customPassages si disponibles ⭐
+    // ═══════════════════════════════════════════════════════════
+    if (customPassages != null && customPassages.isNotEmpty) {
+      print('✅ Utilisation des passages personnalisés (${customPassages.length})');
+      
+      for (int i = 0; i < customPassages.length; i++) {
+        final passage = customPassages[i];
+        final dayDate = DateTime.parse(passage['date'] as String);
+        
+        final day = PlanDay(
+          id: '${planId}_day_${i + 1}',
+          planId: planId,
+          dayIndex: i + 1,
+          date: dayDate,
+          completed: false,
+          readings: [
+            ReadingRef(
+              book: passage['book'] as String,
+              range: passage['reference'] as String,
+              url: null,
+            ),
+          ],
+        );
+        days.add(day);
+      }
+    } else {
+      // ═══════════════════════════════════════════════════════════
+      // FALLBACK : Génération générique respectant daysOfWeek ⭐
+      // ═══════════════════════════════════════════════════════════
+      print('⚠️ Pas de passages personnalisés, génération générique avec respect calendrier');
+      
+      var currentDate = startDate;
+      int dayIndex = 1;
+      
+      while (days.length < totalDays) {
+        // Respecter daysOfWeek si disponible
+        if (daysOfWeek != null && !daysOfWeek.contains(currentDate.weekday)) {
+          currentDate = currentDate.add(const Duration(days: 1));
+          continue; // ✅ Sauter les jours non sélectionnés
+        }
+        
+        final day = PlanDay(
+          id: '${planId}_day_$dayIndex',
+          planId: planId,
+          dayIndex: dayIndex,
+          date: currentDate,
+          completed: false,
+          readings: await _generateLocalReadings(books, dayIndex),
+        );
+        days.add(day);
+        
+        dayIndex++;
+        currentDate = currentDate.add(const Duration(days: 1));
+      }
     }
     
     // Sauvegarder les jours
     await cachePlanDays.put('days:$planId', days.map((d) => d.toJson()).toList());
+    print('✅ ${days.length} jours de plan sauvegardés localement');
   }
 
   /// Génère des lectures locales basées sur les livres sélectionnés et la durée disponible
@@ -391,7 +446,7 @@ class PlanServiceHttp implements PlanService {
   /// Calcule la longueur de lecture selon la durée disponible
   Map<String, int> _calculateReadingLength(int durationMin) {
     // Estimation : 1 minute = 2-3 versets moyens
-    final versesPerMinute = 2.5;
+    const versesPerMinute = 2.5;
     final totalVerses = (durationMin * versesPerMinute).round();
     
     return {

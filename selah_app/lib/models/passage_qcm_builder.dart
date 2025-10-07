@@ -68,7 +68,7 @@ List<QcmQuestion> buildDynamicQcm(String passageText) {
   ]);
 
   // Options neutres génériques — l'utilisateur peut combiner + écrire sa propre réponse.
-  List<QcmOption> _neutralOptions(List<String> labels) => [
+  List<QcmOption> neutralOptions(List<String> labels) => [
         ...labels.map((l) => QcmOption(l)),
         QcmOption('Je ne sais pas / pas sûr(e)'),
       ];
@@ -78,7 +78,7 @@ List<QcmQuestion> buildDynamicQcm(String passageText) {
       id: 'who',
       title: whoTitle,
       type: QcmType.multi,
-      options: _neutralOptions([
+      options: neutralOptions([
         'Personnages principaux identifiés',
         'Personnages secondaires mentionnés',
         'Groupe ou foule',
@@ -90,7 +90,7 @@ List<QcmQuestion> buildDynamicQcm(String passageText) {
       id: 'what',
       title: whatTitle,
       type: QcmType.multi,
-      options: _neutralOptions([
+      options: neutralOptions([
         'Dialogue / parole échangée',
         'Action concrète (déplacement, geste…)',
         'Enseignement / déclaration',
@@ -102,7 +102,7 @@ List<QcmQuestion> buildDynamicQcm(String passageText) {
       id: 'where',
       title: whereTitle,
       type: QcmType.single,
-      options: _neutralOptions([
+      options: neutralOptions([
         'Lieu explicite (ville, maison, temple…)',
         'Lieu implicite (déduit du contexte)',
         'Lieu non précisé',
@@ -113,7 +113,7 @@ List<QcmQuestion> buildDynamicQcm(String passageText) {
       id: 'when',
       title: whenTitle,
       type: QcmType.single,
-      options: _neutralOptions([
+      options: neutralOptions([
         'Moment explicite (heure/jour/fête)',
         'Période implicite (contexte)',
         'Aucune indication temporelle',
@@ -124,7 +124,7 @@ List<QcmQuestion> buildDynamicQcm(String passageText) {
       id: 'to_whom',
       title: toWhomTitle,
       type: QcmType.multi,
-      options: _neutralOptions([
+      options: neutralOptions([
         'Une personne précise',
         'Un groupe précis',
         'Public indéterminé',

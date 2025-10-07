@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
@@ -11,7 +10,6 @@ import 'services/plan_service.dart';
 import 'services/plan_service_http.dart';
 import 'services/supabase_auth.dart';
 import 'services/local_storage_service.dart';
-import 'services/bible_download_service.dart';
 import 'services/connectivity_service.dart';
 import 'bootstrap_plans.dart';
 

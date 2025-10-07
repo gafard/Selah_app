@@ -61,7 +61,7 @@ class _CircularAudioProgressState extends State<CircularAudioProgress>
         builder: (context, child) {
           return Transform.scale(
             scale: _scaleAnimation.value,
-            child: Container(
+            child: SizedBox(
               width: widget.size,
               height: widget.size,
               child: Stack(

@@ -1,9 +1,7 @@
-import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 // workmanager supprimé pour éviter les problèmes de compatibilité
-import 'package:path_provider/path_provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'user_repo_supabase.dart';

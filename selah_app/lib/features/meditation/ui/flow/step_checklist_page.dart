@@ -45,7 +45,7 @@ class _StepChecklistPageState extends ConsumerState<StepChecklistPage> {
     final controller = ref.read(meditationControllerProvider(params).notifier);
 
     return GradientScaffold(
-      appBar: ProgressHeader(
+      appBar: const ProgressHeader(
         title: 'Checklist',
         progress: 0.8,
       ),

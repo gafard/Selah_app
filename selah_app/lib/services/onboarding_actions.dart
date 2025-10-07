@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../domain/user_prefs.dart';
 import '../domain/telemetry.dart';
 import '../services/daily_alarm.dart';
-import '../services/background_tasks.dart';
 
 class OnboardingActions {
   static bool _busy = false;

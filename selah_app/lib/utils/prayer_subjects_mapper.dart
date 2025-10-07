@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 
 /// Sortie attendue par PayerpageWidget :
@@ -21,7 +20,7 @@ class PrayerItem {
 
   factory PrayerItem.fromMap(Map m) {
     Color parseHex(String hex) {
-      final h = (hex as String).replaceAll('#', '');
+      final h = (hex).replaceAll('#', '');
       return Color(int.parse('FF$h', radix: 16));
     }
     return PrayerItem(

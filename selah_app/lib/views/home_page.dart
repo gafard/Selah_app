@@ -8,8 +8,6 @@ import '../models/home_page_model.dart';
 import '../widgets/selah_logo.dart';
 import '../services/home_vm.dart';
 import '../services/telemetry_console.dart';
-import '../services/background_tasks.dart';
-import '../services/connectivity_service.dart';
 import '../widgets/connectivity_indicator.dart';
 import '../state/app_state.dart';
 import '../widgets/pattern_painter.dart';
