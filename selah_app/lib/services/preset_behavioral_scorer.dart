@@ -12,6 +12,7 @@
 /// ═══════════════════════════════════════════════════════════════════════════
 
 import 'dart:math' as math;
+import 'preset_behavioral_config.dart';
 
 /// Résultat d'analyse comportementale d'un preset
 class BehavioralScore {
@@ -35,10 +36,10 @@ class BehavioralScore {
 
   /// Score combiné (moyenne pondérée)
   double get combinedScore {
-    return (behavioralFitScore * 0.35) +
-        (testimonyResonanceScore * 0.25) +
-        (completionProbability * 0.25) +
-        (motivationAlignment * 0.15);
+    return (behavioralFitScore * PresetBehavioralConfig.weightBehavioral) +
+        (testimonyResonanceScore * PresetBehavioralConfig.weightTestimony) +
+        (completionProbability * PresetBehavioralConfig.weightCompletion) +
+        (motivationAlignment * PresetBehavioralConfig.weightMotivation);
   }
 }
 
@@ -432,16 +433,8 @@ class PresetBehavioralScorer {
   /// ═══════════════════════════════════════════════════════════════════════
 
   static String _mapGoalToBehavioralType(String goal) {
-    if (goal.contains('Discipline') || goal.contains('régularité')) {
-      return 'habit_formation';
-    }
-    if (goal.contains('Connaissance') || goal.contains('Bible')) {
-      return 'cognitive_learning';
-    }
-    if (goal.contains('Transformation') || goal.contains('changer')) {
-      return 'spiritual_transformation';
-    }
-    return 'habit_formation'; // Défaut
+    // ✅ Utiliser mapping robuste depuis config
+    return PresetBehavioralConfig.mapGoalToBehavioralType(goal);
   }
 
   static double _interpolateCompletionRate(int duration, Map<int, int> curve) {
@@ -565,9 +558,11 @@ class PresetBehavioralScorer {
       dailyMinutes: userProfile['durationMin'] as int,
     );
 
-    // Ajouter au score existant (pondération 25%)
+    // Ajouter au score existant (pondération configurable)
     final currentScore = preset['score'] as double? ?? 0.0;
-    final enrichedScore = currentScore * 0.75 + behavioralScore.combinedScore * 0.25;
+    final baseWeight = 1.0 - PresetBehavioralConfig.injectInFinalScore;
+    final enrichedScore = currentScore * baseWeight + 
+        behavioralScore.combinedScore * PresetBehavioralConfig.injectInFinalScore;
 
     return {
       ...preset,
