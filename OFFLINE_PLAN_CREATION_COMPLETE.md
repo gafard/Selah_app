@@ -467,3 +467,4 @@ Passages:
 **🎊 IMPLÉMENTATION 100% COMPLÈTE ! L'APP EST PRÊTE ! 🚀**
 
 **📱 Testez maintenant sur iPhone (app déjà lancée) ! ✨**
+

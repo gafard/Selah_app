@@ -488,3 +488,4 @@ Redémarrage offline → passages toujours accessibles ✅
 **Status :** ⚠️ **CORRECTIONS NÉCESSAIRES**  
 **Priorité :** 🔥 **P0** - Bloquant pour l'offline-first complet  
 **Durée estimée :** 30 minutes
+

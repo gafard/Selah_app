@@ -15,6 +15,7 @@ class PlanPreset {
   final String? description;           // description dynamique
   final List<Color>? gradient;         // gradient personnalisé
   final String? specificBooks;         // livres/chapitres spécifiques
+  final Map<String, dynamic>? parameters; // ✅ NOUVEAU : parameters intelligents
 
   PlanPreset({
     required this.slug,
@@ -28,6 +29,7 @@ class PlanPreset {
     this.description,
     this.gradient,
     this.specificBooks,
+    this.parameters, // ✅ NOUVEAU
   });
 
   factory PlanPreset.fromJson(Map<String, dynamic> j) => PlanPreset(
@@ -64,6 +66,7 @@ class PlanPreset {
     String? description,
     List<Color>? gradient,
     String? specificBooks,
+    Map<String, dynamic>? parameters, // ✅ NOUVEAU
   }) {
     return PlanPreset(
       slug: slug ?? this.slug,
@@ -77,6 +80,7 @@ class PlanPreset {
       description: description ?? this.description,
       gradient: gradient ?? this.gradient,
       specificBooks: specificBooks ?? this.specificBooks,
+      parameters: parameters ?? this.parameters, // ✅ NOUVEAU
     );
   }
 }

@@ -353,3 +353,4 @@ Utilisateur → Posture du cœur → Motivation → Plan Christ-centré → Renc
 **🔥 "Vous sondez les Écritures... VENEZ À MOI pour avoir la vie !" - Jean 5:39-40**
 
 **C'est par la FOI qu'on est transformé, pas par la connaissance seule ! ✨**
+

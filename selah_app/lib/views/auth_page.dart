@@ -571,22 +571,18 @@ class _AuthPageState extends State<AuthPage> {
   Widget _header() {
     return Column(
       children: [
-        // Icône
-        Container(
-          width: 84, height: 84,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: Colors.white.withOpacity(0.18)),
-          ),
-          child: const Center(child: SelahAppIcon(size: 46)),
-        ),
+        // ✅ Logo direct sans box arrondie
+        SelahLogo.round(size: 84),
         const SizedBox(height: 14),
+        // ✅ Texte Selah en Gilroy Black (comme logo original)
         Text(
-          'SELAH',
-          style: GoogleFonts.outfit(
-            fontSize: 30, fontWeight: FontWeight.w800,
-            color: Colors.white, letterSpacing: 2,
+          'Selah',
+          style: const TextStyle(
+            fontFamily: 'Gilroy',
+            fontSize: 30,
+            fontWeight: FontWeight.w900, // ✅ Black
+            color: Colors.white,
+            letterSpacing: 2,
           ),
         ),
         const SizedBox(height: 6),

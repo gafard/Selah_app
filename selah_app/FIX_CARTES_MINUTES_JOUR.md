@@ -65,3 +65,4 @@ Miséricorde        ← (deux lignes)
 ```
 
 **Affichage cohérent avec les choix de l'utilisateur !** ⏱️✨📱
+

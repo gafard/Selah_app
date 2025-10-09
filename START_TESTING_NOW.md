@@ -156,3 +156,4 @@ Vérifier que PlanService.createLocalPlan() existe
 ---
 
 **🔥 "Venez à moi pour avoir la vie !" - Jean 5:40 ✨**
+

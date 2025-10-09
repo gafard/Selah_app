@@ -87,3 +87,4 @@ flutter run -d Pixel_9a
 L'émulateur est en cours de démarrage et l'application va se lancer automatiquement ! 🚀
 
 **Surveillez la console pour voir les logs de démarrage.** 📱✨
+

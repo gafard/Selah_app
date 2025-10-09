@@ -180,3 +180,4 @@ return Map<String, dynamic>.from(data as Map);
 ---
 
 **🎊 L'APP EST MAINTENANT STABLE ! PRÊTE POUR LES TESTS ! 🚀**
+

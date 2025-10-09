@@ -68,3 +68,4 @@ class IntelligentMotivation {
     return (baseMinutes * multiplier).round().clamp(5, 120);
   }
 }
+

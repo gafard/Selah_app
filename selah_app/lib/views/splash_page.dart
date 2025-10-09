@@ -1,14 +1,12 @@
-import 'dart:io';
-import 'dart:ui'; // ✅ Pour ImageFilter
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart'; // ✅ Pour GoogleFonts
 import '../widgets/selah_logo.dart';
 import '../services/local_storage_service.dart';
 import '../services/connectivity_service.dart';
+import '../services/app_reset_service.dart'; // ✅ Service de réinitialisation
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -19,23 +17,12 @@ class SplashPage extends StatefulWidget {
 
 class _SplashPageState extends State<SplashPage> {
   bool _navigated = false;
-  bool _lowPower = false;
 
   @override
   void initState() {
     super.initState();
     // Forcer les icônes en clair sur le dégradé foncé
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
-    
-    // Détecter les appareils bas de gamme pour désactiver les animations coûteuses
-    try {
-      _lowPower = !kIsWeb && Platform.isAndroid && 
-                  (Platform.environment['ANDROID_EMULATOR'] == 'true' || 
-                   Platform.environment['FLUTTER_TEST'] == 'true');
-    } catch (e) {
-      // Sur le web, Platform.isAndroid n'est pas supporté
-      _lowPower = false;
-    }
     
     _handleNavigation();
   }
@@ -105,19 +92,20 @@ class _SplashPageState extends State<SplashPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // ✅ Dégradé identique à auth_page.dart
+      // ✅ Dégradé Selah
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF1A1D29), Color(0xFF112244)], // ✅ Même dégradé
+            colors: [Color(0xFF0B1025), Color(0xFF1C1740), Color(0xFF2D1B69)],
+            stops: [0.0, 0.55, 1.0],
           ),
         ),
         child: SafeArea(
           child: Stack(
             children: [
-              // ✅ Ornements identiques à auth_page.dart
+              // ✅ Ornements subtils
               Positioned(
                 right: -60,
                 top: -40,
@@ -129,103 +117,159 @@ class _SplashPageState extends State<SplashPage> {
                 child: _softBlob(220),
               ),
 
-              // Contenu centré
+              // ✅ Logo Selah directement sur le fond
               Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-                      child: Container(
-                        constraints: const BoxConstraints(maxWidth: 480),
-                        padding: const EdgeInsets.all(32),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.12), // ✅ Même transparence
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.2),
-                            width: 1,
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Logo Selah avec style auth_page
-                            Container(
-                              width: 120,
-                              height: 120,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(26),
-                                border: Border.all(color: Colors.white.withOpacity(0.18)),
-                              ),
-                              child: const Center(
-                                child: SelahSplashLogo(size: 80),
-                              ),
-                            )
-                            .animate()
-                            .fadeIn(duration: 1000.ms)
-                            .scale(
-                              begin: const Offset(0.8, 0.8),
-                              end: const Offset(1.0, 1.0),
-                              duration: 800.ms,
-                              curve: Curves.elasticOut,
-                            )
-                            .shimmer(
-                              duration: _lowPower ? 0.ms : 2000.ms,
-                              delay: 1000.ms,
-                              color: Colors.white.withOpacity(0.3),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Logo icône Selah
+                    SelahLogo.round(size: 120)
+                    .animate()
+                    .fadeIn(duration: 1000.ms)
+                    .scale(
+                      begin: const Offset(0.8, 0.8),
+                      end: const Offset(1.0, 1.0),
+                      duration: 800.ms,
+                      curve: Curves.easeOut,
+                    ),
+
+                    const SizedBox(height: 24),
+                    
+                    // Texte Selah en Gilroy Black (comme logo original)
+                    Text(
+                      'Selah',
+                      style: const TextStyle(
+                        fontFamily: 'Gilroy',
+                        fontSize: 42,
+                        fontWeight: FontWeight.w900, // ✅ Black (900 au lieu de 800)
+                        color: Colors.white,
+                        letterSpacing: 2, // ✅ Légèrement réduit pour Gilroy Black
+                      ),
+                    )
+                    .animate()
+                    .fadeIn(duration: 800.ms, delay: 400.ms)
+                    .slideY(begin: 0.2, end: 0, duration: 600.ms, delay: 400.ms),
+
+                    const SizedBox(height: 16),
+
+                    // Sous-titre
+                    Text(
+                      'Un temps pour s\'arrêter et méditer',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontFamily: 'Gilroy',
+                        fontSize: 16,
+                        color: Colors.white70,
+                        height: 1.4,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    )
+                    .animate()
+                    .fadeIn(duration: 800.ms, delay: 700.ms)
+                    .slideY(begin: 0.2, end: 0, duration: 600.ms, delay: 700.ms),
+
+                    const SizedBox(height: 40),
+
+                    // Indicateur de chargement
+                    const CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      strokeWidth: 3,
+                    )
+                    .animate()
+                    .fadeIn(duration: 600.ms, delay: 1000.ms),
+                  ],
+                ),
+              ),
+              
+              // 🔥 BOUTON DE RÉINITIALISATION (MODE DEBUG SEULEMENT)
+              if (kDebugMode)
+                Positioned(
+                  bottom: 40,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: TextButton.icon(
+                      onPressed: () async {
+                        // Confirmation avant réinitialisation
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('⚠️ Réinitialisation'),
+                            content: const Text(
+                              'Voulez-vous vraiment SUPPRIMER TOUTES les données locales ?\n\n'
+                              'Cela va supprimer :\n'
+                              '• Tous les comptes\n'
+                              '• Tous les plans\n'
+                              '• Toutes les préférences\n'
+                              '• Toute la progression\n\n'
+                              'Cette action est IRRÉVERSIBLE.',
                             ),
-
-                            const SizedBox(height: 24),
-
-                            // Titre SELAH (style auth_page)
-                            Text(
-                              'SELAH',
-                              style: GoogleFonts.outfit(
-                                fontSize: 36,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                                letterSpacing: 2,
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text('Annuler'),
                               ),
-                            )
-                            .animate()
-                            .fadeIn(duration: 800.ms, delay: 500.ms)
-                            .slideY(begin: 0.3, end: 0, duration: 600.ms, delay: 500.ms),
-
-                            const SizedBox(height: 12),
-
-                            // Sous-titre
-                            Text(
-                              'Un temps pour s\'arrêter et méditer',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.inter(
-                                fontSize: 16,
-                                color: Colors.white70,
-                                height: 1.4,
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, true),
+                                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                child: const Text('TOUT SUPPRIMER'),
                               ),
-                            )
-                            .animate()
-                            .fadeIn(duration: 800.ms, delay: 800.ms)
-                            .slideY(begin: 0.2, end: 0, duration: 600.ms, delay: 800.ms),
-
-                            const SizedBox(height: 40),
-
-                            // Indicateur de chargement
-                            const CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              strokeWidth: 3,
-                            )
-                            .animate()
-                            .fadeIn(duration: 600.ms, delay: 1200.ms),
-                          ],
+                            ],
+                          ),
+                        );
+                        
+                        if (confirm == true) {
+                          // Réinitialiser l'application
+                          try {
+                            await AppResetService.resetEverything();
+                            
+                            if (mounted) {
+                              // Afficher un message de succès
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('✅ Application réinitialisée ! Redémarrage...'),
+                                  backgroundColor: Colors.green,
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                              
+                              // Attendre 2 secondes puis redémarrer
+                              await Future.delayed(const Duration(seconds: 2));
+                              
+                              // Forcer la navigation vers /welcome
+                              if (mounted) {
+                                context.go('/welcome');
+                              }
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('❌ Erreur: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        }
+                      },
+                      icon: const Icon(Icons.delete_forever, color: Colors.red, size: 20),
+                      label: const Text(
+                        'Réinitialiser l\'app (DEBUG)',
+                        style: TextStyle(
+                          fontFamily: 'Gilroy',
+                          color: Colors.red,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
                         ),
+                      ),
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.white.withOpacity(0.1),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       ),
                     ),
                   ),
                 ),
-              ),
             ],
           ),
         ),

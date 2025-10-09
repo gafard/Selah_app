@@ -66,3 +66,4 @@
   {"book": "Jude", "vpm_min": 1.6, "vpm_avg": 2.2, "vpm_max": 2.9, "genre": "epistle_practical", "words_per_verse": 28},
   {"book": "Apocalypse", "vpm_min": 1.2, "vpm_avg": 1.8, "vpm_max": 2.4, "genre": "apocalyptic", "words_per_verse": 33}
 ]
+

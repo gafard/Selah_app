@@ -148,3 +148,4 @@ Future<void> _submit() async {
 - ✅ Pas de redirection intempestive
 
 **Le flux d'authentification est maintenant robuste !** 🎯✨🚀
+

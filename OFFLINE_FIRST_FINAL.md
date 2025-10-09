@@ -401,3 +401,4 @@ bool _supabaseInitialized = false;
 ---
 
 **🎉 FÉLICITATIONS ! Votre app est maintenant 100% offline-first avec reprise automatique !**
+

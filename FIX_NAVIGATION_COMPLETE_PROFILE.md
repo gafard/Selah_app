@@ -88,3 +88,4 @@ En bonus, j'ai aussi ajouté :
 
 **Date :** 7 octobre 2025  
 **Status :** ✅ RÉSOLU
+

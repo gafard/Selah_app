@@ -58,3 +58,4 @@ height: 0.8,          // ✅ Height ajusté (0.75→0.8)
 - etc. (vrais noms des presets)
 
 **Plus de noms génériques identiques !** 🎨✨📱
+

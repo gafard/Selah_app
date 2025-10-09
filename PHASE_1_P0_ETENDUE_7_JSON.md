@@ -288,3 +288,4 @@ class HiveBibleMetadata implements BibleMetadata {
 **Date :** 7 octobre 2025  
 **Taille :** 80 KB (ultra-léger)  
 **Impact :** Passages 10x plus crédibles + bases solides
+

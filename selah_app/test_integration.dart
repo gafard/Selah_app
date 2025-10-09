@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'lib/services/plan_service.dart';
 import 'lib/services/supabase_auth.dart';
-import 'lib/services/telemetry_console.dart';
 
 /// Script de test pour vérifier l'intégration avec Supabase
 class IntegrationTest {

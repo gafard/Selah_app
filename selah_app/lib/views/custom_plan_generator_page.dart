@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart'; // ✅ Import GoRouter
 import '../services/ics_import_service.dart';
 import '../services/user_prefs_hive.dart';
 import '../services/plan_service.dart';
@@ -295,7 +296,7 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
     return UniformHeader(
       title: 'Générer un plan personnalisé',
       subtitle: 'Créez votre plan de lecture sur mesure',
-      onBackPressed: () => Navigator.pop(context),
+      onBackPressed: () => context.go('/goals'), // ✅ Utiliser GoRouter
       textColor: Colors.white,
       iconColor: Colors.white,
       titleAlignment: CrossAxisAlignment.center,
@@ -686,7 +687,7 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
       );
 
       // Navigation vers la page d'accueil
-      Navigator.pushReplacementNamed(context, '/home');
+      context.go('/home'); // ✅ Utiliser GoRouter
     } catch (e) {
       Navigator.of(context, rootNavigator: true).pop(); // ferme modal si erreur
       if (!mounted) return;

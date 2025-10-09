@@ -396,3 +396,4 @@ if (mounted) {
 ---
 
 **Une fois ces 3 choses faites, l'application sera 100% fonctionnelle sur toutes les plateformes ! 🚀**
+

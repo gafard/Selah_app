@@ -165,3 +165,4 @@ L'application **fonctionne déjà** avec **Poppins** (fallback automatique de Go
 ## 🎊 C'EST PRÊT !
 
 Le redesign est **100% terminé** et **conforme à votre image témoin** ! 🚀✨
+

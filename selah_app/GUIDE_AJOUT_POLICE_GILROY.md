@@ -138,3 +138,4 @@ Une fois Gilroy ajouté, vous aurez :
 ## 🚀 État actuel
 
 L'application fonctionne **déjà parfaitement** avec **Inter Black** qui est visuellement très proche de Gilroy Heavy. Le design est **100% conforme** à votre image témoin ! 🎨✨
+

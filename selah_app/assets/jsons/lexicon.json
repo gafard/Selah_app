@@ -1,0 +1,49 @@
+{
+  "Matthieu.5.3": [
+    {"lemma": "makarios", "lang": "grc", "gloss": "heureux, béni", "strongs": "G3107"},
+    {"lemma": "ptōchos", "lang": "grc", "gloss": "pauvre, mendiant", "strongs": "G4434"},
+    {"lemma": "pneuma", "lang": "grc", "gloss": "esprit, souffle", "strongs": "G4151"}
+  ],
+  
+  "Jean.3.16": [
+    {"lemma": "agapaō", "lang": "grc", "gloss": "aimer (amour divin)", "strongs": "G25"},
+    {"lemma": "kosmos", "lang": "grc", "gloss": "monde, univers", "strongs": "G2889"},
+    {"lemma": "monogenēs", "lang": "grc", "gloss": "unique engendré, fils unique", "strongs": "G3439"},
+    {"lemma": "pisteuō", "lang": "grc", "gloss": "croire, avoir foi", "strongs": "G4100"},
+    {"lemma": "zōē", "lang": "grc", "gloss": "vie (éternelle)", "strongs": "G2222"},
+    {"lemma": "aiōnios", "lang": "grc", "gloss": "éternel, perpétuel", "strongs": "G166"}
+  ],
+  
+  "Romains.8.28": [
+    {"lemma": "sunergeo", "lang": "grc", "gloss": "travailler ensemble, coopérer", "strongs": "G4903"},
+    {"lemma": "agathos", "lang": "grc", "gloss": "bon, bénéfique", "strongs": "G18"},
+    {"lemma": "klētos", "lang": "grc", "gloss": "appelé, convoqué", "strongs": "G2822"}
+  ],
+  
+  "1Corinthiens.13.4": [
+    {"lemma": "agapē", "lang": "grc", "gloss": "amour (divin)", "strongs": "G26"},
+    {"lemma": "makrothumeō", "lang": "grc", "gloss": "être patient, endurer", "strongs": "G3114"},
+    {"lemma": "chrēsteuomai", "lang": "grc", "gloss": "être bon, bienveillant", "strongs": "G5541"}
+  ],
+  
+  "Genèse.1.1": [
+    {"lemma": "bərēʾšîṯ", "lang": "heb", "gloss": "au commencement", "strongs": "H7225"},
+    {"lemma": "bārāʾ", "lang": "heb", "gloss": "créer (ex nihilo)", "strongs": "H1254"},
+    {"lemma": "ʾĕlōhîm", "lang": "heb", "gloss": "Dieu (pluriel majesté)", "strongs": "H430"},
+    {"lemma": "šāmayim", "lang": "heb", "gloss": "cieux", "strongs": "H8064"},
+    {"lemma": "ʾereṣ", "lang": "heb", "gloss": "terre", "strongs": "H776"}
+  ],
+  
+  "Psaumes.23.1": [
+    {"lemma": "YHWH", "lang": "heb", "gloss": "l'Éternel (nom divin)", "strongs": "H3068"},
+    {"lemma": "rāʿâ", "lang": "heb", "gloss": "berger, paître", "strongs": "H7462"},
+    {"lemma": "ḥāsar", "lang": "heb", "gloss": "manquer, avoir besoin", "strongs": "H2637"}
+  ],
+  
+  "Psaumes.51.10": [
+    {"lemma": "bārāʾ", "lang": "heb", "gloss": "créer", "strongs": "H1254"},
+    {"lemma": "ṭāhôr", "lang": "heb", "gloss": "pur, propre", "strongs": "H2889"},
+    {"lemma": "lēḇ", "lang": "heb", "gloss": "cœur", "strongs": "H3820"}
+  ]
+}
+

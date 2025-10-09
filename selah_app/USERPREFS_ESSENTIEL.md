@@ -156,3 +156,4 @@ final raw = box.get('profile'); // Debug/migration
 - ✅ LocalStorageService utilisé uniquement pour getProfile()
 
 **L'application va compiler maintenant !** 📱✨🎯
+

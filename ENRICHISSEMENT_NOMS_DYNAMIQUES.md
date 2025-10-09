@@ -665,3 +665,4 @@ Widget _buildBadge(String label, Color color) {
 **🎨 Votre système de noms est magnifique ! Je l'enrichis juste avec des emojis contextuels intelligents ! ✨**
 
 **📖 Voir `ENRICHISSEMENT_SYSTEME_EXISTANT.md` pour l'intégration complète**
+

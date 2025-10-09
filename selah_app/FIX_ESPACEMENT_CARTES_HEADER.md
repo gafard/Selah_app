@@ -47,3 +47,4 @@ const SizedBox(height: 24), // ✅ Plus d'espace avant swipe
 4. ✅ L'icône swipe est mieux espacée
 
 **L'interface sera plus confortable visuellement !** 🎨✨
+

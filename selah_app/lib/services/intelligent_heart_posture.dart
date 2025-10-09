@@ -101,3 +101,4 @@ class IntelligentHeartPosture {
     return (matchCount / bookList.length).clamp(0.0, 1.0);
   }
 }
+

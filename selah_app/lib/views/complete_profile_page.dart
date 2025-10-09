@@ -183,54 +183,59 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
                   keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                  child: Stack(
-                    children: [
-                      // Ornements légers en arrière-plan
-                      Positioned(
-                        right: -60,
-                        top: -40,
-                        child: _softBlob(180),
-                      ),
-                      Positioned(
-                        left: -40,
-                        bottom: -50,
-                        child: _softBlob(220),
-                      ),
+                  child: SizedBox(
+                    // ✅ Ajouter une hauteur minimale pour forcer le scroll
+                    height: MediaQuery.of(context).size.height * 1.2,
+                    child: Stack(
+                      children: [
+                        // Ornements légers en arrière-plan
+                        Positioned(
+                          right: -60,
+                          top: -40,
+                          child: _softBlob(180),
+                        ),
+                        Positioned(
+                          left: -40,
+                          bottom: -50,
+                          child: _softBlob(220),
+                        ),
 
-                      // Contenu principal
-                      Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-                            child: Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.2),
-                                  width: 1,
+                        // Contenu principal
+                        Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(20),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                              child: Container(
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.2),
+                                    width: 1,
+                                  ),
                                 ),
-                              ),
-                              child: Column(
-                                children: [
-                                  const SizedBox(height: 8),
-                                  // Header
-                                  _buildHeader(),
-                                  const SizedBox(height: 20),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min, // ✅ Important pour le scroll
+                                  children: [
+                                    const SizedBox(height: 8),
+                                    // Header
+                                    _buildHeader(),
+                                    const SizedBox(height: 20),
 
-                                  // Formulaire de configuration
-                                  _buildConfigurationForm(),
-                                  const SizedBox(height: 120), // Espace pour le bouton (augmenté pour nouveaux champs)
-                                ],
+                                    // Formulaire de configuration
+                                    _buildConfigurationForm(),
+                                    const SizedBox(height: 80), // ✅ Réduit pour éviter overflow
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),

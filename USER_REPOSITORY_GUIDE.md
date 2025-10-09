@@ -333,3 +333,4 @@ expect(userRepo.isAuthenticated(), true);
 ---
 
 **🎉 UserRepository prêt à l'emploi avec offline-first complet !**
+

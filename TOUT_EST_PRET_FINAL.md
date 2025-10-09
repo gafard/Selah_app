@@ -190,3 +190,4 @@ flutter: 🧭 Navigation: hasAccount=false
 **🔥 100% OFFLINE-FIRST RESPECTÉ PARTOUT ! ✨**
 
 **🎊 L'APP EST PRÊTE ! TESTEZ MAINTENANT ! 🚀**
+

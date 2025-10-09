@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'lib/services/audio_player_service.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -14,7 +14,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Audio Service Test',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: AudioTestPage(),
+      home: const AudioTestPage(),
     );
   }
 }

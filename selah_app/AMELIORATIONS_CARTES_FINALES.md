@@ -234,3 +234,4 @@ Future<void> _loadUserProfile() async {
 ✅ Texte dynamique (déjà fonctionnel)  
 
 **Testez maintenant sur Chrome !** 🚀✨
+

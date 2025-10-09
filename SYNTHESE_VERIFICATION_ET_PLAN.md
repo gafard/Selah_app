@@ -125,3 +125,4 @@ final vpm = meta.wordsPerVerse('Jean'); // 26.0 (gospel)
 **Date :** 7 octobre 2025  
 **Status :** ✅ PLAN VALIDÉ  
 **Prochaine étape :** Créer les 7 JSON
+

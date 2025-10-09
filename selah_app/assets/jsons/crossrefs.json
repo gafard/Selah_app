@@ -1,0 +1,55 @@
+{
+  "Matthieu.5.3": ["Luc.6.20", "Psaumes.34.18", "Ésaïe.57.15"],
+  "Matthieu.5.4": ["Ésaïe.61.2", "Apocalypse.21.4"],
+  "Matthieu.5.5": ["Psaumes.37.11"],
+  "Matthieu.5.6": ["Psaumes.42.2", "Jean.4.14"],
+  "Matthieu.5.7": ["Luc.6.36", "Jacques.2.13"],
+  "Matthieu.5.8": ["Psaumes.24.4", "Hébreux.12.14"],
+  
+  "Jean.3.16": ["1Jean.4.9", "Romains.5.8", "1Jean.4.10", "Éphésiens.2.4"],
+  "Jean.3.17": ["Jean.12.47", "Luc.9.56"],
+  
+  "Romains.3.23": ["Romains.5.12", "1Jean.1.8"],
+  "Romains.3.24": ["Éphésiens.2.8", "Tite.3.7"],
+  "Romains.6.23": ["1Jean.5.11", "Jacques.1.15"],
+  "Romains.8.1": ["Jean.5.24", "Romains.5.1"],
+  "Romains.8.28": ["Genèse.50.20", "Jérémie.29.11"],
+  
+  "Genèse.1.1": ["Jean.1.1", "Hébreux.11.3", "Apocalypse.4.11"],
+  "Genèse.1.27": ["Matthieu.19.4", "Marc.10.6"],
+  "Genèse.22.8": ["Jean.1.29", "Hébreux.11.17"],
+  
+  "Exode.12.13": ["1Corinthiens.5.7", "1Pierre.1.19"],
+  "Exode.20.3": ["Matthieu.22.37", "Marc.12.29"],
+  
+  "Psaumes.23.1": ["Jean.10.11", "Hébreux.13.20"],
+  "Psaumes.51.10": ["Ézéchiel.36.26", "2Corinthiens.5.17"],
+  "Psaumes.119.105": ["Jean.8.12", "2Pierre.1.19"],
+  
+  "Ésaïe.53.5": ["1Pierre.2.24", "Romains.4.25"],
+  "Ésaïe.53.7": ["Jean.1.29", "Actes.8.32"],
+  
+  "Luc.15.11": ["Osée.11.1", "Ésaïe.1.2"],
+  "Luc.15.20": ["Psaumes.103.13", "Éphésiens.2.4"],
+  
+  "1Corinthiens.13.4": ["Romains.5.5", "Galates.5.22"],
+  "1Corinthiens.13.8": ["Romains.8.38", "Cantique.8.7"],
+  
+  "Éphésiens.2.8": ["Romains.3.24", "Tite.3.5"],
+  "Éphésiens.2.9": ["Romains.3.27", "Romains.4.2"],
+  
+  "Philippiens.4.13": ["2Corinthiens.12.9", "1Timothée.1.12"],
+  "Philippiens.4.6": ["1Pierre.5.7", "Psaumes.55.23"],
+  
+  "Hébreux.11.1": ["2Corinthiens.5.7", "Romains.8.24"],
+  "Hébreux.13.8": ["Malachie.3.6", "Jacques.1.17"],
+  
+  "Jacques.1.5": ["Proverbes.2.6", "1Rois.3.9"],
+  "Jacques.2.17": ["Matthieu.7.21", "1Jean.3.18"],
+  
+  "1Pierre.5.7": ["Psaumes.55.23", "Philippiens.4.6"],
+  
+  "1Jean.1.9": ["Proverbes.28.13", "Psaumes.32.5"],
+  "1Jean.4.8": ["1Corinthiens.13.1", "Jean.3.16"]
+}
+

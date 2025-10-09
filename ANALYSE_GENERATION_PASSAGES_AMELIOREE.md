@@ -220,3 +220,4 @@ Semaine 3 : Tests + Phase 2 P1
 **Status :** ✅ VALIDÉ - À intégrer dans Phase 1 P0  
 **Date :** 7 octobre 2025  
 **Priorité :** 🔥 P0+ (avec les 5 JSON initiaux)
+

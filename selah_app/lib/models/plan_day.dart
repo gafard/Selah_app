@@ -8,6 +8,15 @@ class PlanDay {
   final DateTime? completedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
+  
+  // ✅ NOUVEAU : Métadonnées sémantiques
+  final String? annotation;           // "Parabole du semeur", "Sermon sur la montagne"
+  final bool? hasLiteraryUnit;        // Ce passage contient une unité littéraire
+  final String? unitType;             // 'parable', 'discourse', 'narrative', etc.
+  final String? unitPriority;         // 'critical', 'high', 'medium'
+  final List<String>? tags;           // ['parabole', 'royaume', 'semeur']
+  final int? estimatedMinutes;        // Temps estimé adapté à la densité
+  final String? meditationType;       // Type de méditation recommandé
 
   PlanDay({
     this.id,
@@ -19,6 +28,13 @@ class PlanDay {
     this.completedAt,
     required this.createdAt,
     required this.updatedAt,
+    this.annotation,
+    this.hasLiteraryUnit,
+    this.unitType,
+    this.unitPriority,
+    this.tags,
+    this.estimatedMinutes,
+    this.meditationType,
   });
 
   Map<String, dynamic> toJson() {
@@ -32,6 +48,13 @@ class PlanDay {
       'completed_at': completedAt?.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      'annotation': annotation,
+      'has_literary_unit': hasLiteraryUnit,
+      'unit_type': unitType,
+      'unit_priority': unitPriority,
+      'tags': tags,
+      'estimated_minutes': estimatedMinutes,
+      'meditation_type': meditationType,
     };
   }
 
@@ -46,6 +69,13 @@ class PlanDay {
       completedAt: json['completed_at'] != null ? DateTime.parse(json['completed_at']) : null,
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
+      annotation: json['annotation'],
+      hasLiteraryUnit: json['has_literary_unit'],
+      unitType: json['unit_type'],
+      unitPriority: json['unit_priority'],
+      tags: json['tags'] != null ? List<String>.from(json['tags']) : null,
+      estimatedMinutes: json['estimated_minutes'],
+      meditationType: json['meditation_type'],
     );
   }
 }

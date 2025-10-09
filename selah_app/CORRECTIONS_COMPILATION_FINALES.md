@@ -81,3 +81,4 @@ Miséricorde
 3. **Vérifiez les cartes** : Les minutes/jour doivent apparaître sous les noms
 
 **Toutes les erreurs de compilation sont corrigées !** ✅🚀📱
+

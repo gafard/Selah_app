@@ -97,24 +97,7 @@ class _WelcomePageState extends State<WelcomePage> {
   Widget _buildAppIcon() {
     return Semantics(
       label: 'Logo Selah - Application de méditation chrétienne',
-      child: Container(
-        width: 120,
-        height: 120,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(28),
-          color: const Color(0xFF1553FF), // Bleu Selah
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF1553FF).withOpacity(0.3),
-              blurRadius: 30,
-              offset: const Offset(0, 15),
-            ),
-          ],
-        ),
-        child: const Center(
-          child: SelahAppIcon(size: 80),
-        ),
-      ),
+      child: SelahLogo.round(size: 120) // ✅ Logo direct sans box
     )
     .animate()
     .fadeIn(duration: 800.ms, delay: 200.ms)
@@ -151,11 +134,13 @@ class _WelcomePageState extends State<WelcomePage> {
           .fadeIn(duration: 600.ms, delay: 800.ms)
           .slideY(begin: 0.3, end: 0, duration: 600.ms, delay: 800.ms),
           
+          // ✅ Texte Selah en Gilroy Black (comme logo original)
           Text(
             'Selah',
-            style: GoogleFonts.inter(
+            style: const TextStyle(
+              fontFamily: 'Gilroy',
               fontSize: 32,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w900, // ✅ Black
               color: Colors.white,
               height: 1.2,
               letterSpacing: 0.5, // Tracking premium

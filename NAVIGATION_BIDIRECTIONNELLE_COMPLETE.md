@@ -137,3 +137,4 @@ GoalsPage (presets RECALCULÉS avec nouveaux paramètres)
 
 **Date :** 7 octobre 2025  
 **Status :** ✅ COMPLET ET TESTÉ
+

@@ -407,8 +407,11 @@ class _GoalsPageState extends State<GoalsPage> {
   }
 
   Widget _buildPlanCard(PlanPreset preset) {
-    final t = Theme.of(context).textTheme;
     final weeks = (preset.durationDays / 7).ceil(); // Convertir en semaines
+    
+    // ✅ Couleur intelligente du texte selon la luminosité du fond
+    final cardColor = _getCardColorForPreset(preset);
+    final textColor = _getIntelligentTextColor(cardColor);
     
     return Hero(
       tag: 'preset_${preset.slug}',
@@ -445,7 +448,7 @@ class _GoalsPageState extends State<GoalsPage> {
                     child: Icon(
                       _getBenefitIconForPreset(preset), // ✅ Icône du bénéfice
                       size: 200, // ✅ Très grande
-                      color: const Color(0xFF111111).withOpacity(0.06), // ✅ Opacité très faible
+                      color: textColor.withOpacity(0.06), // ✅ Couleur intelligente avec opacité très faible
                     ),
                   ),
                 ),
@@ -459,17 +462,17 @@ class _GoalsPageState extends State<GoalsPage> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
+                          color: textColor.withOpacity(0.1), // ✅ Fond adaptatif
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: const Color(0xFF111111).withOpacity(0.2),
+                            color: textColor.withOpacity(0.2), // ✅ Bordure adaptative
                             width: 1.5,
                           ),
                         ),
                         child: Icon(
                           _getModernIconForPreset(preset),
                           size: 32, // ✅ Petite icône
-                          color: const Color(0xFF111111).withOpacity(0.6),
+                          color: textColor.withOpacity(0.6), // ✅ Couleur intelligente
                         ),
                       ),
                       // ✅ "Recommandé" sous l'icône
@@ -519,24 +522,27 @@ class _GoalsPageState extends State<GoalsPage> {
                       // ✅ Nombre GALLOS ARCHITYPE HEAVY (police spéciale pour impact)
                       Text(
                         '$weeks',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'GallosArchitype', // ✅ Police Gallos Architype
                           fontWeight: FontWeight.w900, // Heavy
                           fontSize: 88,
                           height: 0.85,
-                          color: Color(0xFF111111),
+                          color: textColor, // ✅ Couleur intelligente
                           letterSpacing: -3,
+                          shadows: [], // ✅ Pas d'ombres
                         ),
                         textAlign: TextAlign.center, // ✅ Centré
                       ),
                       const SizedBox(height: 2),
                       Text(
                         weeks == 1 ? 'semaine' : 'semaines',
-                        style: t.bodySmall?.copyWith(
+                        style: TextStyle(
+                          fontFamily: 'Gilroy',
                           fontWeight: FontWeight.w700,
                           fontSize: 13,
                           letterSpacing: 0.5,
-                          color: const Color(0xFF111111).withOpacity(0.7),
+                          color: textColor.withOpacity(0.7), // ✅ Couleur intelligente
+                          shadows: [], // ✅ Pas d'ombres
                         ),
                         textAlign: TextAlign.center, // ✅ Centré
                       ),
@@ -560,14 +566,15 @@ class _GoalsPageState extends State<GoalsPage> {
                           // Titre en GILROY HEAVY ITALIC (Capitalized pour psychologie positive)
                           Text(
                             _toTitleCase(_getShortNameForPreset(preset)), // ✅ Title Case
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'Gilroy',
                               fontWeight: FontWeight.w800, // Heavy
                               fontStyle: FontStyle.italic, // ✅ Italic
                               fontSize: 24, // ✅ Plus grand pour impact
                               height: 1.1, // ✅ Compact
-                              color: Color(0xFF111111),
+                              color: textColor, // ✅ Couleur intelligente
                               letterSpacing: -0.5,
+                              shadows: [], // ✅ Pas d'ombres
                             ),
                             textAlign: TextAlign.center,
                             maxLines: 3,
@@ -577,12 +584,13 @@ class _GoalsPageState extends State<GoalsPage> {
                           // ✅ Minutes/jour
                           Text(
                             '${_userProfile?['durationMin'] as int? ?? preset.minutesPerDay ?? 15} min/jour',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'Gilroy',
                               fontWeight: FontWeight.w600,
                               fontSize: 12,
-                              color: Color(0xFF111111),
+                              color: textColor, // ✅ Couleur intelligente
                               letterSpacing: 0.3,
+                              shadows: [], // ✅ Pas d'ombres
                             ),
                             textAlign: TextAlign.center,
                             maxLines: 1,
@@ -593,17 +601,18 @@ class _GoalsPageState extends State<GoalsPage> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF111111).withOpacity(0.08),
+                              color: textColor.withOpacity(0.08), // ✅ Fond adaptatif
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
                               _getBenefitForPreset(preset),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: 'Gilroy',
                                 fontWeight: FontWeight.w600,
                                 fontSize: 11,
-                                color: Color(0xFF111111),
+                                color: textColor, // ✅ Couleur intelligente
                                 letterSpacing: 0.2,
+                                shadows: [], // ✅ Pas d'ombres
                               ),
                               textAlign: TextAlign.center,
                               maxLines: 1,
@@ -624,11 +633,11 @@ class _GoalsPageState extends State<GoalsPage> {
                   child: Container(
                     height: 50,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF111111),
+                      color: textColor, // ✅ Fond = couleur du texte (inversé)
                       borderRadius: BorderRadius.circular(25),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
+                          color: textColor.withOpacity(0.3), // ✅ Ombre adaptative
                           blurRadius: 16,
                           offset: const Offset(0, 6),
                         ),
@@ -637,11 +646,13 @@ class _GoalsPageState extends State<GoalsPage> {
                     child: Center(
                       child: Text(
                         'Choisir ce plan',
-                        style: t.bodySmall?.copyWith(
-                          color: Colors.white,
+                        style: TextStyle(
+                          fontFamily: 'Gilroy',
+                          color: cardColor, // ✅ Texte = couleur du fond (inversé)
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 0.5,
+                          shadows: [], // ✅ Pas d'ombres
                         ),
                       ),
                     ),
@@ -1132,6 +1143,20 @@ class _GoalsPageState extends State<GoalsPage> {
     return word[0].toUpperCase() + word.substring(1);
   }
   
+  /// 🧠 COULEUR INTELLIGENTE DU TEXTE selon la luminosité du fond
+  /// Utilise la formule de luminosité relative W3C WCAG 2.0
+  /// Retourne BLANC pour fonds foncés, NOIR pour fonds clairs
+  Color _getIntelligentTextColor(Color backgroundColor) {
+    // Calculer la luminosité relative (0.0 = noir, 1.0 = blanc)
+    final luminance = backgroundColor.computeLuminance();
+    
+    // Si luminosité > 0.5 → fond clair → texte noir
+    // Si luminosité ≤ 0.5 → fond foncé → texte blanc
+    return luminance > 0.5 
+        ? const Color(0xFF111111)  // Texte noir pour fonds clairs
+        : Colors.white;             // Texte blanc pour fonds foncés
+  }
+  
   /// Convertit en Title Case (première lettre de chaque mot en majuscule)
   /// Psychologiquement plus attractif que TOUT EN MAJUSCULES
   String _toTitleCase(String text) {
@@ -1222,30 +1247,70 @@ class _GoalsPageState extends State<GoalsPage> {
   }
   
   /// ⭐ Détermine si un preset est "recommandé" (score élevé)
+  /// Utilise l'intelligence du générateur pour identifier les meilleurs presets
   bool _isRecommendedPreset(PlanPreset preset) {
-    // Un preset est recommandé s'il correspond bien au profil
     final goal = _userProfile?['goal'] as String? ?? '';
     final level = _userProfile?['level'] as String? ?? '';
+    final heartPosture = _userProfile?['heartPosture'] as String? ?? '';
     final name = preset.name.toLowerCase();
     
-    // Correspondance avec l'objectif
-    if (goal.contains('intimité') && (name.contains('arbre') || name.contains('chemin'))) {
-      return true;
-    } else if (goal.contains('transformation') && (name.contains('nouveau') || name.contains('gloire'))) {
-      return true;
-    } else if (goal.contains('discipline') && (name.contains('croître') || name.contains('grâce'))) {
-      return true;
+    // 🎯 SCORE BASÉ SUR L'OBJECTIF SPIRITUEL (nouveau système Christ-centré)
+    int score = 0;
+    
+    // Objectifs Christ-centrés (Jean 5:40) - Score élevé
+    if (goal.contains('Rencontrer Jésus') && (name.contains('chemin') || name.contains('arbre') || name.contains('vie'))) {
+      score += 3;
+    } else if (goal.contains('Voir Jésus') && (name.contains('évangile') || name.contains('gloire'))) {
+      score += 3;
+    } else if (goal.contains('transformé') && (name.contains('nouveau') || name.contains('gloire') || name.contains('force'))) {
+      score += 3;
+    } else if (goal.contains('intimité') && (name.contains('arbre') || name.contains('chemin') || name.contains('méditation'))) {
+      score += 3;
+    } else if (goal.contains('prier') && (name.contains('méditation') || name.contains('psaumes'))) {
+      score += 3;
+    } else if (goal.contains('voix de Dieu') && (name.contains('méditation') || name.contains('chemin'))) {
+      score += 3;
+    } else if (goal.contains('fruit de l\'Esprit') && (name.contains('graine') || name.contains('arbre') || name.contains('croître'))) {
+      score += 3;
+    } else if (goal.contains('Renouveler') && (name.contains('nouveau') || name.contains('force'))) {
+      score += 3;
+    } else if (goal.contains('Esprit') && (name.contains('force') || name.contains('flamme'))) {
+      score += 3;
     }
     
-    // Correspondance avec le niveau
-    if (level == 'Nouveau converti' && preset.durationDays <= 35) {
-      return true;
-    } else if (level == 'Rétrograde' && name.contains('flamme')) {
-      return true;
+    // Objectifs classiques - Score moyen
+    else if (goal.contains('discipline') && (name.contains('croître') || name.contains('grâce'))) {
+      score += 2;
+    } else if (goal.contains('Approfondir') && name.contains('méditation')) {
+      score += 2;
+    } else if (goal.contains('foi') && (name.contains('romains') || name.contains('galates'))) {
+      score += 2;
+    } else if (goal.contains('caractère') && (name.contains('proverbes') || name.contains('galates'))) {
+      score += 2;
     }
     
-    // Par défaut, le premier preset est toujours recommandé
-    return false;
+    // 💎 POSTURE DU CŒUR - Bonus
+    if (heartPosture.contains('Rencontrer Jésus') && (name.contains('chemin') || name.contains('vie'))) {
+      score += 2;
+    } else if (heartPosture.contains('transformé') && name.contains('gloire')) {
+      score += 2;
+    } else if (heartPosture.contains('Écouter') && name.contains('méditation')) {
+      score += 2;
+    } else if (heartPosture.contains('intimité') && name.contains('arbre')) {
+      score += 2;
+    }
+    
+    // 📊 NIVEAU SPIRITUEL - Ajustements
+    if (level == 'Nouveau converti' && preset.durationDays <= 42) {
+      score += 2; // Plans courts pour débutants
+    } else if (level == 'Rétrograde' && (name.contains('flamme') || name.contains('nouveau'))) {
+      score += 2; // Restauration
+    } else if (level == 'Serviteur/leader' && preset.durationDays >= 56) {
+      score += 1; // Plans longs pour leaders
+    }
+    
+    // ✅ Un preset est recommandé si score >= 3
+    return score >= 3;
   }
 
 

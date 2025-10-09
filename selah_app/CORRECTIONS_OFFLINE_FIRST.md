@@ -211,3 +211,4 @@ await hive.patchProfile(payload);              // Synchronise Hive
 - ✅ Fonctionne en mode avion
 
 **Testez en mode avion pour valider l'architecture !** ✈️✨🎯
+

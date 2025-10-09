@@ -295,3 +295,4 @@ flutter: ✅ Bible LSG téléchargée (arrière-plan)
 ---
 
 **🔥 PROBLÈME RÉSOLU ! 100% OFFLINE-FIRST RESPECTÉ ! ✨**
+

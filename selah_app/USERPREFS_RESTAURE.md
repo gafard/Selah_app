@@ -92,3 +92,4 @@ final user = LocalStorageService.getLocalUser();
 5. ✅ Modifiez → Presets régénérés
 
 **Tout fonctionne avec UserPrefs !** 🎯✨🚀
+

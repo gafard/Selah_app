@@ -744,3 +744,4 @@ Ce schéma est :
 - ✅ **Évolutif** : Facile d'ajouter de nouvelles fonctionnalités
 
 **Prêt pour la production et l'évolution future ! 🚀**
+

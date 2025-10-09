@@ -70,3 +70,4 @@ Ouvrir `TEST_SUPABASE_CONNEXION.sql` dans SQL Editor
 ---
 
 **Application prête pour la suite ! 🎊**
+

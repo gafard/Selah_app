@@ -116,6 +116,8 @@ flutter:
           weight: 600
         - asset: assets/fonts/Gilroy-Heavy.ttf
           weight: 800
+        - asset: assets/fonts/Gilroy-Black.ttf
+          weight: 900
     - family: GallosArchitype
       fonts:
         - asset: assets/fonts/gallos-architype-5.ttf

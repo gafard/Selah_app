@@ -326,58 +326,58 @@ class AppRouter {
         name: 'success',
         builder: (context, state) {
           final args = state.extra as Map<String, dynamic>?;
-          return SuccessPage(
-            title: args?['title'] ?? 'Succès',
-            message: args?['message'] ?? 'Opération réussie',
-            buttonText: args?['buttonText'],
-            nextRoute: args?['nextRoute'],
-          );
-        },
+      return SuccessPage(
+        title: args?['title'] ?? 'Succès',
+        message: args?['message'] ?? 'Opération réussie',
+        buttonText: args?['buttonText'],
+        nextRoute: args?['nextRoute'],
+      );
+    },
       ),
       GoRoute(
         path: '/success/registration',
         name: 'success_registration',
         builder: (context, state) => const SuccessPage(
-          title: 'Inscription réussie',
-          message: 'Votre compte a été créé avec succès !',
-          nextRoute: '/home',
-        ),
+      title: 'Inscription réussie',
+      message: 'Votre compte a été créé avec succès !',
+      nextRoute: '/home',
+    ),
       ),
       GoRoute(
         path: '/success/login',
         name: 'success_login',
         builder: (context, state) => const SuccessPage(
-          title: 'Connexion réussie',
-          message: 'Bienvenue dans votre espace personnel !',
-          nextRoute: '/home',
-        ),
+      title: 'Connexion réussie',
+      message: 'Bienvenue dans votre espace personnel !',
+      nextRoute: '/home',
+    ),
       ),
       GoRoute(
         path: '/success/plan_created',
         name: 'success_plan_created',
         builder: (context, state) => const SuccessPage(
-          title: 'Plan créé',
-          message: 'Votre plan de lecture a été créé avec succès !',
-          nextRoute: '/home',
-        ),
+      title: 'Plan créé',
+      message: 'Votre plan de lecture a été créé avec succès !',
+      nextRoute: '/home',
+    ),
       ),
       GoRoute(
         path: '/success/analysis',
         name: 'success_analysis',
         builder: (context, state) => const SuccessPage(
-          title: 'Analyse terminée',
-          message: 'Votre analyse a été complétée avec succès !',
-          nextRoute: '/home',
-        ),
+      title: 'Analyse terminée',
+      message: 'Votre analyse a été complétée avec succès !',
+      nextRoute: '/home',
+    ),
       ),
       GoRoute(
         path: '/success/save',
         name: 'success_save',
         builder: (context, state) => const SuccessPage(
-          title: 'Sauvegarde réussie',
-          message: 'Vos données ont été sauvegardées !',
-          nextRoute: '/home',
-        ),
+      title: 'Sauvegarde réussie',
+      message: 'Vos données ont été sauvegardées !',
+      nextRoute: '/home',
+    ),
       ),
     ],
   );

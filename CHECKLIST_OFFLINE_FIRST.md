@@ -326,3 +326,4 @@ Avant chaque commit, tester :
 ---
 
 **🎯 Utilisez cette checklist AVANT chaque modification !**
+

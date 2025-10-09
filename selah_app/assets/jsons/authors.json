@@ -1,0 +1,66 @@
+{
+  "Matthieu": {
+    "name": "Matthieu (Lévi)",
+    "bio": "Ancien collecteur d'impôts devenu apôtre. Écrit pour une audience juive, montrant Jésus comme le Messie promis.",
+    "role": "Apôtre, évangéliste",
+    "other_books": [],
+    "timeline": "Vers 60-70 apr. J.-C."
+  },
+  
+  "Marc": {
+    "name": "Jean-Marc",
+    "bio": "Compagnon de Pierre et Paul. Écrit l'évangile le plus court et le plus direct, probablement basé sur les récits de Pierre.",
+    "role": "Évangéliste, assistant de Pierre",
+    "other_books": [],
+    "timeline": "Vers 65-70 apr. J.-C."
+  },
+  
+  "Luc": {
+    "name": "Luc",
+    "bio": "Médecin grec, compagnon de Paul. Seul auteur non-juif du NT. Historien précis, met l'accent sur la compassion de Jésus.",
+    "role": "Médecin, évangéliste, historien",
+    "other_books": ["Actes"],
+    "timeline": "Vers 60-63 apr. J.-C."
+  },
+  
+  "Jean": {
+    "name": "Jean",
+    "bio": "Apôtre 'bien-aimé', fils de Zébédée. Dernier évangile écrit, très théologique. A aussi écrit 3 épîtres et l'Apocalypse.",
+    "role": "Apôtre, théologien",
+    "other_books": ["1Jean", "2Jean", "3Jean", "Apocalypse"],
+    "timeline": "Vers 85-95 apr. J.-C."
+  },
+  
+  "Actes": {
+    "name": "Luc",
+    "bio": "Suite de l'évangile de Luc. Histoire de l'église primitive des Actes des Apôtres, centrée sur Pierre puis Paul.",
+    "role": "Historien, évangéliste",
+    "other_books": ["Luc"],
+    "timeline": "Vers 63 apr. J.-C."
+  },
+  
+  "Romains": {
+    "name": "Paul (Saul de Tarse)",
+    "bio": "Pharisien converti, apôtre des nations. Théologien profond, a écrit 13 épîtres du NT. Martyrisé à Rome vers 67 apr. J.-C.",
+    "role": "Apôtre, théologien, missionnaire",
+    "other_books": ["1Corinthiens", "2Corinthiens", "Galates", "Éphésiens", "Philippiens", "Colossiens", "1Thessaloniciens", "2Thessaloniciens", "1Timothée", "2Timothée", "Tite", "Philémon"],
+    "timeline": "Vers 57-58 apr. J.-C."
+  },
+  
+  "Genèse": {
+    "name": "Moïse (traditionnellement)",
+    "bio": "Libérateur d'Israël, législateur, prophète. A écrit le Pentateuque (5 premiers livres). Récit de la création jusqu'à Joseph.",
+    "role": "Prophète, législateur, historien",
+    "other_books": ["Exode", "Lévitique", "Nombres", "Deutéronome"],
+    "timeline": "Événements: 2000-1800 av. J.-C., rédigé vers 1400 av. J.-C."
+  },
+  
+  "Psaumes": {
+    "name": "David (principalement) + autres",
+    "bio": "David a écrit environ 73 psaumes. Autres auteurs : Asaph, fils de Koré, Salomon, Moïse, Éthan. Recueil de louanges, prières, lamentations.",
+    "role": "Roi, psalmiste, adorateur",
+    "other_books": [],
+    "timeline": "1000-400 av. J.-C. (compilation)"
+  }
+}
+

@@ -246,3 +246,4 @@ Logs console pour debug et compréhension du flux.
 **Expérience utilisateur fluide** : ✅  
 
 **Tout fonctionne parfaitement !** 🎯✨🚀
+

@@ -259,3 +259,4 @@ Testez maintenant sur Chrome et admirez :
 - 👆 Icône swipe pour guider l'utilisateur
 
 **Design professionnel et moderne !** 🎯🚀✨
+

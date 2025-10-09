@@ -263,3 +263,4 @@ final minutesPerDay = _userProfile?['durationMin'] as int? ?? preset.minutesPerD
 ---
 
 **🎊 BOTTOM SHEET OPTIMISÉ ! COHÉRENCE PARFAITE ! 🚀**
+

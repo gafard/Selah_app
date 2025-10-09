@@ -66,3 +66,4 @@ grandit chaque
 4. ✅ Vérifiez que les mots sont divisés en deux lignes
 
 **Plus de noms génériques - Utilise la fonction intelligente existante !** 🧠✨📱
+

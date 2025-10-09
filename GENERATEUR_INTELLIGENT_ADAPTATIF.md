@@ -375,3 +375,4 @@ Jour 6+ : Plan adapté → Jean 4-8 (2 versets/jour, passages clés)
 ---
 
 **🔥 L'OBJECTIF : GÉNÉRATEUR QUI S'AMÉLIORE ET S'ADAPTE ! 🧠✨**
+

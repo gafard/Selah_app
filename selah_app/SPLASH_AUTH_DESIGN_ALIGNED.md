@@ -232,3 +232,4 @@ Même ornements : 2 blobs radiaux
 Même typographie : Outfit (titres) + Inter (corps)  
 
 **Design system cohérent et professionnel !** 🎯✨🚀
+
