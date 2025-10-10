@@ -140,6 +140,7 @@ class _JournalPageState extends State<JournalPage> with TickerProviderStateMixin
           ),
         ),
         child: SafeArea(
+          bottom: false, // Permettre au contenu d'aller jusqu'en bas
           child: Column(
             children: [
               _buildHeader(),

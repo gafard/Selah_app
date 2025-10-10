@@ -27,13 +27,16 @@ class _SpiritualWallPageState extends State<SpiritualWallPage> {
   void _handleNavigation(int index) {
     switch (index) {
       case 0: // Paramètres
-        Navigator.pushReplacementNamed(context, '/settings');
+        Navigator.pushReplacementNamed(context, '/profile_settings');
         break;
       case 1: // Accueil
         Navigator.pushReplacementNamed(context, '/home');
         break;
-      case 2: // Étude
-        Navigator.pushReplacementNamed(context, '/bible_quiz');
+      case 2: // Journal
+        Navigator.pushReplacementNamed(context, '/journal');
+        break;
+      case 3: // Mur spirituel (actuel)
+        // Reste sur la page actuelle
         break;
     }
   }
@@ -104,29 +107,6 @@ class _SpiritualWallPageState extends State<SpiritualWallPage> {
             ],
           ),
         ),
-      ),
-      bottomNavigationBar: CircleNavBar(
-        activeIcons: const [
-          Icon(Icons.settings, color: Colors.white),
-          Icon(Icons.home, color: Colors.white),
-          Icon(Icons.menu_book, color: Colors.white),
-        ],
-        inactiveIcons: const [
-          Icon(Icons.settings_outlined, color: Colors.white70),
-          Icon(Icons.home_outlined, color: Colors.white70),
-          Icon(Icons.menu_book_outlined, color: Colors.white70),
-        ],
-        color: const Color(0xFF1C1740),
-        height: 60,
-        circleWidth: 60,
-        initIndex: 0,
-        onChanged: _handleNavigation,
-        cornerRadius: const BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
-        ),
-        shadowColor: Colors.black26,
-        elevation: 10,
       ),
     );
   }

@@ -1,11 +1,20 @@
 import 'package:hive/hive.dart';
-import '../models/verse_key.dart';
+import 'semantic_passage_boundary_service.dart';
 
-/// Service offline pour le contexte biblique (historique, culturel, auteur)
+/// 🧠 PROPHÈTE - Service de contexte biblique avec intelligence sémantique
+/// 
+/// Niveau : Prophète (Intelligent) - Service intelligent pour le contexte biblique
+/// 
+/// Priorités d'interaction :
+/// 🔥 Priorité 1: semantic_passage_boundary_service.dart (FALCON X)
+/// 🔥 Priorité 2: thompson_plan_service.dart (thèmes)
+/// 🔥 Priorité 3: cross_ref_service.dart (références)
+/// 🎯 Thompson: Enrichit le contexte avec thèmes spirituels
 /// 
 /// Sources de données :
 /// - Hive box 'bible_context'
 /// - Hydratée depuis assets/jsons/ au premier lancement
+/// - ENRICHI par FALCON X et Thompson
 /// 
 /// 100% offline, pas de dépendance réseau
 class BibleContextService {
@@ -85,24 +94,99 @@ class BibleContextService {
     }
   }
   
-  /// Récupère un contexte complet (historique + culturel + auteur)
+  /// 🧠 Récupère un contexte complet intelligent (historique + culturel + auteur + sémantique)
   /// 
   /// [id] : ID du verset
   /// 
-  /// Retourne : Objet ContextData complet
-  static Future<ContextData> getFullContext(String id) async {
+  /// Retourne : Objet IntelligentContextData complet avec FALCON X et Thompson
+  static Future<IntelligentContextData> getFullContext(String id) async {
+    // 🔥 PRIORITÉ 1: Contexte de base
     final hist = await historical(id);
     final cult = await cultural(id);
     final auth = await author(id);
     final chars = await characters(id);
     
-    return ContextData(
+    // 🔥 PRIORITÉ 1: Contexte sémantique FALCON X
+    final semanticContext = await _getSemanticContext(id);
+    
+    // 🔥 PRIORITÉ 2: Thèmes Thompson
+    final thompsonTheme = await _getThompsonTheme(id);
+    
+    // 🔥 PRIORITÉ 3: Références croisées
+    final crossReferences = await _getCrossReferences(id);
+    
+    return IntelligentContextData(
       verseId: id,
       historical: hist,
       cultural: cult,
       author: auth,
       characters: chars,
+      semanticContext: semanticContext,
+      thompsonTheme: thompsonTheme,
+      crossReferences: crossReferences,
     );
+  }
+
+  /// 🔥 PRIORITÉ 1: Récupère le contexte sémantique via FALCON X
+  static Future<SemanticContext?> _getSemanticContext(String id) async {
+    try {
+      // Extraire livre et chapitre de l'ID
+      final parts = id.split('.');
+      if (parts.length < 2) return null;
+      
+      final book = parts[0];
+      final chapter = int.tryParse(parts[1]);
+      if (chapter == null) return null;
+      
+      // Utiliser FALCON X pour trouver l'unité sémantique
+      final unit = SemanticPassageBoundaryService.findUnitContaining(book, chapter);
+      if (unit == null) return null;
+      
+      return SemanticContext(
+        unitName: unit.name,
+        priority: unit.priority.name,
+        theme: unit.theme,
+        liturgicalContext: unit.liturgicalContext,
+        emotionalTones: unit.emotionalTones,
+        annotation: unit.annotation,
+      );
+    } catch (e) {
+      print('⚠️ Erreur contexte sémantique: $e');
+      return null;
+    }
+  }
+
+  /// 🔥 PRIORITÉ 2: Récupère le thème Thompson
+  static Future<String?> _getThompsonTheme(String id) async {
+    try {
+      // TODO: Intégrer avec thompson_plan_service pour récupérer le thème
+      // Mapping basique pour l'instant
+      final book = id.split('.').first;
+      
+      if (book.contains('Psaumes')) {
+        return 'Vie de prière — Souffle spirituel';
+      } else if (book.contains('Jean')) {
+        return 'Exigence spirituelle — Transformation profonde';
+      } else if (book.contains('Matthieu')) {
+        return 'Ne vous inquiétez pas — Apprentissages de Mt 6';
+      }
+      
+      return null;
+    } catch (e) {
+      print('⚠️ Erreur thème Thompson: $e');
+      return null;
+    }
+  }
+
+  /// 🔥 PRIORITÉ 3: Récupère les références croisées
+  static Future<List<String>> _getCrossReferences(String id) async {
+    try {
+      // TODO: Intégrer avec cross_ref_service pour récupérer les références
+      return []; // Placeholder
+    } catch (e) {
+      print('⚠️ Erreur références croisées: $e');
+      return [];
+    }
   }
   
   /// Hydrate la box depuis les assets JSON
@@ -212,7 +296,64 @@ class Character {
   }
 }
 
-/// Données de contexte complètes
+/// 🧠 Contexte sémantique FALCON X
+class SemanticContext {
+  final String unitName;
+  final String priority;
+  final String theme;
+  final String? liturgicalContext;
+  final List<String> emotionalTones;
+  final String? annotation;
+  
+  SemanticContext({
+    required this.unitName,
+    required this.priority,
+    required this.theme,
+    this.liturgicalContext,
+    this.emotionalTones = const [],
+    this.annotation,
+  });
+}
+
+/// 🧠 Données de contexte complètes intelligentes
+class IntelligentContextData {
+  final String verseId;
+  final String? historical;
+  final String? cultural;
+  final AuthorInfo? author;
+  final List<Character> characters;
+  final SemanticContext? semanticContext;
+  final String? thompsonTheme;
+  final List<String> crossReferences;
+  
+  IntelligentContextData({
+    required this.verseId,
+    this.historical,
+    this.cultural,
+    this.author,
+    this.characters = const [],
+    this.semanticContext,
+    this.thompsonTheme,
+    this.crossReferences = const [],
+  });
+  
+  /// Indique si des données sont disponibles
+  bool get hasData => historical != null || 
+                     cultural != null || 
+                     author != null || 
+                     characters.isNotEmpty ||
+                     semanticContext != null ||
+                     thompsonTheme != null ||
+                     crossReferences.isNotEmpty;
+  
+  /// Indique si le contexte est enrichi par FALCON X
+  bool get hasSemanticContext => semanticContext != null;
+  
+  /// Indique si le contexte est enrichi par Thompson
+  bool get hasThompsonTheme => thompsonTheme != null;
+}
+
+/// Données de contexte complètes (legacy)
 class ContextData {
   final String verseId;
   final String? historical;
@@ -231,4 +372,5 @@ class ContextData {
   /// Indique si des données sont disponibles
   bool get hasData => historical != null || cultural != null || author != null || characters.isNotEmpty;
 }
+
 

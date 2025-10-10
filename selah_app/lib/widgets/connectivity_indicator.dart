@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../services/connectivity_service.dart';
+import '../bootstrap.dart' as bootstrap;
 
 /// Widget d'indicateur de connectivité pour l'interface utilisateur
 class ConnectivityIndicator extends StatelessWidget {
@@ -9,43 +8,41 @@ class ConnectivityIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ConnectivityService>(
-      builder: (context, connectivity, child) {
-        if (connectivity.isOnline) {
-          return const SizedBox.shrink(); // Masquer si en ligne
-        }
+    final connectivity = bootstrap.connectivityService;
+    
+    if (connectivity.isOnline) {
+      return const SizedBox.shrink(); // Masquer si en ligne
+    }
 
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.orange.shade100,
-            border: Border(
-              bottom: BorderSide(color: Colors.orange.shade300, width: 1),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade100,
+        border: Border(
+          bottom: BorderSide(color: Colors.orange.shade300, width: 1),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.wifi_off,
+            color: Colors.orange.shade700,
+            size: 16,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Mode hors ligne - Toutes les fonctionnalités de lecture sont disponibles',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: Colors.orange.shade700,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.wifi_off,
-                color: Colors.orange.shade700,
-                size: 16,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Mode hors ligne - Toutes les fonctionnalités de lecture sont disponibles',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: Colors.orange.shade700,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+        ],
+      ),
     );
   }
 }
@@ -134,92 +131,89 @@ class ConnectivityStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ConnectivityService>(
-      builder: (context, connectivity, child) {
-        final recommendations = connectivity.getRecommendations();
-        
-        return Card(
-          margin: const EdgeInsets.all(16),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    final connectivity = bootstrap.connectivityService;
+    final recommendations = connectivity.getRecommendations();
+    
+    return Card(
+      margin: const EdgeInsets.all(16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Row(
-                  children: [
-                    Icon(
-                      connectivity.isOnline ? Icons.wifi : Icons.wifi_off,
-                      color: connectivity.isOnline ? Colors.green : Colors.orange,
-                      size: 24,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            connectivity.isOnline ? 'En ligne' : 'Hors ligne',
-                            style: GoogleFonts.inter(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: connectivity.isOnline ? Colors.green.shade700 : Colors.orange.shade700,
-                            ),
-                          ),
-                          if (connectivity.isOnline) ...[
-                            Text(
-                              '${connectivity.getConnectionType()} - ${connectivity.getConnectionQuality()}',
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
+                Icon(
+                  connectivity.isOnline ? Icons.wifi : Icons.wifi_off,
+                  color: connectivity.isOnline ? Colors.green : Colors.orange,
+                  size: 24,
                 ),
-                if (recommendations.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    'Recommandations :',
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ...recommendations.map((rec) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        connectivity.isOnline ? 'En ligne' : 'Hors ligne',
+                        style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: connectivity.isOnline ? Colors.green.shade700 : Colors.orange.shade700,
+                        ),
+                      ),
+                      if (connectivity.isOnline) ...[
                         Text(
-                          '• ',
+                          '${connectivity.getConnectionType()} - ${connectivity.getConnectionQuality()}',
                           style: GoogleFonts.inter(
                             fontSize: 12,
                             color: Colors.grey.shade600,
                           ),
                         ),
-                        Expanded(
-                          child: Text(
-                            rec,
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ),
                       ],
-                    ),
-                  )),
-                ],
+                    ],
+                  ),
+                ),
               ],
             ),
-          ),
-        );
-      },
+            if (recommendations.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(
+                'Recommandations :',
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...recommendations.map((rec) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '• ',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        rec,
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

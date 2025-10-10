@@ -3,7 +3,10 @@ import '../models/thompson_plan_models.dart';
 import 'thompson_plan_generator.dart';
 import 'image_service.dart';
 
-/// Service pour gérer les plans Thompson 21
+/// 🏎️ APÔTRE - Service pour gérer les plans Thompson 21
+/// 
+/// Niveau : Apôtre (Ultra-Intelligent) - Service de référence pour l'intelligence thématique
+/// 
 /// Gère la génération, la persistance et la synchronisation des plans
 class ThompsonPlanService {
   static const String _boxName = 'thompson_plans';

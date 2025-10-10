@@ -71,9 +71,9 @@ class _AuthPageState extends State<AuthPage> {
         if (!mounted) return;
         await _showSignupSuccessDialog(isOnline, _emailC.text.trim());
         
-        // Puis naviguer
+        // Puis naviguer vers la page de connexion
         if (!mounted) return;
-        context.go('/complete_profile');
+        context.go('/auth?mode=login');
       }
     } on AuthException catch (e) {
       if (!mounted) return;
@@ -164,31 +164,6 @@ class _AuthPageState extends State<AuthPage> {
               Text(
                 'Cliquez sur le lien de confirmation pour activer votre compte.',
                 style: GoogleFonts.inter(color: Colors.white60, fontSize: 13, height: 1.4),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1553FF).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF1553FF).withOpacity(0.3)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.info_outline, color: Color(0xFF1553FF), size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'En attendant, vous pouvez commencer à configurer votre profil',
-                        style: GoogleFonts.inter(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          height: 1.3,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ] else ...[
               // Mode OFFLINE : Compte local créé
@@ -575,9 +550,9 @@ class _AuthPageState extends State<AuthPage> {
         SelahLogo.round(size: 84),
         const SizedBox(height: 14),
         // ✅ Texte Selah en Gilroy Black (comme logo original)
-        Text(
+        const Text(
           'Selah',
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Gilroy',
             fontSize: 30,
             fontWeight: FontWeight.w900, // ✅ Black

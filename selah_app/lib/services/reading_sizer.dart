@@ -22,6 +22,7 @@
 ///   // → 2 chapitres
 ///
 /// ═══════════════════════════════════════════════════════════════════════════
+library;
 
 import 'dart:math';
 import 'chapter_index_loader.dart';
@@ -216,7 +217,7 @@ class ReadingSizer {
         'range': summary['range'],
       });
 
-      currentChapter = summary['endChapter'] as int + 1;
+      currentChapter = (summary['endChapter'] as int) + 1;
       dayNumber++;
     }
 
@@ -297,4 +298,5 @@ class ReadingSizer {
     };
   }
 }
+
 

@@ -1,6 +1,11 @@
+import 'dart:math' as math;
 import 'package:intl/intl.dart';
+import 'package:hive/hive.dart';
 import '../models/plan_day.dart';
 import 'local_storage_service.dart';
+
+/// Helper pour comparer dates calendaires (Y/M/D uniquement)
+DateTime _atStartOfDay(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
 
 /// Service de rattrapage intelligent pour les jours manqués
 /// 
@@ -27,13 +32,13 @@ class PlanCatchupService {
     required String planId,
     required List<PlanDay> planDays,
   }) {
-    final today = DateTime.now();
+    final todayYMD = _atStartOfDay(DateTime.now());
     final missedDays = <PlanDay>[];
     
     for (final day in planDays) {
-      // Si le jour est dans le passé et pas complété → manqué
-      if (day.date.isBefore(today) && 
-          day.status == PlanDayStatus.pending) {
+      final dayYMD = _atStartOfDay(day.date);
+      // Si le jour est dans le passé (calendaire) et pas complété → manqué
+      if (dayYMD.isBefore(todayYMD) && day.status == 'pending') {
         missedDays.add(day);
       }
     }
@@ -124,24 +129,27 @@ class PlanCatchupService {
     
     // 2. Trouver la date de fin actuelle
     final lastDay = planDays.last;
-    var nextDate = lastDay.date.add(Duration(days: 1));
+    var nextDate = lastDay.date.add(const Duration(days: 1));
     
     // 3. Ajouter les jours manqués à la fin
     final catchupDays = <PlanDay>[];
+    final planIdInt = int.tryParse(planId) ?? 0;
+    final now = DateTime.now();
+    
     for (final missedDay in missedDays) {
       final newDay = PlanDay(
-        id: '${planId}_catchup_${missedDay.dayNumber}',
-        planId: planId,
+        id: null, // ID auto-généré par la base
+        planId: planIdInt,
         dayNumber: planDays.length + catchupDays.length + 1,
         date: nextDate,
         bibleReferences: missedDay.bibleReferences,
-        status: PlanDayStatus.pending,
-        isCatchup: true, // Marqueur spécial
-        originalDayNumber: missedDay.dayNumber,
+        status: 'pending',
+        createdAt: now,
+        updatedAt: now,
       );
       
       catchupDays.add(newDay);
-      nextDate = nextDate.add(Duration(days: 1));
+      nextDate = nextDate.add(const Duration(days: 1));
     }
     
     print('  ✅ ${catchupDays.length} jour(s) de rattrapage ajoutés');
@@ -161,7 +169,7 @@ class PlanCatchupService {
     
     for (final day in planDays) {
       // Si déjà complété, garder tel quel
-      if (day.status == PlanDayStatus.completed) {
+      if (day.status == 'completed') {
         rescheduled.add(day);
         continue;
       }
@@ -169,7 +177,7 @@ class PlanCatchupService {
       // Si dans le passé et non complété, marquer skipped
       if (day.date.isBefore(today)) {
         final skippedDay = day.copyWith(
-          status: PlanDayStatus.skipped,
+          status: 'skipped',
         );
         rescheduled.add(skippedDay);
         
@@ -185,7 +193,7 @@ class PlanCatchupService {
         date: currentDate,
       );
       rescheduled.add(rescheduledDay);
-      currentDate = currentDate.add(Duration(days: 1));
+      currentDate = currentDate.add(const Duration(days: 1));
     }
     
     print('  ✅ Planning recalé (nouveau dernier jour: ${DateFormat('dd/MM/yyyy').format(currentDate)})');
@@ -206,10 +214,121 @@ class PlanCatchupService {
     // Retourner le plan tel quel
     return planDays.map((day) {
       final isMissed = missedDays.any((m) => m.dayNumber == day.dayNumber);
-      return isMissed ? day.copyWith(status: PlanDayStatus.skipped) : day;
+      return isMissed ? day.copyWith(status: 'skipped') : day;
     }).toList();
   }
   
+  /// 🔄 RECOMMENCE LE PLAN DEPUIS LE JOUR 1
+  /// Remet à zéro la progression et recalcule les dates
+  static Future<void> restartPlanFromDay1(String planId) async {
+    print('🔄 Recommencement du plan $planId depuis le jour 1...');
+    
+    try {
+      // 1) Récupérer le plan actuel depuis le cache
+      final planBox = Hive.box('plans');
+      final planData = planBox.get('plan:$planId') as Map<String, dynamic>?;
+      
+      if (planData == null) {
+        throw Exception('Plan non trouvé');
+      }
+      
+      // 2) Récupérer tous les jours du plan
+      final daysBox = Hive.box('plan_days');
+      final daysData = daysBox.get('days:$planId') as List<dynamic>?;
+      
+      if (daysData == null || daysData.isEmpty) {
+        throw Exception('Aucun jour trouvé pour ce plan');
+      }
+      
+      final planDays = daysData.map((d) => PlanDay.fromJson(d as Map<String, dynamic>)).toList();
+      
+      // 3) Marquer TOUS les jours comme "pending" (remise à zéro)
+      for (final day in planDays) {
+        final progress = LocalStorageService.getDayProgress(planId, day.dayNumber) ?? {};
+        progress['status'] = 'pending';
+        progress['completed'] = false;
+        progress['restarted_at'] = DateTime.now().toIso8601String();
+        await LocalStorageService.saveDayProgress(planId, day.dayNumber, progress);
+      }
+      
+      // 4) Recalculer les dates depuis aujourd'hui
+      final today = _atStartOfDay(DateTime.now());
+      final rescheduledDays = <PlanDay>[];
+      var currentDate = today;
+      
+      for (final day in planDays) {
+        final rescheduledDay = day.copyWith(
+          date: currentDate,
+          status: 'pending',
+        );
+        rescheduledDays.add(rescheduledDay);
+        currentDate = currentDate.add(const Duration(days: 1));
+      }
+      
+      // 5) Sauvegarder les nouveaux jours
+      await daysBox.put('days:$planId', rescheduledDays.map((d) => d.toJson()).toList());
+      
+      // 6) Mettre à jour la date de début du plan
+      final updatedPlanData = Map<String, dynamic>.from(planData);
+      updatedPlanData['start_date'] = today.toIso8601String();
+      updatedPlanData['updated_at'] = DateTime.now().toIso8601String();
+      await planBox.put('plan:$planId', updatedPlanData);
+      
+      print('✅ Plan $planId recommencé depuis le jour 1');
+      print('📅 Nouvelle date de début: ${DateFormat('dd/MM/yyyy').format(today)}');
+      
+    } catch (e) {
+      print('❌ Erreur recommencement plan: $e');
+      rethrow;
+    }
+  }
+
+  /// 📅 REPLANIFIE LE PLAN DEPUIS AUJOURD'HUI
+  /// Garde les jours complétés, marque skipped les jours passés, recalcule le futur
+  static Future<void> rescheduleFromToday(String planId) async {
+    print('📅 Replanification du plan $planId depuis aujourd\'hui...');
+    
+    try {
+      // 1) Récupérer le plan actuel depuis le cache
+      final planBox = Hive.box('plans');
+      final planData = planBox.get('plan:$planId') as Map<String, dynamic>?;
+      
+      if (planData == null) {
+        throw Exception('Plan non trouvé');
+      }
+      
+      // 2) Récupérer tous les jours du plan
+      final daysBox = Hive.box('plan_days');
+      final daysData = daysBox.get('days:$planId') as List<dynamic>?;
+      
+      if (daysData == null || daysData.isEmpty) {
+        throw Exception('Aucun jour trouvé pour ce plan');
+      }
+      
+      final planDays = daysData.map((d) => PlanDay.fromJson(d as Map<String, dynamic>)).toList();
+      
+      // 3) Utiliser le mode RESCHEDULE existant (parfait pour cette fonctionnalité)
+      final rescheduledDays = await _rescheduleMode(planId, planDays);
+      
+      // 4) Sauvegarder les jours replanifiés
+      await daysBox.put('days:$planId', rescheduledDays.map((d) => d.toJson()).toList());
+      
+      // 5) Mettre à jour la date de début du plan
+      final today = _atStartOfDay(DateTime.now());
+      final updatedPlanData = Map<String, dynamic>.from(planData);
+      updatedPlanData['start_date'] = today.toIso8601String();
+      updatedPlanData['updated_at'] = DateTime.now().toIso8601String();
+      await planBox.put('plan:$planId', updatedPlanData);
+      
+      print('✅ Plan $planId replanifié depuis aujourd\'hui');
+      print('📅 Nouvelle date de début: ${DateFormat('dd/MM/yyyy').format(today)}');
+      
+    } catch (e) {
+      print('❌ Erreur replanification plan: $e');
+      rethrow;
+    }
+  }
+
   /// Mode FLEXIBLE : Mix intelligent selon le contexte
   static Future<List<PlanDay>> _flexibleMode(
     String planId,
@@ -225,15 +344,15 @@ class PlanCatchupService {
     // Logique intelligente
     if (missedPercentage <= 10) {
       // < 10% manqué → Catch up (peu de jours à rattraper)
-      print('    → ${missedPercentage}% manqués → Mode CATCH_UP');
+      print('    → $missedPercentage% manqués → Mode CATCH_UP');
       return await _catchUpMode(planId, planDays, missedDays);
     } else if (missedPercentage <= 30) {
       // 10-30% manqué → Reschedule (trop pour catch up)
-      print('    → ${missedPercentage}% manqués → Mode RESCHEDULE');
+      print('    → $missedPercentage% manqués → Mode RESCHEDULE');
       return await _rescheduleMode(planId, planDays);
     } else {
       // > 30% manqué → Skip (plan probablement abandonné)
-      print('    → ${missedPercentage}% manqués → Mode SKIP (plan à risque)');
+      print('    → $missedPercentage% manqués → Mode SKIP (plan à risque)');
       return await _skipMode(planId, planDays, missedDays);
     }
   }
@@ -248,6 +367,16 @@ class PlanCatchupService {
     required String planId,
     required List<PlanDay> planDays,
   }) {
+    // Garde contre plan vide
+    if (planDays.isEmpty) {
+      return CatchupRecommendation(
+        mode: CatchupMode.skip,
+        reason: 'Plan vide',
+        missedCount: 0,
+        affectedDays: 0,
+      );
+    }
+    
     final missedDays = detectMissedDays(planId: planId, planDays: planDays);
     
     if (missedDays.isEmpty) {
@@ -261,7 +390,7 @@ class PlanCatchupService {
     
     final totalDays = planDays.length;
     final missedCount = missedDays.length;
-    final missedPercentage = (missedCount / totalDays * 100).round();
+    final missedPercentage = ((missedCount / totalDays) * 100).round();
     
     // Calculer la série de jours manqués consécutifs
     final consecutiveMissed = _countConsecutiveMissed(missedDays);
@@ -279,7 +408,7 @@ class PlanCatchupService {
         mode: CatchupMode.reschedule,
         reason: 'Plusieurs jours manqués ($missedPercentage%) - Recalage recommandé',
         missedCount: missedCount,
-        affectedDays: totalDays - planDays.where((d) => d.status == PlanDayStatus.completed).length,
+        affectedDays: totalDays - planDays.where((d) => d.status == 'completed').length,
       );
     } else {
       return CatchupRecommendation(
@@ -302,12 +431,14 @@ class PlanCatchupService {
     int currentConsecutive = 1;
     
     for (int i = 1; i < sorted.length; i++) {
-      final diff = sorted[i].date.difference(sorted[i - 1].date).inDays;
+      final prev = _atStartOfDay(sorted[i - 1].date);
+      final curr = _atStartOfDay(sorted[i].date);
+      final diff = curr.difference(prev).inDays;
       
       if (diff == 1) {
         // Consécutif
         currentConsecutive++;
-        maxConsecutive = max(maxConsecutive, currentConsecutive);
+        maxConsecutive = math.max(maxConsecutive, currentConsecutive);
       } else {
         // Rupture
         currentConsecutive = 1;
@@ -363,19 +494,22 @@ class PlanCatchupService {
     required String planId,
     required List<PlanDay> planDays,
   }) {
+    final total = planDays.length;
+    final totalSafe = total == 0 ? 1 : total; // éviter /0
+    
     final missedDays = detectMissedDays(planId: planId, planDays: planDays);
     final recommendation = analyzePlan(planId: planId, planDays: planDays);
     
-    final completedDays = planDays.where((d) => d.status == PlanDayStatus.completed).length;
-    final skippedDays = planDays.where((d) => d.status == PlanDayStatus.skipped).length;
-    final pendingDays = planDays.where((d) => d.status == PlanDayStatus.pending).length;
+    final completedDays = planDays.where((d) => d.status == 'completed').length;
+    final skippedDays = planDays.where((d) => d.status == 'skipped').length;
+    final pendingDays = planDays.where((d) => d.status == 'pending').length;
     
-    final completionRate = (completedDays / planDays.length * 100).round();
-    final missedRate = (missedDays.length / planDays.length * 100).round();
+    final completionRate = ((completedDays / totalSafe) * 100).round();
+    final missedRate = ((missedDays.length / totalSafe) * 100).round();
     
     return CatchupReport(
       planId: planId,
-      totalDays: planDays.length,
+      totalDays: total,
       completedDays: completedDays,
       skippedDays: skippedDays,
       pendingDays: pendingDays,
@@ -475,14 +609,13 @@ $message
 extension PlanDayExtension on PlanDay {
   /// Crée une copie avec modifications
   PlanDay copyWith({
-    String? id,
-    String? planId,
+    int? id,
+    int? planId,
     int? dayNumber,
     DateTime? date,
     List<String>? bibleReferences,
-    PlanDayStatus? status,
-    bool? isCatchup,
-    int? originalDayNumber,
+    String? status,
+    DateTime? completedAt,
   }) {
     return PlanDay(
       id: id ?? this.id,
@@ -491,9 +624,11 @@ extension PlanDayExtension on PlanDay {
       date: date ?? this.date,
       bibleReferences: bibleReferences ?? this.bibleReferences,
       status: status ?? this.status,
-      isCatchup: isCatchup ?? (this.isCatchup ?? false),
-      originalDayNumber: originalDayNumber ?? this.originalDayNumber,
+      completedAt: completedAt ?? this.completedAt,
+      createdAt: createdAt,
+      updatedAt: DateTime.now(),
     );
   }
 }
+
 

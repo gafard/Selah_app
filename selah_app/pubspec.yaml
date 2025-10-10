@@ -1,124 +1,98 @@
 name: selah_app
-description: A new Flutter project.
+description: "Selah - App de méditation biblique"
+publish_to: 'none'
+
+version: 1.0.0+1
 
 environment:
-  sdk: ">=3.0.0 <4.0.0"
+  sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  google_fonts: ^6.2.1
-  go_router: ^14.2.0
-  flutter_animate: ^4.5.0
-  # Local data
-  # Notifications + alarmes
-  flutter_local_notifications: ^17.2.1
-  # Téléchargements background (placeholder, peut être remplacé)
-  background_downloader: ^8.4.0
-
-  # UI / Anim / Utils
-  carousel_slider: ^4.2.1
-  table_calendar: ^3.2.0
-  intl: ^0.20.2
-  font_awesome_flutter: ^10.7.0
-  url_launcher: ^6.3.1
-  flutter_svg: ^2.0.9
-
-  # Images / cache
-  cached_network_image: ^3.4.1
-  flutter_cache_manager: ^3.4.1
-
-  # State / routing
-  provider: ^6.0.5
-  flutter_riverpod: ^2.4.9
-  page_transition: ^2.1.0
-  collection: ^1.19.1
-
-  # Storage local
-  sqflite: ^2.3.3+1
-  sqflite_common: ^2.5.4+3
+  cupertino_icons: ^1.0.2
+  go_router: ^14.8.1
+  provider: ^6.1.5
   hive: ^2.2.3
   hive_flutter: ^1.1.0
-  path_provider: ^2.1.3
-
-  # Background tasks (workmanager et android_alarm_manager_plus supprimés)
-  timezone: ^0.9.4
-  supabase_flutter: ^2.5.6
-
-  # Temps relatif
-  timeago: ^3.7.1
-  
-  # HTTP requests
-  http: ^1.2.2
-  uuid: ^4.4.0
-  connectivity_plus: ^6.0.5
-  
-  # Swipeable stack
-  swipable_stack: ^2.0.0
-  
-  # Fancy stack carousel
-  fancy_stack_carousel: ^0.0.3
-  
-  # Flip card
-  flip_card: ^0.6.0
-  
-  # Circle navigation bar
-  circle_nav_bar: ^1.0.2
-  simple_gradient_text: ^1.0.0
-  flutter_card_swiper: ^7.0.2
-  
-  # Share and save
-  share_plus: ^10.0.0
-  # image_gallery_saver: ^2.0.3  # Temporairement désactivé à cause de problèmes de build Android
-  permission_handler: ^11.3.1
-  
-  # Audio player
-  just_audio: ^0.9.39
-  audio_session: ^0.1.18
-  rxdart: ^0.27.7
-  
-  # Storage
   shared_preferences: ^2.2.2
-  
+  supabase_flutter: ^2.10.2
+  google_fonts: ^6.1.0
+  font_awesome_flutter: ^10.7.0
+  flutter_local_notifications: ^17.2.4
+  permission_handler: ^11.4.0
+  connectivity_plus: ^6.1.5
+  just_audio: ^0.9.46
+  audio_session: ^0.1.25
+  path_provider: ^2.1.4
+  sqflite: ^2.3.3
+  rxdart: ^0.27.7
+  carousel_slider: ^4.2.1
+  flip_card: ^0.6.0
+  page_transition: ^2.1.0
+  circle_nav_bar: ^1.0.2
+  flutter_animate: ^4.5.0
+  share_plus: ^10.1.4
+  url_launcher: ^6.3.1
+  background_downloader: ^8.9.5
+  flutter_riverpod: ^2.6.1
+  riverpod: ^2.6.1
+  fancy_stack_carousel: ^0.0.3
+  flutter_card_swiper: ^7.0.2
+  intl: ^0.20.2
+  stacked_card_carousel: ^0.0.4
+
 dev_dependencies:
-  flutter_lints: ^4.0.0
-  lints: ^4.0.0
   flutter_test:
     sdk: flutter
-  golden_toolkit: ^0.15.0
+  flutter_lints: ^4.0.0
+  build_runner: ^2.4.13
   hive_generator: ^2.0.1
-  build_runner: ^2.4.9
+  json_annotation: ^4.8.1
+  json_serializable: ^6.7.1
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
+    background_color: "#1553FF"
+    theme_color: "#1553FF"
+  windows:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
+    icon_size: 48
+  macos:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
 
 flutter:
   uses-material-design: true
+  
   assets:
     - assets/images/
-    - assets/videos/
-    - assets/audios/
-    - assets/rive_animations/
-    - assets/pdfs/
-    - assets/jsons/
-    - assets/logos/
-    - assets/svg/
-    - assets/css/
-    - assets/presets/
+    - assets/icons/
+    - assets/audio/
     - assets/fonts/
     - assets/data/
-  
+    - assets/icon/
+
   fonts:
     - family: Gilroy
       fonts:
         - asset: assets/fonts/Gilroy-Regular.ttf
-          weight: 400
         - asset: assets/fonts/Gilroy-Medium.ttf
           weight: 500
         - asset: assets/fonts/Gilroy-SemiBold.ttf
           weight: 600
+        - asset: assets/fonts/Gilroy-Bold.ttf
+          weight: 700
         - asset: assets/fonts/Gilroy-Heavy.ttf
           weight: 800
         - asset: assets/fonts/Gilroy-Black.ttf
-          weight: 900
-    - family: GallosArchitype
-      fonts:
-        - asset: assets/fonts/gallos-architype-5.ttf
           weight: 900

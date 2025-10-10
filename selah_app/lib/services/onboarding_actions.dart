@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../domain/user_prefs.dart';
-import '../domain/telemetry.dart';
+import '../services/user_prefs_hive.dart';
+import '../services/telemetry_console.dart';
 import '../services/daily_alarm.dart';
+import '../domain/user_prefs.dart';
+import '../bootstrap.dart' as bootstrap;
 
 class OnboardingActions {
   static bool _busy = false;
@@ -11,15 +12,17 @@ class OnboardingActions {
     if (_busy) return;
     _busy = true;
 
-    final prefs = context.read<UserPrefs>();
-    final telemetry = context.read<Telemetry>();
-
     try {
-      // 1) Charger profil pour les infos utiles (heure, version…)
-      final profile = await prefs.get();
+      // Utiliser bootstrap au lieu des providers
+      final prefs = bootstrap.userPrefs;
+      final telemetry = bootstrap.telemetry;
 
-      // 2) Marquer hasOnboarded = true
-      await prefs.setHasOnboarded(true);
+      // 1) Charger profil pour les infos utiles (heure, version…)
+      final profileData = prefs.profile;
+      final profile = UserProfile.fromJson(profileData);
+
+      // 2) Marquer hasOnboarded = true (déjà fait dans _finishOnboarding)
+      // await prefs.setHasOnboarded(true);
 
       // 3) Programmer l'alarme quotidienne (si tu veux la placer ici)
       final hhmm = (profile.preferredTime?.isNotEmpty == true) ? profile.preferredTime! : '07:00';
@@ -30,23 +33,16 @@ class OnboardingActions {
       // await BackgroundTasks.queueBible(version);
 
       // 5) Event analytics
-      telemetry.track('onboarding_completed', {
+      telemetry.event('onboarding_completed', {
         'preferred_time': hhmm,
         'bible_version': version,
         'daily_minutes': profile.dailyMinutes,
       });
-    } catch (e) {
-      // Option: feedback doux (pas bloquant)
-      debugPrint('Onboarding complete failed: $e');
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Configuration terminée (mode dégradé).'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-    } finally {
+           } catch (e) {
+             // Option: feedback doux (pas bloquant)
+             debugPrint('Onboarding complete failed: $e');
+             // Supprimé le SnackBar qui causait le message jaune
+           } finally {
       _busy = false;
     }
   }

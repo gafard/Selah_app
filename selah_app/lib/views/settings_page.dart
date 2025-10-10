@@ -3,6 +3,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../services/app_state.dart';
+import '../services/user_prefs_hive.dart';
+import '../services/telemetry_console.dart';
+import '../bootstrap.dart' as bootstrap;
+import '../services/plan_service_http.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -14,7 +18,6 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   // Variables d'état
   final _displayNameController = TextEditingController();
-  Map<String, dynamic> _preferences = {};
   bool _isLoading = false;
   bool _notificationsEnabled = true;
   bool _darkModeEnabled = false;
@@ -47,7 +50,6 @@ class _SettingsPageState extends State<SettingsPage> {
     if (profile != null) {
       setState(() {
         _displayNameController.text = profile['display_name'] ?? '';
-        _preferences = profile['preferences'] ?? {};
       });
     }
   }
@@ -56,7 +58,6 @@ class _SettingsPageState extends State<SettingsPage> {
     setState(() => _isLoading = true);
     
     try {
-      final appState = context.read<AppState>();
       // TODO: Implémenter la mise à jour du profil
       await Future.delayed(const Duration(seconds: 1));
       
@@ -84,9 +85,156 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  Future<void> _onRestartPlanTapped() async {
+    final confirmed = await _confirm(
+      title: 'Recommencer ce plan ?',
+      message: 'Toute la progression sera remise à zéro et les dates recalculées depuis aujourd\'hui.',
+      confirmLabel: 'Recommencer',
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      final prefs = context.read<UserPrefsHive>();
+      final planService = bootstrap.planService as PlanServiceHttp;
+      final activePlanId = prefs.profile['activePlanId'] as String?;
+
+      if (activePlanId == null) {
+        _toast('Aucun plan actif trouvé', error: true);
+        return;
+      }
+
+      // Recommencer le plan
+      await planService.restartPlanFromDay1(activePlanId);
+      
+      _toast('Plan recommencé depuis le jour 1 !');
+      
+      // Optionnel : naviguer vers home pour voir le changement
+      context.go('/home');
+      
+    } catch (e) {
+      _toast('Erreur: ${e.toString().split(':').last.trim()}', error: true);
+    }
+  }
+
+  Future<void> _onRescheduleTapped() async {
+    final confirmed = await _confirm(
+      title: 'Replanifier depuis aujourd\'hui ?',
+      message: 'Les jours complétés seront gardés, les jours passés marqués comme sautés, et le futur recalculé depuis aujourd\'hui.',
+      confirmLabel: 'Replanifier',
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      final prefs = context.read<UserPrefsHive>();
+      final planService = bootstrap.planService as PlanServiceHttp;
+      final activePlanId = prefs.profile['activePlanId'] as String?;
+
+      if (activePlanId == null) {
+        _toast('Aucun plan actif trouvé', error: true);
+        return;
+      }
+
+      // Replanifier le plan
+      await planService.rescheduleFromToday(activePlanId);
+      
+      _toast('Plan replanifié depuis aujourd\'hui !');
+      
+      // Optionnel : naviguer vers home pour voir le changement
+      context.go('/home');
+      
+    } catch (e) {
+      _toast('Erreur: ${e.toString().split(':').last.trim()}', error: true);
+    }
+  }
+
+  Future<void> _onStartNewPlanTapped() async {
+    final confirmed = await _confirm(
+      title: 'Archiver le plan actuel ?',
+      message: 'Vous pourrez toujours le retrouver dans votre historique.',
+      confirmLabel: 'Archiver & continuer',
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      final prefs = context.read<UserPrefsHive>();
+      final telemetry = context.read<TelemetryConsole>();
+      final planService = bootstrap.planService as PlanServiceHttp;
+
+      final activePlanId = prefs.profile['activePlanId'] as String?;
+
+      // 1) Archive le plan actif (si existe)
+      if (activePlanId != null) {
+        await planService.archivePlan(activePlanId);
+      }
+
+      // 2) Déréférence le plan actif côté profil local
+      await prefs.patchProfile({'activePlanId': null});
+
+      telemetry.event('start_new_plan_clicked', {'had_active_plan': activePlanId != null});
+
+      // 3) Navigation directe vers complete_profile
+      // (hasOnboarded est toujours true ici car on est dans /settings)
+      context.go('/complete_profile');
+
+      _toast('Plan archivé. Configure un nouveau plan.');
+    } catch (e) {
+      _toast('Erreur: ${e.toString().split(':').last.trim()}', error: true);
+    }
+  }
+
+  Future<bool> _confirm({
+    required String title,
+    required String message,
+    String confirmLabel = 'Confirmer',
+    String cancelLabel = 'Annuler',
+  }) async {
+    final res = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1F2937),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(title, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700)),
+        content: Text(message, style: GoogleFonts.inter(color: const Color(0xFF9CA3AF))),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(cancelLabel, style: const TextStyle(color: Color(0xFF9CA3AF))),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6)),
+            child: Text(confirmLabel),
+          ),
+        ],
+      ),
+    );
+    return res ?? false;
+  }
+
+  void _toast(String msg, {bool error = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(error ? Icons.error_outline : Icons.check_circle_outline, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(child: Text(msg)),
+          ],
+        ),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: error ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   Future<void> _signOut() async {
     try {
-      final appState = context.read<AppState>();
       // TODO: Implémenter la déconnexion
       await Future.delayed(const Duration(seconds: 1));
       
@@ -135,6 +283,15 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.person,
                     title: 'Profil utilisateur',
                     child: _buildProfileContent(),
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Plan de lecture
+                  _buildSettingCard(
+                    icon: Icons.book,
+                    title: 'Plan de lecture',
+                    child: _buildPlanContent(),
                   ),
                   
                   const SizedBox(height: 16),
@@ -233,6 +390,84 @@ class _SettingsPageState extends State<SettingsPage> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: child,
+    );
+  }
+
+  Widget _buildPlanContent() {
+    return Column(
+      children: [
+        // Recommencer ce plan (jour 1)
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.refresh, color: Colors.white, size: 24),
+          title: Text(
+            'Recommencer ce plan (jour 1)',
+            style: GoogleFonts.inter(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          subtitle: Text(
+            'Remet à zéro la progression et recalcule les dates',
+            style: GoogleFonts.inter(
+              color: const Color(0xFF9CA3AF),
+              fontSize: 14,
+            ),
+          ),
+          onTap: _onRestartPlanTapped,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          hoverColor: Colors.white.withOpacity(0.05),
+        ),
+        const SizedBox(height: 12),
+        // Replanifier depuis aujourd'hui
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.schedule, color: Colors.white, size: 24),
+          title: Text(
+            'Replanifier depuis aujourd\'hui',
+            style: GoogleFonts.inter(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          subtitle: Text(
+            'Garde les jours complétés et recalcule le futur',
+            style: GoogleFonts.inter(
+              color: const Color(0xFF9CA3AF),
+              fontSize: 14,
+            ),
+          ),
+          onTap: _onRescheduleTapped,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          hoverColor: Colors.white.withOpacity(0.05),
+        ),
+        const SizedBox(height: 12),
+        // Commencer un nouveau plan
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.restart_alt, color: Colors.white, size: 24),
+          title: Text(
+            'Commencer un nouveau plan',
+            style: GoogleFonts.inter(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          subtitle: Text(
+            'Archive le plan actuel et relance la configuration',
+            style: GoogleFonts.inter(
+              color: const Color(0xFF9CA3AF),
+              fontSize: 14,
+            ),
+          ),
+          onTap: _onStartNewPlanTapped,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          hoverColor: Colors.white.withOpacity(0.05),
+        ),
+      ],
     );
   }
 

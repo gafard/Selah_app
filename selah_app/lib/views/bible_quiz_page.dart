@@ -860,4 +860,5 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
     if (percentage >= 50) return 'Continuez à méditer sur les passages pour approfondir.';
     return 'Lisez plus régulièrement pour améliorer vos connaissances.';
   }
+
 }

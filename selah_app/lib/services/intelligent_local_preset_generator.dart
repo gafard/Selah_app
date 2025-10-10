@@ -635,8 +635,212 @@ class IntelligentLocalPresetGenerator {
       'verses': ['Matthieu 28:19-20', 'Actes 1:8', 'Marc 16:15'],
       'emotions': ['mission', 'urgency', 'compassion'],
       'targetAudience': ['Fidèle pas si régulier', 'Fidèle régulier', 'Serviteur/leader']
+    },
+    // 🚀 NOUVEAUX THÈMES THOMPSON PURS
+    'marriage_relationships': {
+      'books': ['Genèse', 'Proverbes', 'Éphésiens', '1 Pierre'],
+      'duration': [21, 30, 40],
+      'focus': 'Relations et mariage selon la Bible',
+      'verses': ['Genèse 2:24', 'Proverbes 5:18-19', 'Éphésiens 5:22-33'],
+      'emotions': ['love', 'commitment', 'unity'],
+      'targetAudience': ['Fidèle régulier', 'Serviteur/leader']
+    },
+    'anxiety_peace': {
+      'books': ['Matthieu', 'Philippiens', '1 Pierre', 'Psaumes'],
+      'duration': [14, 21, 30],
+      'focus': 'Surmonter l\'anxiété et trouver la paix',
+      'verses': ['Matthieu 6:25-34', 'Philippiens 4:6-7', '1 Pierre 5:7'],
+      'emotions': ['peace', 'trust', 'security'],
+      'targetAudience': ['Nouveau converti', 'Rétrograde', 'Fidèle pas si régulier', 'Fidèle régulier']
+    },
+    'spiritual_discipline': {
+      'books': ['1 Corinthiens', 'Hébreux', '2 Timothée', 'Jacques'],
+      'duration': [21, 30, 40],
+      'focus': 'Discipline spirituelle et persévérance',
+      'verses': ['1 Corinthiens 9:24-27', 'Hébreux 12:1-2', '2 Timothée 2:15'],
+      'emotions': ['discipline', 'perseverance', 'dedication'],
+      'targetAudience': ['Fidèle régulier', 'Serviteur/leader']
+    },
+    'healing_restoration': {
+      'books': ['Psaumes', 'Ésaïe', 'Matthieu', '1 Pierre'],
+      'duration': [21, 30, 40],
+      'focus': 'Guérison et restauration divine',
+      'verses': ['Psaumes 103:3', 'Ésaïe 53:5', 'Matthieu 8:17', '1 Pierre 2:24'],
+      'emotions': ['healing', 'restoration', 'hope'],
+      'targetAudience': ['Nouveau converti', 'Rétrograde', 'Fidèle pas si régulier', 'Fidèle régulier', 'Serviteur/leader']
     }
   };
+
+  /// 🚀 THOMPSON INSPIRED - Génère un nom inspiré des thèmes Thompson
+  static String? _generateThompsonInspiredName(
+    String theme, 
+    String focus, 
+    List<String> bookCombo, 
+    List<String> emotions,
+    int randomSeed
+  ) {
+    // 🎯 Mapping des thèmes vers les thèmes Thompson
+    final thompsonMapping = {
+      'spiritual_growth': ['spiritual_demand', 'companionship'],
+      'prayer_life': ['prayer_life', 'companionship'],
+      'wisdom_understanding': ['common_errors', 'spiritual_demand'],
+      'faith_foundation': ['spiritual_demand', 'faith_trials'],
+      'christian_character': ['spiritual_demand', 'common_errors'],
+      'hope_encouragement': ['no_worry', 'faith_trials'],
+      'forgiveness_healing': ['forgiveness', 'healing'],
+      'mission_evangelism': ['spiritual_demand', 'companionship'],
+      // 🚀 NOUVEAUX THÈMES THOMPSON
+      'marriage_relationships': ['marriage_duties'],
+      'anxiety_peace': ['no_worry', 'spiritual_demand'],
+      'spiritual_discipline': ['spiritual_demand', 'faith_trials'],
+      'healing_restoration': ['healing', 'forgiveness'],
+    };
+
+    // 🎯 Base de données Thompson (inspirée de ThompsonPlanGenerator)
+    final thompsonNames = {
+      'spiritual_demand': [
+        'Exigence spirituelle — Transformation profonde',
+        'Tenir ferme dans la foi',
+        'La sainteté qui transforme',
+        'L\'exigence divine'
+      ],
+      'companionship': [
+        'Marcher à deux — Compagnonnage biblique',
+        'Communion & prière — Marcher ensemble',
+        'Le compagnonnage de la foi',
+        'Ensemble vers le ciel'
+      ],
+      'prayer_life': [
+        'Vie de prière — Souffle spirituel',
+        'Le dialogue avec Dieu',
+        'L\'intimité du sanctuaire',
+        'La respiration de l\'âme'
+      ],
+      'common_errors': [
+        'Sagesse pratique — Corriger nos erreurs',
+        'Éviter les pièges spirituels',
+        'Le discernement qui protège',
+        'La prudence divine'
+      ],
+      'no_worry': [
+        'Ne vous inquiétez pas — Apprentissages de Mt 6',
+        'Tenir ferme & paix du cœur',
+        'La confiance qui apaise',
+        'L\'abandon à la providence'
+      ],
+      'marriage_duties': [
+        'Cheminer en couple selon la Parole',
+        'L\'alliance sacrée',
+        'L\'amour qui sanctifie',
+        'Le mariage selon Dieu'
+      ],
+      'forgiveness': [
+        'Pardon & réconciliation — Cœur libéré',
+        'Pardon & guérison — Libération du cœur',
+        'La grâce qui restaure',
+        'Le pardon qui transforme'
+      ],
+      'faith_trials': [
+        'Foi dans l\'épreuve — Ténacité',
+        'Persévérer dans la tempête',
+        'L\'épreuve qui fortifie',
+        'La foi qui triomphe'
+      ],
+      'healing': [
+        'Pardon & guérison — Libération du cœur',
+        'La guérison de l\'âme',
+        'Le baume qui restaure',
+        'La délivrance divine'
+      ],
+    };
+
+    final thompsonThemes = thompsonMapping[theme];
+    if (thompsonThemes == null || thompsonThemes.isEmpty) return null;
+
+    // 🎯 Sélectionner un thème Thompson basé sur les émotions
+    String selectedThompsonTheme;
+    if (emotions.contains('peace') || emotions.contains('trust')) {
+      selectedThompsonTheme = 'no_worry';
+    } else if (emotions.contains('healing') || emotions.contains('restoration')) {
+      selectedThompsonTheme = 'forgiveness';
+    } else if (emotions.contains('growth') || emotions.contains('transformation')) {
+      selectedThompsonTheme = 'spiritual_demand';
+    } else if (emotions.contains('wisdom') || emotions.contains('discernment')) {
+      selectedThompsonTheme = 'common_errors';
+    } else {
+      selectedThompsonTheme = thompsonThemes[randomSeed % thompsonThemes.length];
+    }
+
+    // 🎯 Générer le nom Thompson
+    final nameOptions = thompsonNames[selectedThompsonTheme];
+    if (nameOptions == null || nameOptions.isEmpty) return null;
+
+    final baseName = nameOptions[randomSeed % nameOptions.length];
+    
+    // 🎯 Enrichir avec les livres si pertinent
+    final bookInfo = _getBookInfoForThompson(bookCombo);
+    if (bookInfo != null) {
+      return '$baseName • $bookInfo';
+    }
+    
+    return baseName;
+  }
+
+  /// 🎯 Helper pour enrichir avec les informations des livres
+  static String? _getBookInfoForThompson(List<String> books) {
+    if (books.isEmpty) return null;
+    
+    final bookCount = books.length;
+    if (bookCount == 1) {
+      return books.first;
+    } else if (bookCount == 2) {
+      return '${books.first} & ${books.last}';
+    } else {
+      return '${books.take(2).join(' & ')} + ${bookCount - 2} autres';
+    }
+  }
+
+  /// 🚀 Génère des presets spécifiquement inspirés de Thompson
+  static List<PlanPreset> _generateThompsonSpecificPresets(String level, int durationMin, int randomSeed) {
+    final presets = <PlanPreset>[];
+    
+    // 🎯 Thèmes Thompson prioritaires selon le niveau
+    final thompsonThemes = {
+      'Nouveau converti': ['anxiety_peace', 'healing_restoration'],
+      'Rétrograde': ['healing_restoration', 'spiritual_discipline'],
+      'Fidèle pas si régulier': ['anxiety_peace', 'spiritual_discipline'],
+      'Fidèle régulier': ['marriage_relationships', 'spiritual_discipline'],
+      'Serviteur/leader': ['marriage_relationships', 'spiritual_discipline'],
+    };
+    
+    final selectedThemes = thompsonThemes[level] ?? ['anxiety_peace', 'healing_restoration'];
+    
+    for (final themeKey in selectedThemes.take(2)) {
+      final themeData = _spiritualThemes[themeKey];
+      if (themeData == null) continue;
+      
+      final books = themeData['books'] as List<String>;
+      final targetAudience = themeData['targetAudience'] as List<String>;
+      
+      // Vérifier si le niveau correspond
+      if (targetAudience.contains(level)) {
+        final bookCombo = books.take(2).toList();
+        final preset = _createAdvancedPresetFromTheme(
+          themeKey, 
+          themeData, 
+          bookCombo, 
+          level, 
+          durationMin,
+          1.0, // difficulté normale pour Thompson
+          'Méditation Thompson', // type de méditation
+          randomSeed + themeKey.hashCode
+        );
+        presets.add(preset);
+      }
+    }
+    
+    return presets;
+  }
 
   /// Génère des presets intelligents basés sur le profil utilisateur
   static List<PlanPreset> generateIntelligentPresets(Map<String, dynamic>? userProfile) {
@@ -658,6 +862,11 @@ class IntelligentLocalPresetGenerator {
     // Générer des presets selon l'objectif principal
     final theme = _mapGoalToTheme(goal);
     final themeData = _spiritualThemes[theme];
+    
+    // 🚀 AJOUT: Inclure les nouveaux thèmes Thompson dans la sélection
+    final availableThemes = _spiritualThemes.keys.toList();
+    final thompsonThemes = ['marriage_relationships', 'anxiety_peace', 'spiritual_discipline', 'healing_restoration'];
+    availableThemes.addAll(thompsonThemes.where((t) => !availableThemes.contains(t)));
     
     if (themeData != null) {
       // Créer plusieurs variations du même thème
@@ -700,6 +909,9 @@ class IntelligentLocalPresetGenerator {
     
     // Générer des presets selon le type de méditation
     presets.addAll(_generateMeditationSpecificPresets(meditation, level, durationMin, randomSeed));
+    
+    // 🚀 AJOUT: Générer des presets Thompson supplémentaires
+    presets.addAll(_generateThompsonSpecificPresets(level, durationMin, randomSeed));
     
     // Mélanger les presets pour plus de variété
     presets.shuffle();
@@ -831,7 +1043,7 @@ class IntelligentLocalPresetGenerator {
     return baseDuration.clamp(7, 90);
   }
 
-  /// Génère un nom intelligent avancé avec poésie biblique
+  /// 🎯 ENRICHI AVEC THOMPSON - Génère un nom intelligent avancé avec poésie biblique
   static String _generateAdvancedIntelligentName(
     String theme, 
     String focus, 
@@ -839,6 +1051,13 @@ class IntelligentLocalPresetGenerator {
     List<String> emotions,
     [int randomSeed = 0]
   ) {
+    // 🚀 ÉTAPE 1: Essayer d'abord la logique Thompson si applicable
+    final thompsonName = _generateThompsonInspiredName(theme, focus, bookCombo, emotions, randomSeed);
+    if (thompsonName != null) {
+      return thompsonName;
+    }
+    
+    // 🎨 ÉTAPE 2: Fallback vers la logique poétique existante
     // Noms poétiques et bibliques inspirés des Écritures
     final poeticNames = {
       'spiritual_growth': [

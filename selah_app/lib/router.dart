@@ -1,4 +1,5 @@
 // lib/router.dart - Router Unifié avec GoRouter et Guards Auth
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:selah_app/views/welcome_page.dart';
 import 'package:selah_app/views/auth_page.dart';
@@ -78,20 +79,38 @@ class AppRouter {
         }
         
         // ─────────────────────────────────────────────────────────────
-        // GUARD 4: Vérifier plan actif
+        // GUARD 4: Vérifier onboarding (AVANT le plan)
         // ─────────────────────────────────────────────────────────────
-        if (user.currentPlanId == null) {
-          // Permettre l'accès à complete_profile, goals et custom_plan
-          if (path == '/goals' || path == '/custom_plan' || path == '/complete_profile') return null;
-          return '/goals';
+        print('🧭 Router Guard: hasOnboarded=${user.hasOnboarded}, path=$path');
+        if (!user.hasOnboarded) {
+          // Autoriser explicitement onboarding et l'écran de succès
+          if (path == '/onboarding' || path == '/congrats') {
+            print('🧭 Router Guard: Autorisation /onboarding ou /congrats');
+            return null;
+          }
+          print('🧭 Router Guard: Redirection vers /onboarding');
+          return '/onboarding';
         }
         
         // ─────────────────────────────────────────────────────────────
-        // GUARD 5: Vérifier onboarding
+        // GUARD 5: Vérifier plan actif (APRÈS onboarding)
         // ─────────────────────────────────────────────────────────────
-        if (!user.hasOnboarded) {
-          if (path == '/onboarding' || path == '/congrats') return null;
-          return '/onboarding';
+        print('🧭 Router Guard: currentPlanId=${user.currentPlanId}, path=$path');
+        if (user.currentPlanId == null) {
+          // Permettre l'accès à complete_profile, goals et custom_plan
+          if (path == '/goals' || path == '/custom_plan' || path == '/complete_profile') {
+            print('🧭 Router Guard: Autorisation pages de création (pas de plan)');
+            return null;
+          }
+          print('🧭 Router Guard: Redirection vers /goals (pas de plan)');
+          return '/goals';
+        } else {
+          // 🔒 GUARD 5B: Si plan existe, BLOQUER l'accès aux pages de création
+          if (path == '/goals' || path == '/custom_plan') {
+            print('🧭 Router Guard: Redirection vers /settings (plan existe)');
+            // Rediriger vers settings pour gérer le plan existant
+            return '/settings';
+          }
         }
         
         // ─────────────────────────────────────────────────────────────

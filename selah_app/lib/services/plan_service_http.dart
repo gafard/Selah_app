@@ -8,6 +8,8 @@ import 'plan_service.dart';
 import 'sync_queue_hive.dart';
 import 'telemetry_console.dart';
 import 'user_prefs.dart';
+import '../repositories/user_repository.dart';
+import 'plan_catchup_service.dart';
 
 class PlanServiceHttp implements PlanService {
   final String baseUrl; // ex: https://api.selah.app
@@ -94,6 +96,24 @@ class PlanServiceHttp implements PlanService {
     }
   }
 
+  /// ✅ Read-back atomique : vérifie qu'un plan actif existe localement
+  @override
+  Future<Plan?> getActiveLocalPlan() async {
+    try {
+      final cached = cachePlans.get('active_plan') as Map?;
+      if (cached != null) {
+        final plan = Plan.fromJson(Map<String, dynamic>.from(cached));
+        telemetry.event('active_local_plan_verified', {'plan_id': plan.id});
+        return plan;
+      }
+      telemetry.event('no_active_local_plan');
+      return null;
+    } catch (e) {
+      telemetry.event('active_local_plan_check_failed', {'error': e.toString()});
+      return null;
+    }
+  }
+
   @override
   Future<void> setActivePlan(String planId) async {
     // OPTIMISTIC LOCAL UPDATE (toujours fonctionnel)
@@ -104,6 +124,11 @@ class PlanServiceHttp implements PlanService {
     }
     // Mise à jour locale immédiate
     await cachePlans.put('active_plan', {'id': planId, 'is_active': true});
+    
+    // 🔒 IMPORTANT: Mettre à jour le profil utilisateur pour le router guard
+    final userRepo = UserRepository();
+    await userRepo.setCurrentPlan(planId);
+    
     telemetry.event('plan_activated_locally', {'plan_id': planId});
 
     // Synchronisation serveur (si en ligne)
@@ -120,6 +145,37 @@ class PlanServiceHttp implements PlanService {
       });
       telemetry.event('plan_activation_queued_for_sync', {'plan_id': planId, 'error': e.toString()});
     }
+  }
+
+  /// Archive un plan (offline-first)
+  @override
+  Future<void> archivePlan(String planId) async {
+    // 1) Récupérer le plan depuis le cache local
+    final current = cachePlans.get('active_plan');
+    if (current == null) {
+      throw Exception('Aucun plan actif à archiver');
+    }
+
+    final planData = Map<String, dynamic>.from(current);
+    
+    // 2) Marquer comme archivé localement (optimistic update)
+    planData['is_active'] = false;
+    planData['status'] = 'archived';
+    planData['archived_at'] = DateTime.now().toIso8601String();
+    
+    await cachePlans.put('archived_plan_$planId', planData);
+    await cachePlans.delete('active_plan'); // Retirer le plan actif
+    
+    telemetry.event('plan_archived_locally', {'plan_id': planId});
+
+    // 3) Enqueue patch serveur (sync ultérieure si en ligne)
+    await syncQueue.enqueuePlanPatch(planId, {
+      'is_active': false,
+      'status': 'archived',
+      'archived_at': planData['archived_at'],
+    });
+
+    telemetry.event('plan_archive_queued_for_sync', {'plan_id': planId});
   }
 
   // —— days ————————————————————————————————————————————————————————
@@ -260,6 +316,27 @@ class PlanServiceHttp implements PlanService {
     List<Map<String, dynamic>>? customPassages,
     List<int>? daysOfWeek, // ✅ NOUVEAU - Jours de lecture (1=Lun, 7=Dim)
   }) async {
+    // 🔒 ARCHIVER L'ANCIEN PLAN S'IL EXISTE
+    final current = cachePlans.get('active_plan');
+    if (current != null) {
+      print('🔄 Archivage de l\'ancien plan avant creation du nouveau');
+      final oldPlan = Map<String, dynamic>.from(current)..['is_active'] = false;
+      final oldPlanId = oldPlan['id'] as String;
+      
+      // Archiver le plan
+      await cachePlans.put('active_plan_prev', oldPlan);
+      
+      // Archiver les jours de l'ancien plan
+      final oldPlanDaysKey = 'plan_days_$oldPlanId';
+      final oldPlanDays = cachePlanDays.get(oldPlanDaysKey);
+      if (oldPlanDays != null) {
+        await cachePlanDays.put('plan_days_prev_$oldPlanId', oldPlanDays);
+        print('🔄 Jours de l\'ancien plan archives: $oldPlanDaysKey');
+      }
+      
+      telemetry.event('old_plan_archived', {'old_plan_id': oldPlanId});
+    }
+    
     // Générer un ID unique pour le plan
     final planId = const Uuid().v4();
     
@@ -282,6 +359,11 @@ class PlanServiceHttp implements PlanService {
     
     // Créer des jours de plan avec passages personnalisés ou génériques
     await _createLocalPlanDays(planId, totalDays, startDate, books, customPassages, daysOfWeek);
+    
+    // 🔒 Mettre à jour le UserRepository pour le router guard
+    final userRepo = UserRepository();
+    await userRepo.setCurrentPlan(planId);
+    print('✅ UserRepository mis à jour avec nouveau planId: $planId');
     
     telemetry.event('plan_created_locally', {
       'plan_id': planId,
@@ -477,5 +559,41 @@ class PlanServiceHttp implements PlanService {
       }
       return PlanProgress(planId: planId, done: done, total: total);
     });
+  }
+
+  /// 🔄 Recommence le plan depuis le jour 1
+  Future<void> restartPlanFromDay1(String planId) async {
+    await PlanCatchupService.restartPlanFromDay1(planId);
+    
+    // Télémetrie
+    telemetry.event('plan_restarted_from_day1', {'plan_id': planId});
+    
+    // Sync en arrière-plan
+    try {
+      await syncQueue.enqueuePlanPatch(planId, {
+        'restarted_at': DateTime.now().toIso8601String(),
+        'new_start_date': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      print('⚠️ Sync restart plan échouée: $e');
+    }
+  }
+
+  /// 📅 Replanifie le plan depuis aujourd'hui
+  Future<void> rescheduleFromToday(String planId) async {
+    await PlanCatchupService.rescheduleFromToday(planId);
+    
+    // Télémetrie
+    telemetry.event('plan_rescheduled_from_today', {'plan_id': planId});
+    
+    // Sync en arrière-plan
+    try {
+      await syncQueue.enqueuePlanPatch(planId, {
+        'rescheduled_at': DateTime.now().toIso8601String(),
+        'new_start_date': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      print('⚠️ Sync reschedule plan échouée: $e');
+    }
   }
 }

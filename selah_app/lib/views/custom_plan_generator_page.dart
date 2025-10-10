@@ -6,8 +6,9 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart'; // ✅ Import GoRouter
 import '../services/ics_import_service.dart';
 import '../services/user_prefs_hive.dart';
-import '../services/plan_service.dart';
+import '../bootstrap.dart' as bootstrap;
 import '../services/telemetry_console.dart';
+import '../services/semantic_passage_boundary_service.dart';
 import '../models/plan_models.dart';
 import '../widgets/uniform_back_button.dart';
 
@@ -623,7 +624,7 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
       _updateBlockingProgress('2/3 Import du plan…');
       
       // Utiliser le PlanService pour importer le plan
-      final planService = context.read<PlanService>();
+      final planService = bootstrap.planService;
       final telemetry = context.read<TelemetryConsole>();
       
       telemetry.event('custom_plan_generation_started', {
@@ -633,18 +634,21 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
         'order': _order,
       });
 
-      // Retry x2 si l'import échoue
-      final plan = await _retry<Plan>(
-        () => planService.importFromGenerator(
-          planName: _nameController.text.trim(),
-          icsUrl: Uri.parse(icsUrl.toString()),
+      // Créer un plan local avec les passages générés intelligemment
+      final plan = await bootstrap.planService.createLocalPlan(
+        name: _nameController.text.trim(),
+        totalDays: _totalDays,
+        books: _books,
+        startDate: DateTime.now(),
+        minutesPerDay: 15, // Valeur par défaut
+        daysOfWeek: _daysOfWeek,
+        customPassages: _generateOfflinePassages(
+          booksKey: _books,
+          totalDays: _totalDays,
+          startDate: DateTime.now(),
+          daysOfWeek: _daysOfWeek,
         ),
-        attempts: 2,
-      ).catchError((error) {
-        // Fallback: créer un plan local si l'import échoue
-        print('Import échoué, création d\'un plan local: $error');
-        return _createLocalPlan();
-      });
+      );
 
       _updateBlockingProgress('3/3 Indexation & rappels…');
 
@@ -915,6 +919,232 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
     ),
   );
 
+  /// 🧠 Crée un plan local avec génération intelligente de passages
+  Future<Plan> _createLocalPlanWithPassages() async {
+    // 1) Générer les passages intelligents avec frontières sémantiques
+    final passages = _generateOfflinePassages(
+      booksKey: _books,
+      totalDays: _totalDays,
+      startDate: DateTime.now(),
+      daysOfWeek: _daysOfWeek,
+    );
+
+    // 2) Créer le plan avec les passages générés
+    final plan = await bootstrap.planService.createLocalPlan(
+      name: _nameController.text.trim(),
+      totalDays: _totalDays,
+      books: _books,
+      startDate: DateTime.now(),
+      minutesPerDay: 15, // Valeur par défaut
+      daysOfWeek: _daysOfWeek,
+      customPassages: passages,
+    );
+
+    return plan;
+  }
+
+  /// 🚀 Génération INTELLIGENTE des passages (avec frontières sémantiques)
+  List<Map<String, dynamic>> _generateOfflinePassages({
+    required String booksKey,
+    required int totalDays,
+    required DateTime startDate,
+    required List<int> daysOfWeek, // 1..7
+  }) {
+    // 1) Récupérer un pool de livres/chapitres selon booksKey
+    final chapters = _expandBooksPoolToChapters(booksKey);
+    int cursor = 0;
+
+    final result = <Map<String, dynamic>>[];
+    DateTime cur = startDate;
+
+    int produced = 0;
+    while (produced < totalDays && cursor < chapters.length) {
+      // Respect réel du calendrier : sauter les jours non cochés
+      final dow = cur.weekday; // 1=Mon..7=Sun
+      if (!daysOfWeek.contains(dow)) {
+        cur = cur.add(const Duration(days: 1));
+        continue; // Passer au jour suivant
+      }
+
+      // 🧠 Prend 1 "unité sémantique" par jour (chapitre ou groupe cohérent)
+      final unit = _pickSemanticUnit(chapters, cursor);
+      cursor = unit.nextCursor;
+
+      result.add({
+        'reference': unit.reference,
+        'text': unit.annotation ?? 'Lecture de ${unit.reference}',
+        'book': chapters[cursor - 1 < 0 ? 0 : cursor - 1].book,
+        'theme': _themeForBook(chapters[cursor - 1 < 0 ? 0 : cursor - 1].book),
+        'focus': _focusForBook(chapters[cursor - 1 < 0 ? 0 : cursor - 1].book),
+        'duration': 15, // minutes
+        'wasAdjusted': unit.wasAdjusted,
+        'annotation': unit.annotation,
+        'date': cur.toIso8601String(),
+      });
+
+      produced++;
+      cur = cur.add(const Duration(days: 1));
+    }
+
+    print('📖 ${result.length} passages générés offline (INTELLIGENTS)');
+    return result;
+  }
+
+  /// 🧠 Expand books pool vers chapitres (pour génération intelligente)
+  List<_ChapterRef> _expandBooksPoolToChapters(String booksSource) {
+    if (booksSource.contains(',')) {
+      final books = booksSource.split(',').map((b) => b.trim()).toList();
+      final allChapters = <_ChapterRef>[];
+      for (final book in books) {
+        allChapters.addAll(_expandBooksPoolToChapters(book));
+      }
+      return allChapters;
+    }
+
+    // Expansion des catégories
+    if (booksSource == 'NT') {
+      return _ntChapters();
+    } else if (booksSource == 'OT') {
+      return _otChapters();
+    } else if (booksSource == 'Gospels') {
+      return _gospelsChapters();
+    } else if (booksSource == 'Psaumes' || booksSource == 'Psalms') {
+      return List.generate(150, (i) => _ChapterRef('Psaumes', i + 1));
+    } else if (booksSource == 'Proverbes' || booksSource == 'Proverbs') {
+      return List.generate(31, (i) => _ChapterRef('Proverbes', i + 1));
+    } else if (booksSource == 'Matthieu') {
+      return List.generate(28, (i) => _ChapterRef('Matthieu', i + 1));
+    } else if (booksSource == 'Marc') {
+      return List.generate(16, (i) => _ChapterRef('Marc', i + 1));
+    } else if (booksSource == 'Luc') {
+      return List.generate(24, (i) => _ChapterRef('Luc', i + 1));
+    } else if (booksSource == 'Jean') {
+      return List.generate(21, (i) => _ChapterRef('Jean', i + 1));
+    } else if (booksSource == 'Romains') {
+      return List.generate(16, (i) => _ChapterRef('Romains', i + 1));
+    } else if (booksSource == 'Galates') {
+      return List.generate(6, (i) => _ChapterRef('Galates', i + 1));
+    } else if (booksSource == 'Éphésiens') {
+      return List.generate(6, (i) => _ChapterRef('Éphésiens', i + 1));
+    } else if (booksSource == 'Philippiens') {
+      return List.generate(4, (i) => _ChapterRef('Philippiens', i + 1));
+    }
+
+    // Fallback: retourner 1 chapitre
+    return [_ChapterRef(booksSource, 1)];
+  }
+
+  /// Chapitres des Évangiles
+  List<_ChapterRef> _gospelsChapters() => [
+    ...List.generate(28, (i) => _ChapterRef('Matthieu', i + 1)),
+    ...List.generate(16, (i) => _ChapterRef('Marc', i + 1)),
+    ...List.generate(24, (i) => _ChapterRef('Luc', i + 1)),
+    ...List.generate(21, (i) => _ChapterRef('Jean', i + 1)),
+  ];
+
+  /// Chapitres du Nouveau Testament
+  List<_ChapterRef> _ntChapters() => [
+    ..._gospelsChapters(),
+    ...List.generate(28, (i) => _ChapterRef('Actes', i + 1)),
+    ...List.generate(16, (i) => _ChapterRef('Romains', i + 1)),
+    ...List.generate(6, (i) => _ChapterRef('Galates', i + 1)),
+    ...List.generate(6, (i) => _ChapterRef('Éphésiens', i + 1)),
+    ...List.generate(4, (i) => _ChapterRef('Philippiens', i + 1)),
+  ];
+
+  /// Chapitres de l'Ancien Testament
+  List<_ChapterRef> _otChapters() => [
+    ...List.generate(50, (i) => _ChapterRef('Genèse', i + 1)),
+    ...List.generate(40, (i) => _ChapterRef('Exode', i + 1)),
+    ...List.generate(150, (i) => _ChapterRef('Psaumes', i + 1)),
+    ...List.generate(31, (i) => _ChapterRef('Proverbes', i + 1)),
+    ...List.generate(66, (i) => _ChapterRef('Ésaïe', i + 1)),
+  ];
+
+  /// 🚀 FALCON X - Sélection ultra-intelligente d'unités sémantiques
+  _SemanticPick _pickSemanticUnit(List<_ChapterRef> chapters, int cursor) {
+    if (cursor >= chapters.length) {
+      return _SemanticPick('Psaume 1', cursor + 1);
+    }
+
+    final c = chapters[cursor];
+    
+    // 🚀 ÉTAPE 1: Chercher une unité sémantique CRITICAL ou HIGH qui commence ici
+    final unit = SemanticPassageBoundaryService.findUnitContaining(c.book, c.chapter);
+    
+    if (unit != null && 
+        unit.startChapter == c.chapter &&
+        (unit.priority == UnitPriority.critical || unit.priority == UnitPriority.high)) {
+      
+      // Vérifier qu'on a assez de chapitres restants pour l'unité complète
+      final chaptersNeeded = unit.length;
+      final chaptersAvailable = chapters.length - cursor;
+      
+      if (chaptersAvailable >= chaptersNeeded) {
+        // Vérifier que tous les chapitres suivants font partie de cette unité
+        bool allMatch = true;
+        for (int i = 1; i < chaptersNeeded; i++) {
+          if (cursor + i >= chapters.length) {
+            allMatch = false;
+            break;
+          }
+          final nextChap = chapters[cursor + i];
+          if (nextChap.book != c.book || nextChap.chapter != c.chapter + i) {
+            allMatch = false;
+            break;
+          }
+        }
+        
+        if (allMatch) {
+          // ✅ Utiliser l'unité sémantique complète
+          return _SemanticPick(
+            unit.reference,
+            (cursor + chaptersNeeded).toInt(),
+            wasAdjusted: true,
+            annotation: unit.annotation ?? unit.name,
+          );
+        }
+      }
+    }
+    
+    // 🎨 ÉTAPE 2: Pas d'unité critique, mais peut-être une annotation utile
+    if (unit != null && unit.priority == UnitPriority.medium) {
+      // Donner l'annotation mais ne pas forcer le groupement
+      return _SemanticPick(
+        '${c.book} ${c.chapter}',
+        cursor + 1,
+        wasAdjusted: false,
+        annotation: unit.annotation,
+      );
+    }
+
+    // 📖 ÉTAPE 3: Défaut - 1 chapitre avec annotation si disponible
+    final annotation = SemanticPassageBoundaryService.getAnnotationForChapter(c.book, c.chapter);
+    return _SemanticPick(
+      '${c.book} ${c.chapter}',
+      cursor + 1,
+      wasAdjusted: false,
+      annotation: annotation,
+    );
+  }
+
+  String _themeForBook(String book) {
+    // Logique simple de thème par livre
+    if (book.contains('Psaumes')) return 'Louange et adoration';
+    if (book.contains('Proverbes')) return 'Sagesse pratique';
+    if (book.contains('Matthieu') || book.contains('Marc') || book.contains('Luc') || book.contains('Jean')) return 'Vie de Jésus';
+    if (book.contains('Romains') || book.contains('Galates') || book.contains('Éphésiens')) return 'Doctrine chrétienne';
+    return 'Méditation biblique';
+  }
+
+  String _focusForBook(String book) {
+    // Logique simple de focus par livre
+    if (book.contains('Psaumes')) return 'Cœur et émotions';
+    if (book.contains('Proverbes')) return 'Sagesse quotidienne';
+    if (book.contains('Matthieu') || book.contains('Marc') || book.contains('Luc') || book.contains('Jean')) return 'Suivre Jésus';
+    if (book.contains('Romains') || book.contains('Galates') || book.contains('Éphésiens')) return 'Comprendre la foi';
+    return 'Croissance spirituelle';
+  }
 }
 
 class _ProgressDialog extends StatelessWidget {
@@ -950,4 +1180,27 @@ class _ProgressDialog extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 📖 Classe helper pour référence de chapitre
+class _ChapterRef {
+  final String book;
+  final int chapter;
+  
+  _ChapterRef(this.book, this.chapter);
+}
+
+/// 🧠 Classe helper pour unité sémantique
+class _SemanticPick {
+  final String reference;
+  final int nextCursor;
+  final bool wasAdjusted;
+  final String? annotation;
+  
+  _SemanticPick(
+    this.reference,
+    this.nextCursor, {
+    this.wasAdjusted = false,
+    this.annotation,
+  });
 }

@@ -183,59 +183,55 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
                   keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                  child: SizedBox(
-                    // ✅ Ajouter une hauteur minimale pour forcer le scroll
-                    height: MediaQuery.of(context).size.height * 1.2,
-                    child: Stack(
-                      children: [
-                        // Ornements légers en arrière-plan
-                        Positioned(
-                          right: -60,
-                          top: -40,
-                          child: _softBlob(180),
-                        ),
-                        Positioned(
-                          left: -40,
-                          bottom: -50,
-                          child: _softBlob(220),
-                        ),
+                  child: Stack(
+                    children: [
+                      // Ornements légers en arrière-plan
+                      Positioned(
+                        right: -60,
+                        top: -40,
+                        child: _softBlob(180),
+                      ),
+                      Positioned(
+                        left: -40,
+                        bottom: -50,
+                        child: _softBlob(220),
+                      ),
 
-                        // Contenu principal
-                        Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-                              child: Container(
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.12),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: Colors.white.withOpacity(0.2),
-                                    width: 1,
-                                  ),
+                      // Contenu principal
+                      Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                            child: Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.2),
+                                  width: 1,
                                 ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min, // ✅ Important pour le scroll
-                                  children: [
-                                    const SizedBox(height: 8),
-                                    // Header
-                                    _buildHeader(),
-                                    const SizedBox(height: 20),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const SizedBox(height: 8),
+                                  // Header
+                                  _buildHeader(),
+                                  const SizedBox(height: 20),
 
-                                    // Formulaire de configuration
-                                    _buildConfigurationForm(),
-                                    const SizedBox(height: 80), // ✅ Réduit pour éviter overflow
-                                  ],
-                                ),
+                                  // Formulaire de configuration
+                                  _buildConfigurationForm(),
+                                  const SizedBox(height: 100), // ✅ Espace pour le bouton fixé
+                                ],
                               ),
                             ),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -244,9 +240,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
         ),
       ),
       // Bouton principal (fixé en bas de l'écran)
-      bottomNavigationBar: SafeArea(
-        child: Container(
-        padding: const EdgeInsets.all(20),
+      bottomNavigationBar: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -258,18 +252,22 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
             ],
           ),
         ),
-        child: _buildContinueButton(),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+            child: _buildContinueButton(),
+          ),
         ),
       ),
     );
   }
 
   Widget _buildHeader() {
-    return Column(
+    return const Column(
       children: [
         Text(
           'PERSONNALISE TON PARCOURS',
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Gilroy',
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -277,10 +275,10 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
           ),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         Text(
           'Configure tes préférences pour une expérience sur mesure',
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Gilroy',
             fontSize: 14,
             color: Colors.white70,
@@ -522,10 +520,10 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
       child: Center(
         child: Row(
           children: [
-            Expanded(
+            const Expanded(
               child: Text(
                 'Recevoir des rappels quotidiens',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Gilroy',
                   color: Colors.white,
                   fontSize: 14,
@@ -571,10 +569,10 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
               children: [
                 const Icon(Icons.access_time, color: Colors.white70, size: 18),
                 const SizedBox(width: 8),
-                Expanded(
+                const Expanded(
                   child: Text(
                     'Heure du rappel',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Gilroy',
                       color: Colors.white70,
                       fontSize: 14,
@@ -638,10 +636,10 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
             ),
           ),
           child: isLoading
-              ? Row(
+              ? const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const SizedBox(
+                    SizedBox(
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(
@@ -649,10 +647,10 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                         valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12),
                     Text(
                       'Configuration...',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Gilroy',
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -661,9 +659,9 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                     ),
                   ],
                 )
-              : Text(
+              : const Text(
                   'Continuer',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Gilroy',
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -780,14 +778,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
         } catch (e) {
           print('⚠️ Erreur lors de la configuration du rappel: $e');
           // Continuer même si les rappels ne fonctionnent pas
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Les rappels ne sont pas disponibles sur cet appareil'),
-                backgroundColor: Colors.orange,
-              ),
-            );
-          }
+          // Message supprimé pour éviter l'affichage persistant
         }
       } else {
         try {
@@ -850,16 +841,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
         
         print('✅ Bible $versionCode téléchargée (arrière-plan)');
         
-        // Notification de succès (optionnel, non bloquant)
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Bible $versionCode téléchargée ✅'),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
+        // Notification supprimée - pas de message en bas
       } catch (e) {
         print('⚠️ Erreur téléchargement Bible (non bloquant): $e');
         // Ne pas bloquer l'utilisateur - version locale utilisée

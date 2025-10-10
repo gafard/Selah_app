@@ -334,3 +334,4 @@ class PosterProposalWidget extends StatelessWidget {
   }
 }
 
+

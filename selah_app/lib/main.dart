@@ -1,19 +1,18 @@
 import 'dart:async';
-import 'dart:ui' show FontFeature;
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:provider/provider.dart' as provider;
-import 'package:timezone/data/latest.dart' as tz;
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:selah_app/router.dart';
 import 'package:selah_app/supabase.dart';
 import 'package:selah_app/services/reader_settings_service.dart';
-import 'package:selah_app/services/app_state.dart';
+import 'package:selah_app/state/app_state.dart';
 import 'package:selah_app/services/notification_service.dart';
 import 'package:selah_app/services/local_storage_service.dart';
 import 'package:selah_app/services/connectivity_service.dart';
+import 'package:selah_app/services/home_vm.dart';
+import 'package:selah_app/services/plan_service_http.dart';
+import 'bootstrap.dart' as bootstrap;
 
 /// Point d'entrée principal - VRAI OFFLINE-FIRST
 /// 
@@ -26,19 +25,20 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // ═══════════════════════════════════════════════════════════════════
+  // ÉTAPE 0 : BOOTSTRAP (Services de base + PlanService)
+  // ═══════════════════════════════════════════════════════════════════
+  await bootstrap.appBootstrap();
+  debugPrint('✅ Bootstrap completed (PlanService, SyncQueue, etc.)');
+  
+  // ═══════════════════════════════════════════════════════════════════
   // ÉTAPE 1 : STOCKAGE LOCAL (CRITIQUE - Toujours en premier)
   // ═══════════════════════════════════════════════════════════════════
-  await Hive.initFlutter();
-  await LocalStorageService.init();
+  // Déjà fait dans bootstrap
   debugPrint('✅ Local storage initialized (offline-ready)');
   
   // ═══════════════════════════════════════════════════════════════════
   // ÉTAPE 2 : SERVICES CORE (Offline-ready, non bloquants)
   // ═══════════════════════════════════════════════════════════════════
-  
-  // Timezone (pour notifications)
-  tz.initializeTimeZones();
-  debugPrint('✅ Timezone initialized');
   
   // Google Fonts
   GoogleFonts.config.allowRuntimeFetching = true;
@@ -52,9 +52,8 @@ Future<void> main() async {
   // ÉTAPE 3 : DÉTECTION RÉSEAU (Sans bloquer le boot)
   // ═══════════════════════════════════════════════════════════════════
   
-  // Initialiser ConnectivityService
-  await ConnectivityService.instance.init();
-  final isOnline = ConnectivityService.instance.isOnline;
+  // Utiliser ConnectivityService depuis bootstrap
+  final isOnline = bootstrap.connectivityService.isOnline;
   
   if (isOnline) {
     // Init Supabase en arrière-plan (non bloquant)
@@ -70,8 +69,13 @@ Future<void> main() async {
   runApp(
     provider.MultiProvider(
       providers: [
-        provider.ChangeNotifierProvider<AppState>(create: (context) => AppState()),
+        provider.ChangeNotifierProvider<AppState>(create: (context) => AppState(syncQueue: bootstrap.syncQueue)),
         provider.ChangeNotifierProvider<ReaderSettingsService>(create: (context) => ReaderSettingsService()),
+        provider.ChangeNotifierProvider<HomeVM>(create: (context) => HomeVM(
+          prefs: bootstrap.userPrefs,
+          telemetry: bootstrap.telemetry,
+          planService: bootstrap.planService as PlanServiceHttp,
+        )),
       ],
       child: const ProviderScope(
         child: SelahApp(),

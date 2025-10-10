@@ -45,11 +45,13 @@ class UserProfile {
   };
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
-    displayName: json['displayName'],
+    displayName: json['displayName'] ?? json['display_name'],
     bibleVersion: json['bibleVersion'],
     dailyMinutes: json['dailyMinutes'],
     preferredTime: json['preferredTime'],
-    preferences: json['preferences'] as Map<String, dynamic>?,
+    preferences: json['preferences'] != null 
+        ? Map<String, dynamic>.from(json['preferences'] as Map)
+        : null,
     themeImageReading: json['themeImageReading'],
     themeImageQuiz: json['themeImageQuiz'],
     themeImageAudio: json['themeImageAudio'],

@@ -31,14 +31,24 @@ class LocalStorageService {
   
   /// Récupère l'utilisateur local
   static Map<String, dynamic>? getLocalUser() {
-    final userData = _userBox?.get('current_user');
-    if (userData == null) return null;
-    return Map<String, dynamic>.from(userData as Map);
+    try {
+      final userData = _userBox?.get('current_user');
+      if (userData == null) return null;
+      return Map<String, dynamic>.from(userData as Map);
+    } catch (e) {
+      // Box fermée ou erreur → pas d'utilisateur local
+      return null;
+    }
   }
   
   /// Vérifie si un utilisateur local existe
   static bool hasLocalUser() {
-    return _userBox?.containsKey('current_user') ?? false;
+    try {
+      return _userBox?.containsKey('current_user') ?? false;
+    } catch (e) {
+      // Box fermée ou erreur → pas d'utilisateur local
+      return false;
+    }
   }
   
   /// Supprime l'utilisateur local
@@ -54,7 +64,7 @@ class LocalStorageService {
       final profile = prefsBox.get('profile');
       
       if (profile != null && profile is Map) {
-        return Map<String, dynamic>.from(profile as Map);
+        return Map<String, dynamic>.from(profile);
       }
       
       // Fallback : lire depuis current_user si présent
