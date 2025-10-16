@@ -147,6 +147,9 @@ Future<void> _populateSqliteIfNeeded() async {
     } else {
       print('✅ Base SQLite déjà peuplée');
     }
+    
+    // Pré-charger la version par défaut pour éviter le "blanc" la première fois
+    await BibleTextService.preloadActiveVersion('lsg1910');
   } catch (e) {
     print('⚠️ Erreur population SQLite: $e');
   }

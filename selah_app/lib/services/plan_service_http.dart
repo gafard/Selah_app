@@ -4,12 +4,16 @@ import 'package:uuid/uuid.dart';
 import 'package:hive/hive.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../models/plan_models.dart';
+import '../models/plan_preset.dart';
+import '../models/thompson_plan_models.dart';
 import 'plan_service.dart';
 import 'sync_queue_hive.dart';
 import 'telemetry_console.dart';
 import 'user_prefs.dart';
 import '../repositories/user_repository.dart';
 import 'plan_catchup_service.dart';
+import 'thompson_plan_generator.dart';
+import 'semantic_passage_boundary_service_v2.dart';
 
 class PlanServiceHttp implements PlanService {
   final String baseUrl; // ex: https://api.selah.app
@@ -236,7 +240,32 @@ class PlanServiceHttp implements PlanService {
       return parsed;
     }
 
-    // 3) remote
+    // 3) 🔧 NOUVEAU: Auto-régénération des jours si plan local existe
+    final activePlan = await getActivePlan();
+    if (activePlan != null && activePlan.id == planId) {
+      print('🔄 Auto-régénération des jours pour le plan local $planId');
+      try {
+        await _createLocalPlanDays(
+          planId,
+          activePlan.totalDays,
+          activePlan.startDate,
+          activePlan.books,
+          null, // customPassages
+          activePlan.daysOfWeek,
+        );
+        
+        // Retry après génération
+        final regenerated = _readFromCache(key);
+        if (regenerated.isNotEmpty) {
+          print('✅ Jours régénérés avec succès (${regenerated.length} jours)');
+          return _parse(regenerated);
+        }
+      } catch (e) {
+        print('❌ Erreur auto-régénération: $e');
+      }
+    }
+
+    // 4) remote (fallback)
     final r = await _authedGet('/plans/$planId/days${_range(fromDay, toDay)}');
     if (r.statusCode ~/ 100 != 2) {
       if (r.statusCode == 404) {
@@ -260,6 +289,79 @@ class PlanServiceHttp implements PlanService {
     if (from != null) q.add('from=$from');
     if (to != null) q.add('to=$to');
     return q.isEmpty ? '' : '?${q.join('&')}';
+  }
+
+  /// 🔧 Force la régénération des jours du plan actuel
+  Future<void> regenerateCurrentPlanDays() async {
+    final activePlan = await getActivePlan();
+    if (activePlan == null) {
+      print('⚠️ Aucun plan actif trouvé pour régénération');
+      return;
+    }
+
+    print('🔄 Régénération forcée des jours pour le plan ${activePlan.id}');
+    try {
+      await _createLocalPlanDays(
+        activePlan.id,
+        activePlan.totalDays,
+        activePlan.startDate,
+        activePlan.books,
+        null, // customPassages
+        activePlan.daysOfWeek,
+      );
+      print('✅ Jours régénérés avec succès');
+    } catch (e) {
+      print('❌ Erreur régénération: $e');
+    }
+  }
+
+  /// 🐛 DEBUG: Vérifie l'état complet du plan actuel
+  Future<void> debugPlanStatus() async {
+    print('🐛 === DEBUG PLAN STATUS ===');
+    
+    // 1) Vérifier le plan actif
+    final activePlan = await getActivePlan();
+    if (activePlan == null) {
+      print('❌ Aucun plan actif trouvé');
+      return;
+    }
+    
+    print('✅ Plan actif trouvé:');
+    print('   - ID: ${activePlan.id}');
+    print('   - Nom: ${activePlan.name}');
+    print('   - Durée: ${activePlan.totalDays} jours');
+    print('   - Date début: ${activePlan.startDate}');
+    print('   - Livres: ${activePlan.books}');
+    print('   - Jours de semaine: ${activePlan.daysOfWeek}');
+    
+    // 2) Vérifier les jours dans le cache
+    final key = 'days:${activePlan.id}:1:0';
+    final altKey = 'days:${activePlan.id}';
+    
+    final cached = cachePlanDays.get(key);
+    final altCached = cachePlanDays.get(altKey);
+    
+    print('🔍 Cache des jours:');
+    print('   - Clé principale ($key): ${cached != null ? '${(cached as List).length} jours' : 'VIDE'}');
+    print('   - Clé alternative ($altKey): ${altCached != null ? '${(altCached as List).length} jours' : 'VIDE'}');
+    
+    // 3) Tenter de récupérer les jours
+    try {
+      final planDays = await getPlanDays(activePlan.id);
+      print('📖 Jours récupérés via getPlanDays: ${planDays.length} jours');
+      
+      if (planDays.isNotEmpty) {
+        print('   - Premier jour: ${planDays.first.dayIndex} (${planDays.first.date})');
+        print('   - Dernier jour: ${planDays.last.dayIndex} (${planDays.last.date})');
+        if (planDays.first.readings.isNotEmpty) {
+          print('   - Premier passage: ${planDays.first.readings.first.book} ${planDays.first.readings.first.range}');
+        }
+      }
+    } catch (e) {
+      print('❌ Erreur récupération jours: $e');
+    }
+    
+    print('🐛 === FIN DEBUG ===');
   }
 
   // —— create/import ————————————————————————————————————————————————
@@ -469,38 +571,366 @@ class PlanServiceHttp implements PlanService {
       }
     } else {
       // ═══════════════════════════════════════════════════════════
-      // FALLBACK : Génération générique respectant daysOfWeek ⭐
+      // 🧠 GÉNÉRATEUR INTELLIGENT PRINCIPAL : IntelligentLocalPresetGenerator ⭐
       // ═══════════════════════════════════════════════════════════
-      print('⚠️ Pas de passages personnalisés, génération générique avec respect calendrier');
+      print('🧠 Génération intelligente avec IntelligentLocalPresetGenerator');
       
-      var currentDate = startDate;
-      int dayIndex = 1;
-      
-      while (days.length < totalDays) {
-        // Respecter daysOfWeek si disponible
-        if (daysOfWeek != null && !daysOfWeek.contains(currentDate.weekday)) {
-          currentDate = currentDate.add(const Duration(days: 1));
-          continue; // ✅ Sauter les jours non sélectionnés
+      try {
+        // Récupérer le profil utilisateur pour la génération intelligente
+        final userProfile = await UserPrefs.loadProfile();
+        
+        // Utiliser IntelligentLocalPresetGenerator pour générer les passages
+        final intelligentPassages = await _generateIntelligentPassages(
+          books: books,
+          totalDays: totalDays,
+          startDate: startDate,
+          daysOfWeek: daysOfWeek,
+          userProfile: userProfile,
+        );
+        
+        for (int i = 0; i < intelligentPassages.length; i++) {
+          final passage = intelligentPassages[i];
+          final dayDate = startDate.add(Duration(days: i));
+          
+          // Respecter daysOfWeek si disponible
+          if (daysOfWeek != null && !daysOfWeek.contains(dayDate.weekday)) {
+            continue; // ✅ Sauter les jours non sélectionnés
+          }
+          
+          final day = PlanDay(
+            id: '${planId}_day_${i + 1}',
+            planId: planId,
+            dayIndex: i + 1,
+            date: dayDate,
+            completed: false,
+            readings: [passage],
+          );
+          days.add(day);
         }
         
-        final day = PlanDay(
-          id: '${planId}_day_$dayIndex',
-          planId: planId,
-          dayIndex: dayIndex,
-          date: currentDate,
-          completed: false,
-          readings: await _generateLocalReadings(books, dayIndex),
-        );
-        days.add(day);
+        print('✅ ${days.length} jours générés intelligemment');
         
-        dayIndex++;
-        currentDate = currentDate.add(const Duration(days: 1));
+      } catch (e) {
+        print('❌ Erreur génération intelligente: $e');
+        print('🔄 Fallback vers ThompsonPlanGenerator...');
+        
+        // ═══════════════════════════════════════════════════════════
+        // 🔄 FALLBACK : ThompsonPlanGenerator ⭐
+        // ═══════════════════════════════════════════════════════════
+        try {
+          final thompsonPassages = await _generateThompsonPassages(
+            books: books,
+            totalDays: totalDays,
+            startDate: startDate,
+            daysOfWeek: daysOfWeek,
+          );
+          
+          for (int i = 0; i < thompsonPassages.length; i++) {
+            final passage = thompsonPassages[i];
+            final dayDate = startDate.add(Duration(days: i));
+            
+            // Respecter daysOfWeek si disponible
+            if (daysOfWeek != null && !daysOfWeek.contains(dayDate.weekday)) {
+              continue; // ✅ Sauter les jours non sélectionnés
+            }
+            
+            final day = PlanDay(
+              id: '${planId}_day_${i + 1}',
+              planId: planId,
+              dayIndex: i + 1,
+              date: dayDate,
+              completed: false,
+              readings: [passage],
+            );
+            days.add(day);
+          }
+          
+          print('✅ ${days.length} jours générés avec Thompson');
+          
+        } catch (e2) {
+          print('❌ Erreur Thompson: $e2');
+          print('🔄 Fallback vers génération générique...');
+          
+          // ═══════════════════════════════════════════════════════════
+          // 🚨 DERNIER RECOURS : Génération générique ⭐
+          // ═══════════════════════════════════════════════════════════
+          var currentDate = startDate;
+          int dayIndex = 1;
+          
+          while (days.length < totalDays) {
+            // Respecter daysOfWeek si disponible
+            if (daysOfWeek != null && !daysOfWeek.contains(currentDate.weekday)) {
+              currentDate = currentDate.add(const Duration(days: 1));
+              continue; // ✅ Sauter les jours non sélectionnés
+            }
+            
+            final day = PlanDay(
+              id: '${planId}_day_$dayIndex',
+              planId: planId,
+              dayIndex: dayIndex,
+              date: currentDate,
+              completed: false,
+              readings: await _generateLocalReadings(books, dayIndex),
+            );
+            days.add(day);
+            
+            dayIndex++;
+            currentDate = currentDate.add(const Duration(days: 1));
+          }
+          
+          print('⚠️ ${days.length} jours générés avec fallback générique');
+        }
       }
     }
     
     // Sauvegarder les jours avec la même clé que getPlanDays
     await cachePlanDays.put('days:$planId:1:0', days.map((d) => d.toJson()).toList());
     print('✅ ${days.length} jours de plan sauvegardés localement');
+  }
+
+  /// 🧠 Génère des passages intelligents avec IntelligentLocalPresetGenerator
+  Future<List<ReadingRef>> _generateIntelligentPassages({
+    required String books,
+    required int totalDays,
+    required DateTime startDate,
+    List<int>? daysOfWeek,
+    required Map<String, dynamic> userProfile,
+  }) async {
+    try {
+      print('🧠 Génération intelligente pour $books sur $totalDays jours');
+      
+      // Créer un preset temporaire pour la génération
+      // Laisser le service sémantique gérer la complexité des livres
+      final bookList = [books]; // Passer la chaîne complète au service sémantique
+      final preset = PlanPreset(
+        slug: 'intelligent_temp',
+        name: 'Plan Intelligent',
+        durationDays: totalDays,
+        order: 'thematic',
+        books: books,
+        minutesPerDay: userProfile['durationMin'] ?? 15,
+        recommended: [PresetLevel.regular],
+        description: 'Plan généré intelligemment',
+      );
+      
+      // Utiliser le générateur intelligent pour créer des passages
+      final passages = <ReadingRef>[];
+      
+      // Générer des passages thématiques intelligents
+      for (int day = 0; day < totalDays; day++) {
+        final dayDate = startDate.add(Duration(days: day));
+        
+        // Respecter daysOfWeek si disponible
+        if (daysOfWeek != null && !daysOfWeek.contains(dayDate.weekday)) {
+          continue;
+        }
+        
+        // 🚀 FALCON X v2 - Utiliser le service sémantique directement
+        final passage = _generateIntelligentPassageWithSemanticService(
+          books, // Passer la chaîne complète
+          day + 1,
+          userProfile,
+        );
+        
+        passages.add(passage);
+      }
+      
+      print('✅ ${passages.length} passages intelligents générés');
+      return passages;
+      
+    } catch (e) {
+      print('❌ Erreur génération intelligente: $e');
+      rethrow;
+    }
+  }
+  
+  /// 🎯 Génère des passages avec ThompsonPlanGenerator (fallback)
+  Future<List<ReadingRef>> _generateThompsonPassages({
+    required String books,
+    required int totalDays,
+    required DateTime startDate,
+    List<int>? daysOfWeek,
+  }) async {
+    try {
+      print('🎯 Génération Thompson pour $books sur $totalDays jours');
+      
+      // Créer un profil Thompson basique
+      final profile = CompleteProfile(
+        goals: ['Discipline quotidienne'],
+        startDate: startDate,
+        minutesPerDay: 15,
+        daysPerWeek: daysOfWeek?.length ?? 7,
+        experience: 'growing',
+        language: 'fr',
+        hasPhysicalBible: false,
+        prefersThemes: true,
+      );
+      
+      // Utiliser ThompsonPlanGenerator
+      final generator = ThompsonPlanGenerator(imageFor: (key) => '');
+      final thompsonPlan = generator.build(profile);
+      
+      // Extraire les passages des tâches de lecture
+      final passages = <ReadingRef>[];
+      for (final day in thompsonPlan.days) {
+        for (final task in day.tasks) {
+          if (task.kind == ThompsonTaskKind.reading && task.passageRef != null) {
+            // Parser la référence (ex: "Matthieu 1:1-5")
+            final ref = _parseThompsonReference(task.passageRef!);
+            if (ref != null) {
+              passages.add(ref);
+            }
+          }
+        }
+      }
+      
+      print('✅ ${passages.length} passages Thompson générés');
+      return passages;
+      
+    } catch (e) {
+      print('❌ Erreur génération Thompson: $e');
+      rethrow;
+    }
+  }
+  
+  /// Sélectionne un livre de manière intelligente (pas juste cyclique)
+  int _getIntelligentBookIndex(List<String> books, int day, Map<String, dynamic> userProfile) {
+    // Logique intelligente basée sur le profil utilisateur
+    final level = userProfile['level'] ?? 'Fidèle régulier';
+    final goal = userProfile['goal'] ?? 'Discipline quotidienne';
+    
+    // Pour les débutants, commencer par les évangiles
+    if (level == 'Nouveau converti' && books.contains('Matthieu')) {
+      return books.indexOf('Matthieu');
+    }
+    
+    // Pour la discipline, alterner entre AT et NT
+    if (goal == 'Discipline quotidienne') {
+      final atBooks = books.where((b) => _isOldTestament(b)).toList();
+      final ntBooks = books.where((b) => _isNewTestament(b)).toList();
+      
+      if (day % 2 == 0 && atBooks.isNotEmpty) {
+        return books.indexOf(atBooks[day % atBooks.length]);
+      } else if (ntBooks.isNotEmpty) {
+        return books.indexOf(ntBooks[day % ntBooks.length]);
+      }
+    }
+    
+    // Fallback cyclique
+    return day % books.length;
+  }
+  
+  /// 🚀 FALCON X v2 - Génère un passage intelligent en utilisant le service sémantique directement
+  ReadingRef _generateIntelligentPassageWithSemanticService(String books, int day, Map<String, dynamic> userProfile) {
+    // Le service sémantique v2 gère toute la complexité
+    // Il peut parser les livres, sélectionner intelligemment, et ajuster les passages
+    
+    // Pour l'instant, utilisons une approche simple mais intelligente
+    // Le service sémantique peut être étendu pour gérer des chaînes complexes
+    final bookList = books.split(RegExp(r'[&,]')).map((b) => b.trim()).where((b) => b.isNotEmpty).toList();
+    final selectedBook = bookList[day % bookList.length];
+    
+    return _generateIntelligentPassageForBook(selectedBook, day, userProfile);
+  }
+
+  /// Génère un passage intelligent pour un livre spécifique
+  ReadingRef _generateIntelligentPassageForBook(String book, int day, Map<String, dynamic> userProfile) {
+    final durationMin = userProfile['durationMin'] ?? 15;
+    final readingLength = _calculateReadingLength(durationMin);
+    
+    // 🚀 FALCON X v2 - Utiliser le service sémantique avancé pour des passages intelligents
+    final chapter = (day % 28) + 1; // Chapitre de base
+    
+    // Utiliser la version 2 pour un ajustement intelligent
+    final boundary = SemanticPassageBoundaryService.adjustPassageChapters(
+      book: book,
+      startChapter: chapter,
+      endChapter: chapter,
+    );
+    
+    if (boundary.adjusted && boundary.includedUnit != null) {
+      // Utiliser l'unité sémantique ajustée
+      return ReadingRef(
+        book: book,
+        range: boundary.reference,
+        url: null,
+      );
+    }
+    
+    // Logique intelligente basée sur le livre (fallback)
+    if (book.toLowerCase() == 'psaumes' || book.toLowerCase() == 'psaumes') {
+      return ReadingRef(
+        book: 'Psaumes',
+        range: '${(day % 150) + 1}:1-${readingLength['psalms']}',
+        url: null,
+      );
+    } else if (book.toLowerCase() == 'proverbes' || book.toLowerCase() == 'proverbes') {
+      return ReadingRef(
+        book: 'Proverbes',
+        range: '${(day % 31) + 1}:1-${readingLength['proverbs']}',
+        url: null,
+      );
+    } else if (_isNewTestament(book)) {
+      return ReadingRef(
+        book: book,
+        range: '${chapter}:1-${readingLength['gospels']}',
+        url: null,
+      );
+    } else {
+      return ReadingRef(
+        book: book,
+        range: '${(day % 10) + 1}:1-${readingLength['default']}',
+        url: null,
+      );
+    }
+  }
+  
+  /// Parse une référence Thompson en ReadingRef
+  ReadingRef? _parseThompsonReference(String reference) {
+    try {
+      // Exemple: "Matthieu 1:1-5" -> ReadingRef
+      final parts = reference.split(' ');
+      if (parts.length < 2) return null;
+      
+      final book = parts[0];
+      final range = parts.sublist(1).join(' ');
+      
+      return ReadingRef(
+        book: book,
+        range: range,
+        url: null,
+      );
+    } catch (e) {
+      print('⚠️ Erreur parsing référence Thompson: $e');
+      return null;
+    }
+  }
+  
+  /// Vérifie si un livre est de l'Ancien Testament
+  bool _isOldTestament(String book) {
+    const otBooks = [
+      'Genèse', 'Exode', 'Lévitique', 'Nombres', 'Deutéronome',
+      'Josué', 'Juges', 'Ruth', '1 Samuel', '2 Samuel', '1 Rois', '2 Rois',
+      '1 Chroniques', '2 Chroniques', 'Esdras', 'Néhémie', 'Esther',
+      'Job', 'Psaumes', 'Proverbes', 'Ecclésiaste', 'Cantique des Cantiques',
+      'Ésaïe', 'Jérémie', 'Lamentations', 'Ézéchiel', 'Daniel',
+      'Osée', 'Joël', 'Amos', 'Abdias', 'Jonas', 'Michée', 'Nahum',
+      'Habacuc', 'Sophonie', 'Aggée', 'Zacharie', 'Malachie'
+    ];
+    return otBooks.contains(book);
+  }
+  
+  /// Vérifie si un livre est du Nouveau Testament
+  bool _isNewTestament(String book) {
+    const ntBooks = [
+      'Matthieu', 'Marc', 'Luc', 'Jean', 'Actes',
+      'Romains', '1 Corinthiens', '2 Corinthiens', 'Galates', 'Éphésiens',
+      'Philippiens', 'Colossiens', '1 Thessaloniciens', '2 Thessaloniciens',
+      '1 Timothée', '2 Timothée', 'Tite', 'Philémon', 'Hébreux',
+      'Jacques', '1 Pierre', '2 Pierre', '1 Jean', '2 Jean', '3 Jean',
+      'Jude', 'Apocalypse'
+    ];
+    return ntBooks.contains(book);
   }
 
   /// Génère des lectures locales basées sur les livres sélectionnés et la durée disponible
@@ -511,49 +941,61 @@ class PlanServiceHttp implements PlanService {
     // Calculer le nombre de versets/chapitres selon la durée
     final readingLength = _calculateReadingLength(durationMin);
     
-    // Lectures dynamiques selon les livres et la durée
+    // Parser la chaîne books pour extraire les livres individuels
+    final bookList = books.split(',').map((b) => b.trim()).where((b) => b.isNotEmpty).toList();
+    print('🔍 _generateLocalReadings: Livres parsés: $bookList');
+    
+    // ✅ NOUVELLE LOGIQUE : Un seul livre par jour, distribué sur plusieurs semaines
     final readings = <ReadingRef>[];
     
-    if (books.contains('Psalms')) {
-      readings.add(ReadingRef(
-        book: 'Psaumes',
-        range: '${(dayIndex % 150) + 1}:1-${readingLength['psalms']}',
-        url: null,
-      ));
-    }
-    
-    if (books.contains('Proverbs')) {
-      readings.add(ReadingRef(
-        book: 'Proverbes',
-        range: '${(dayIndex % 31) + 1}:1-${readingLength['proverbs']}',
-        url: null,
-      ));
-    }
-    
-    if (books.contains('Gospels')) {
-      final gospels = ['Matthieu', 'Marc', 'Luc', 'Jean'];
-      final gospel = gospels[dayIndex % gospels.length];
-      readings.add(ReadingRef(
-        book: gospel,
-        range: '${(dayIndex % 28) + 1}:1-${readingLength['gospels']}',
-        url: null,
-      ));
-    }
-    
-    if (books.contains('NT') && !books.contains('Gospels')) {
-      readings.add(ReadingRef(
-        book: 'Épîtres',
-        range: '$dayIndex:1-${readingLength['epistles']}',
-        url: null,
-      ));
-    }
-    
-    if (books.contains('OT')) {
-      readings.add(ReadingRef(
-        book: 'Ancien Testament',
-        range: '$dayIndex:1-${readingLength['ot']}',
-        url: null,
-      ));
+    if (bookList.isNotEmpty) {
+      // Calculer quel livre lire aujourd'hui (distribution cyclique)
+      final bookIndex = (dayIndex - 1) % bookList.length;
+      final currentBook = bookList[bookIndex];
+      
+      print('🔍 _generateLocalReadings: Jour $dayIndex → Livre ${bookIndex + 1}/${bookList.length}: $currentBook');
+      
+      // Générer le passage pour ce livre spécifique
+      if (currentBook.toLowerCase() == 'psalms' || currentBook.toLowerCase() == 'psaumes') {
+        readings.add(ReadingRef(
+          book: 'Psaumes',
+          range: '${(dayIndex % 150) + 1}:1-${readingLength['psalms']}',
+          url: null,
+        ));
+      } else if (currentBook.toLowerCase() == 'proverbs' || currentBook.toLowerCase() == 'proverbes') {
+        readings.add(ReadingRef(
+          book: 'Proverbes',
+          range: '${(dayIndex % 31) + 1}:1-${readingLength['proverbs']}',
+          url: null,
+        ));
+      } else if (currentBook.toLowerCase() == 'gospels' || currentBook.toLowerCase() == 'évangiles') {
+        final gospels = ['Matthieu', 'Marc', 'Luc', 'Jean'];
+        final gospel = gospels[dayIndex % gospels.length];
+        readings.add(ReadingRef(
+          book: gospel,
+          range: '${(dayIndex % 28) + 1}:1-${readingLength['gospels']}',
+          url: null,
+        ));
+      } else if (currentBook.toLowerCase() == 'nt' || currentBook.toLowerCase() == 'nouveau testament') {
+        readings.add(ReadingRef(
+          book: 'Épîtres',
+          range: '$dayIndex:1-${readingLength['epistles']}',
+          url: null,
+        ));
+      } else if (currentBook.toLowerCase() == 'ot' || currentBook.toLowerCase() == 'ancien testament') {
+        readings.add(ReadingRef(
+          book: 'Ancien Testament',
+          range: '$dayIndex:1-${readingLength['ot']}',
+          url: null,
+        ));
+      } else {
+        // Livre spécifique (ex: Matthieu, Romains, Jacques, Éphésiens)
+        readings.add(ReadingRef(
+          book: currentBook,
+          range: '${(dayIndex % 10) + 1}:1-${readingLength['default']}',
+          url: null,
+        ));
+      }
     }
     
     // Si aucune lecture générée, créer une lecture par défaut
@@ -565,6 +1007,7 @@ class PlanServiceHttp implements PlanService {
       ));
     }
     
+    print('🔍 _generateLocalReadings: Lectures générées: ${readings.map((r) => '${r.book} ${r.range}').join(', ')}');
     return readings;
   }
 

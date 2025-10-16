@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -10,6 +11,7 @@ import '../widgets/uniform_back_button.dart';
 import '../models/reading_passage.dart';
 import '../services/bible_version_manager.dart';
 import '../services/user_prefs.dart';
+import 'advanced_bible_study_page.dart';
 
 class ReaderPageModern extends StatefulWidget {
   final String? passageRef;
@@ -40,13 +42,12 @@ class _ReaderPageModernState extends State<ReaderPageModern>
   
   
   // Passage data
-  late final String _passageRef;
   String _passageText = '';
-  late final String _dayTitle;
+  String _dayTitle = 'Jour 15'; // Valeur par défaut
   bool _isLoadingText = true;
   
   // Multi-passage support
-  late ReadingSession _readingSession;
+  ReadingSession? _readingSession;
   
   // Version selection
   String _selectedVersion = 'lsg1910'; // ✅ Version VideoPsalm par défaut
@@ -55,18 +56,22 @@ class _ReaderPageModernState extends State<ReaderPageModern>
   @override
   void initState() {
     super.initState();
-    
-    // ✅ Charger la version de Bible de l'utilisateur
-    _loadUserBibleVersion();
-    
-    // Initialiser la session de lecture
-    _initializeReadingSession();
-    
     _buttonAnimationController = AnimationController(
       duration: const Duration(milliseconds: 200),
       vsync: this,
     );
     
+    // Initialiser la session de lecture de manière synchrone
+    _initializeReadingSession();
+    
+    // Puis charger de manière asynchrone
+    _init();
+  }
+
+  Future<void> _init() async {
+    await _loadUserBibleVersion();   // ✅ d'abord version
+    await _loadAvailableVersions();  // remplit la liste et (si besoin) aligne _selectedVersion
+    await _loadAllPassages();        // ✅ puis charge les textes
   }
   
   /// ✅ Charge la version de Bible de l'utilisateur
@@ -79,6 +84,11 @@ class _ReaderPageModernState extends State<ReaderPageModern>
           _selectedVersion = userVersion;
         });
         print('📖 Version utilisateur chargée: $userVersion');
+
+        // si la session est déjà prête, recharge
+        if (_readingSession?.passages.isNotEmpty == true) {
+          await _loadAllPassages();
+        }
       }
     } catch (e) {
       print('⚠️ Erreur chargement version utilisateur: $e');
@@ -107,23 +117,21 @@ class _ReaderPageModernState extends State<ReaderPageModern>
     }
     
     // Initialiser les variables de compatibilité
-    _passageRef = _readingSession.currentPassage?.reference ?? 'Jean 14:1-19';
-    _dayTitle = _readingSession.dayTitle ?? 'Jour 15';
-    
-    // Charger les versions disponibles
-    _loadAvailableVersions();
-    
-    // Charger tous les passages
-    _loadAllPassages();
+    _dayTitle = _readingSession?.dayTitle ?? 'Jour 15';
   }
 
   /// Charge tous les passages de la session
   Future<void> _loadAllPassages() async {
+    if (_readingSession == null) {
+      print('⚠️ _readingSession est null, impossible de charger les passages');
+      return;
+    }
+    
     try {
       await BibleTextService.init();
       
       // Charger tous les passages en parallèle
-      final futures = _readingSession.passages.asMap().entries.map((entry) {
+      final futures = _readingSession!.passages.asMap().entries.map((entry) {
         final index = entry.key;
         final passage = entry.value;
         return _loadSinglePassage(index, passage);
@@ -132,7 +140,7 @@ class _ReaderPageModernState extends State<ReaderPageModern>
       await Future.wait(futures);
       
       // Mettre à jour le texte du passage actuel
-      _updateCurrentPassageText();
+      await _updateCurrentPassageText();
       
     } catch (e) {
       print('⚠️ Erreur chargement passages multiples: $e');
@@ -145,59 +153,97 @@ class _ReaderPageModernState extends State<ReaderPageModern>
   /// Charge un passage spécifique
   Future<void> _loadSinglePassage(int index, ReadingPassage passage) async {
     try {
-      // Marquer comme en cours de chargement
+      print('🔎 Fetch passage "${passage.reference}" (version=$_selectedVersion)');
+
+      // Indiquer le loading
+      if (_readingSession != null) {
+        setState(() {
+          _readingSession = _readingSession!.updatePassage(
+            index,
+            passage.copyWith(isLoading: true),
+          );
+        });
+      }
+
+      // ✅ S'assurer que la version est disponible avant de récupérer le texte
+      await BibleTextService.ensureVersionAvailable(_selectedVersion);
+      
+      // ✅ Utiliser le nouveau système SQLite avec service sémantique
+      final text = await BibleTextService.getPassageText(
+        passage.reference, 
+        version: _selectedVersion,
+      );
+
+      // Résoudre le fallback AVANT setState
+      final resolvedText = text ?? await _getFallbackText(passage.reference);
+
+      if (!mounted || _readingSession == null) return;
       setState(() {
-        _readingSession = _readingSession.updatePassage(
+        _readingSession = _readingSession!.updatePassage(
           index,
-          passage.copyWith(isLoading: true),
+          passage.copyWith(
+            text: resolvedText,
+            isLoaded: true,
+            isLoading: false,
+            error: text == null ? 'Texte non trouvé' : null,
+          ),
         );
       });
-      
-      // Récupérer le texte depuis la base de données avec la version sélectionnée
-      final text = await BibleTextService.getPassageText(passage.reference, version: _selectedVersion);
-      
-      if (mounted) {
-        setState(() {
-          _readingSession = _readingSession.updatePassage(
-            index,
-            passage.copyWith(
-              text: text ?? _getFallbackText(passage.reference),
-              isLoaded: true,
-              isLoading: false,
-              error: text == null ? 'Texte non trouvé' : null,
-            ),
-          );
-        });
-      }
     } catch (e) {
       print('⚠️ Erreur chargement passage ${passage.reference}: $e');
-      if (mounted) {
-        setState(() {
-          _readingSession = _readingSession.updatePassage(
-            index,
-            passage.copyWith(
-              text: _getFallbackText(passage.reference),
-              isLoaded: true,
-              isLoading: false,
-              error: e.toString(),
-            ),
-          );
-        });
-      }
+      final resolvedText = await _getFallbackText(passage.reference);
+      if (!mounted || _readingSession == null) return;
+      setState(() {
+        _readingSession = _readingSession!.updatePassage(
+          index,
+          passage.copyWith(
+            text: resolvedText,
+            isLoaded: true,
+            isLoading: false,
+            error: e.toString(),
+          ),
+        );
+      });
     }
   }
   
   /// Met à jour le texte du passage actuel
-  void _updateCurrentPassageText() {
-    final currentPassage = _readingSession.currentPassage;
+  Future<void> _updateCurrentPassageText() async {
+    if (_readingSession == null) {
+      print('⚠️ _readingSession est null, impossible de mettre à jour le texte');
+      return;
+    }
+    
+    final currentPassage = _readingSession!.currentPassage;
+
+    final preview = (currentPassage?.text ?? '');
+    print('🔍 _updateCurrentPassageText: hasText=${preview.isNotEmpty}, isReady=${currentPassage?.isReady}');
+
     if (currentPassage != null && currentPassage.isReady) {
+      // ✅ Calculer d'abord, puis un seul setState
+      final newText = (currentPassage.text?.trim().isNotEmpty == true)
+          ? currentPassage.text!
+          : await _getFallbackText(currentPassage.reference);
+
+      if (!mounted) return;
       setState(() {
-        _passageText = currentPassage.text!;
+        _passageText = newText;
+        _isLoadingText = false;
+      });
+    } else if (!_readingSession!.hasLoadingPassages) {
+      // ✅ Si aucun passage n'est en cours de chargement, utiliser le fallback
+      final fallbackText = await _getFallbackText(_readingSession!.currentPassage?.reference ?? 'Jean 14:1-19');
+      
+      if (!mounted) return;
+      setState(() {
+        _passageText = fallbackText;
         _isLoadingText = false;
       });
     } else {
+      // ✅ Sinon, indiquer le loading
+      if (!mounted) return;
       setState(() {
-        _isLoadingText = _readingSession.hasLoadingPassages;
+        _isLoadingText = true;
       });
     }
   }
@@ -205,44 +251,61 @@ class _ReaderPageModernState extends State<ReaderPageModern>
   /// Charge le texte biblique depuis la base de données (rétrocompatibilité)
   Future<void> _loadBibleText() async {
     try {
-      // Initialiser le service si nécessaire
       await BibleTextService.init();
-      
-      // Si un texte est déjà fourni, l'utiliser
+
       if (widget.passageText != null && widget.passageText!.isNotEmpty) {
+        if (!mounted) return;
         setState(() {
           _passageText = widget.passageText!;
           _isLoadingText = false;
         });
         return;
       }
-      
-      // Sinon, récupérer depuis la base de données avec la version sélectionnée
-      final text = await BibleTextService.getPassageText(_passageRef, version: _selectedVersion);
-      
-      if (mounted) {
-        setState(() {
-          _passageText = text ?? _getFallbackText();
-          _isLoadingText = false;
-        });
-      }
-      
+
+      final text = await BibleTextService.getPassageText(
+        _readingSession?.currentPassage?.reference ?? 'Jean 14:1-19',
+        version: _selectedVersion,
+      );
+
+      final resolved = text ?? await _getFallbackText(
+        _readingSession?.currentPassage?.reference,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _passageText = resolved;
+        _isLoadingText = false;
+      });
+
       if (text == null) {
-        print('⚠️ Texte non trouvé pour: $_passageRef');
+        print('⚠️ Texte non trouvé pour: ${_readingSession?.currentPassage?.reference}');
       }
     } catch (e) {
       print('⚠️ Erreur chargement texte biblique: $e');
-      if (mounted) {
-        setState(() {
-          _passageText = _getFallbackText();
-          _isLoadingText = false;
-        });
-      }
+      final resolved = await _getFallbackText(_readingSession?.currentPassage?.reference);
+      if (!mounted) return;
+      setState(() {
+        _passageText = resolved;
+        _isLoadingText = false;
+      });
     }
   }
 
   /// Texte de fallback si la base de données n'est pas disponible
-  String _getFallbackText([String? reference]) {
+  Future<String> _getFallbackText([String? reference]) async {
+    // Essayer de récupérer le vrai texte de Jean 14:1-19 depuis la base de données
+    try {
+      final text = await BibleTextService.getPassageText('Jean 14:1-19', version: _selectedVersion);
+      if (text != null && text.trim().isNotEmpty) {
+        print('🔍 _getFallbackText: Texte récupéré depuis la base de données (${text.length} caractères)');
+        return text;
+      }
+    } catch (e) {
+      print('⚠️ _getFallbackText: Erreur récupération depuis la base: $e');
+    }
+    
+    // Fallback statique si la base de données échoue
+    print('🔍 _getFallbackText: Utilisation du texte statique');
     return '''Que votre cœur ne se trouble point. Croyez en Dieu, et croyez en moi.
 
 Il y a plusieurs demeures dans la maison de mon Père. Si cela n'était pas, je vous l'aurais dit. Je vais vous préparer une place.
@@ -321,7 +384,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
     
     HapticFeedback.mediumImpact();
     context.go('/meditation/chooser', extra: {
-      'passageRef': _passageRef,
+      'passageRef': _readingSession?.currentPassage?.reference ?? 'Jean 14:1-19',
       'passageText': _passageText,
       'memoryVerse': _notedVerse, // Verset noté par l'utilisateur
     }); // page avec 2 options
@@ -581,86 +644,142 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Colors.white,
-              Colors.grey.shade100,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              _buildHeader(),
-              Expanded(
-                child: _buildMainContent(),
+    return Consumer<ReaderSettingsService>(
+      builder: (context, settings, child) {
+        final isDark = settings.effectiveTheme == 'dark';
+        
+        return Scaffold(
+          body: Container(
+            decoration: BoxDecoration(
+              gradient: isDark ? const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF0B1025), Color(0xFF1C1740), Color(0xFF2D1B69)],
+                stops: [0.0, 0.55, 1.0],
+              ) : const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Colors.white, Color(0xFFF8F9FA)],
               ),
-              _buildBottomActions(),
-            ],
+            ),
+            child: SafeArea(
+              child: Column(
+                children: [
+                  _buildHeader(isDark),
+                  Expanded(
+                    child: _buildMainContent(isDark),
+                  ),
+                  _buildBottomActions(),
+                ],
+              ),
+            ),
           ),
-        ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHeader(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => context.pop(),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDark ? Colors.white.withOpacity(0.2) : Colors.black.withOpacity(0.2),
+                ),
+              ),
+              child: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: isDark ? Colors.white : Colors.black,
+                size: 20,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _dayTitle,
+                  style: TextStyle(
+                    fontFamily: 'Gilroy',
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _readingSession?.currentPassage?.reference ?? 'Jean 14:1-19',
+                  style: TextStyle(
+                    fontFamily: 'Gilroy',
+                    fontSize: 14,
+                    color: isDark ? Colors.white70 : Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: () => context.go('/reader_settings'),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDark ? Colors.white.withOpacity(0.2) : Colors.black.withOpacity(0.2),
+                ),
+              ),
+              child: Icon(
+                Icons.settings_rounded,
+                color: isDark ? Colors.white : Colors.black,
+                size: 20,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildHeader() {
-    return UniformHeader(
-      title: _dayTitle,
-      subtitle: _passageRef,
-      onBackPressed: () => context.pop(),
-      textColor: Colors.grey.shade800,
-      iconColor: Colors.grey.shade700,
-      titleAlignment: CrossAxisAlignment.center,
-      trailing: GestureDetector(
-        onTap: () => context.go('/reader_settings'),
-        child: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade200,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(
-            Icons.settings_rounded,
-            color: Colors.grey.shade700,
-            size: 20,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMainContent() {
+  Widget _buildMainContent(bool isDark) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? Colors.white.withOpacity(0.12) : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.2) : Colors.grey.shade300,
+          width: 1,
+        ),
       ),
-      child: Column(
-        children: [
-          Expanded(
-            child: _buildTextContent(),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+          child: Column(
+            children: [
+              Expanded(
+                child: _buildTextContent(isDark),
+              ),
+              _buildBottomWidgets(),
+            ],
           ),
-          _buildBottomWidgets(),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildTextContent() {
+  Widget _buildTextContent(bool isDark) {
     return Consumer<ReaderSettingsService>(
       builder: (context, settings, child) {
         return SingleChildScrollView(
@@ -669,21 +788,29 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // En-tête avec navigation si plusieurs passages
-              _buildPassageHeader(),
+              _buildPassageHeader(isDark),
               const SizedBox(height: 16),
               
               // Contenu du passage
               if (_isLoadingText)
-                const Center(
+                Center(
                   child: Padding(
-                    padding: EdgeInsets.all(32.0),
-                    child: CircularProgressIndicator(),
+                    padding: const EdgeInsets.all(32.0),
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        isDark ? Colors.white : Colors.black,
+                      ),
+                    ),
                   ),
                 )
               else
                 HighlightableText(
                   text: _passageText,
-                  style: settings.getFontStyle(),
+                  style: settings.getFontStyle().copyWith(
+                    color: isDark ? Colors.white : Colors.black,
+                    fontSize: 16,
+                    height: 1.6,
+                  ),
                   textAlign: settings.getTextAlign(),
                 ),
             ],
@@ -694,15 +821,18 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
   }
   
   /// Construit l'en-tête avec navigation pour les passages multiples
-  Widget _buildPassageHeader() {
-    if (!_readingSession.hasMultiplePassages) {
+  Widget _buildPassageHeader(bool isDark) {
+    final currentRef = _readingSession?.currentPassage?.reference ?? 'Jean 14:1-19';
+    
+    if (_readingSession == null || !_readingSession!.hasMultiplePassages) {
       // Un seul passage - affichage simple
       return Text(
-        _passageRef,
-        style: GoogleFonts.playfairDisplay(
+        currentRef,
+        style: TextStyle(
+          fontFamily: 'Gilroy',
           fontSize: 24,
           fontWeight: FontWeight.bold,
-          color: const Color(0xFF2D2D2D),
+          color: isDark ? Colors.white : Colors.black,
         ),
       );
     }
@@ -715,11 +845,12 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
         Row(
           children: [
             Text(
-              'Passage ${_readingSession.currentPassageIndex + 1} sur ${_readingSession.totalPassages}',
-              style: GoogleFonts.inter(
+              'Passage ${(_readingSession?.currentPassageIndex ?? 0) + 1} sur ${_readingSession?.totalPassages ?? 1}',
+              style: TextStyle(
+                fontFamily: 'Gilroy',
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: Colors.grey.shade600,
+                color: isDark ? Colors.white70 : Colors.grey.shade600,
               ),
             ),
             const Spacer(),
@@ -727,36 +858,42 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
             Row(
               children: [
                 // Bouton précédent
-                if (_readingSession.canGoToPrevious)
+                if (_readingSession?.canGoToPrevious == true)
                   GestureDetector(
                     onTap: _goToPreviousPassage,
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
+                        color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isDark ? Colors.white.withOpacity(0.2) : Colors.black.withOpacity(0.2),
+                        ),
                       ),
                       child: Icon(
                         Icons.chevron_left,
-                        color: Colors.grey.shade700,
+                        color: isDark ? Colors.white : Colors.black,
                         size: 20,
                       ),
                     ),
                   ),
                 const SizedBox(width: 8),
                 // Bouton suivant
-                if (_readingSession.canGoToNext)
+                if (_readingSession?.canGoToNext == true)
                   GestureDetector(
                     onTap: _goToNextPassage,
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
+                        color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isDark ? Colors.white.withOpacity(0.2) : Colors.black.withOpacity(0.2),
+                        ),
                       ),
                       child: Icon(
                         Icons.chevron_right,
-                        color: Colors.grey.shade700,
+                        color: isDark ? Colors.white : Colors.black,
                         size: 20,
                       ),
                     ),
@@ -768,16 +905,17 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
         const SizedBox(height: 12),
         // Référence du passage actuel
         Text(
-          _passageRef,
-          style: GoogleFonts.playfairDisplay(
+          currentRef,
+          style: TextStyle(
+            fontFamily: 'Gilroy',
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: const Color(0xFF2D2D2D),
+            color: isDark ? Colors.white : Colors.black,
           ),
         ),
         const SizedBox(height: 8),
         // Liste des passages (mini-indicateurs)
-        _buildPassageIndicators(),
+        _buildPassageIndicators(isDark),
         const SizedBox(height: 12),
         // Sélecteur de version
         _buildVersionSelector(),
@@ -786,35 +924,47 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
   }
   
   /// Construit les indicateurs de passages
-  Widget _buildPassageIndicators() {
+  Widget _buildPassageIndicators(bool isDark) {
+    if (_readingSession == null) return const SizedBox.shrink();
+    
     return Row(
-      children: _readingSession.passages.asMap().entries.map((entry) {
+      children: _readingSession!.passages.asMap().entries.map((entry) {
         final index = entry.key;
         final passage = entry.value;
-        final isCurrent = index == _readingSession.currentPassageIndex;
+        final isCurrent = index == _readingSession!.currentPassageIndex;
         
         return GestureDetector(
           onTap: () {
             setState(() {
-              _readingSession = _readingSession.copyWith(currentPassageIndex: index);
-              _updateCurrentPassageText();
+              _readingSession = _readingSession!.copyWith(currentPassageIndex: index);
             });
+            // ✅ Appeler _updateCurrentPassageText après setState
+            _updateCurrentPassageText();
             HapticFeedback.selectionClick();
           },
           child: Container(
             margin: const EdgeInsets.only(right: 8),
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: isCurrent ? Colors.blue.shade100 : Colors.grey.shade100,
+              color: isCurrent 
+                  ? const Color(0xFF1553FF).withOpacity(0.2) 
+                  : (isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1)),
               borderRadius: BorderRadius.circular(12),
-              border: isCurrent ? Border.all(color: Colors.blue.shade300) : null,
+              border: isCurrent 
+                  ? Border.all(color: const Color(0xFF1553FF)) 
+                  : Border.all(
+                      color: isDark ? Colors.white.withOpacity(0.2) : Colors.black.withOpacity(0.2),
+                    ),
             ),
             child: Text(
               passage.autoTitle,
-              style: GoogleFonts.inter(
+              style: TextStyle(
+                fontFamily: 'Gilroy',
                 fontSize: 12,
                 fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500,
-                color: isCurrent ? Colors.blue.shade700 : Colors.grey.shade600,
+                color: isCurrent 
+                    ? const Color(0xFF1553FF) 
+                    : (isDark ? Colors.white70 : Colors.grey.shade600),
               ),
             ),
           ),
@@ -839,32 +989,33 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.blue.withOpacity(0.1),
+          color: const Color(0xFF1553FF).withOpacity(0.1),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.blue.withOpacity(0.3)),
+          border: Border.all(color: const Color(0xFF1553FF).withOpacity(0.3)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
+            const Icon(
               Icons.menu_book,
               size: 16,
-              color: Colors.blue,
+              color: Color(0xFF1553FF),
             ),
             const SizedBox(width: 8),
             Text(
               currentVersion['name']!,
-              style: GoogleFonts.inter(
+              style: const TextStyle(
+                fontFamily: 'Gilroy',
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Colors.blue,
+                color: Color(0xFF1553FF),
               ),
             ),
             const SizedBox(width: 4),
-            Icon(
+            const Icon(
               Icons.keyboard_arrow_down,
               size: 16,
-              color: Colors.blue,
+              color: Color(0xFF1553FF),
             ),
           ],
         ),
@@ -885,112 +1036,187 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
 
 
   Widget _buildActionButtons() {
-    return Row(
-      children: [
-        Expanded(
-          child: GestureDetector(
-            onTap: _markAsRead,
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-              decoration: BoxDecoration(
-                color: _isMarkedAsRead ? Colors.green.shade600 : Colors.black,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min, // ✅ Éviter l'overflow
-                children: [
-                  Flexible( // ✅ Permettre au texte de se réduire
-                    child: Text(
-                      'Marquer comme lu',
-                      style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+    return Consumer<ReaderSettingsService>(
+      builder: (context, settings, child) {
+        final isDark = settings.effectiveTheme == 'dark';
+        
+        return Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: _markAsRead,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: _isMarkedAsRead ? const Color(0xFF49C98D) : const Color(0xFF1553FF),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (_isMarkedAsRead ? const Color(0xFF49C98D) : const Color(0xFF1553FF)).withOpacity(0.3),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
                       ),
-                      textAlign: TextAlign.center,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    ],
                   ),
-                ],
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          'Marquer comme lu',
+                          style: const TextStyle(
+                            fontFamily: 'Gilroy',
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: GestureDetector(
-            onTap: _goToMeditation,
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-              decoration: BoxDecoration(
-                color: _isMarkedAsRead ? Colors.black : Colors.grey[400],
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min, // ✅ Éviter l'overflow
-                children: [
-                  Flexible( // ✅ Permettre au texte de se réduire
-                    child: Text(
-                      'Méditation',
-                      style: GoogleFonts.inter(
-                        color: _isMarkedAsRead ? Colors.white : Colors.grey[600],
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+            const SizedBox(width: 12),
+            Expanded(
+              child: GestureDetector(
+                onTap: _goToMeditation,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: _isMarkedAsRead 
+                        ? const Color(0xFF1553FF) 
+                        : (isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1)),
+                    borderRadius: BorderRadius.circular(16),
+                    border: _isMarkedAsRead 
+                        ? null 
+                        : Border.all(
+                            color: isDark ? Colors.white.withOpacity(0.2) : Colors.black.withOpacity(0.2),
+                          ),
+                    boxShadow: _isMarkedAsRead ? [
+                      BoxShadow(
+                        color: const Color(0xFF1553FF).withOpacity(0.3),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
                       ),
-                      textAlign: TextAlign.center,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    ] : null,
                   ),
-                ],
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          'Méditation',
+                          style: TextStyle(
+                            fontFamily: 'Gilroy',
+                            color: _isMarkedAsRead 
+                                ? Colors.white 
+                                : (isDark ? Colors.white70 : Colors.black87),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 
 
   Widget _buildBottomActions() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildBottomAction(Icons.note_add_rounded, 'Note', Colors.blue),
-          _buildBottomAction(Icons.highlight_alt_rounded, 'Surligner', Colors.yellow),
-          _buildBottomAction(Icons.share_rounded, 'Partager', Colors.green),
-          _buildBottomAction(Icons.bookmark_rounded, 'Marque-page', Colors.orange),
-        ],
-      ),
+    return Consumer<ReaderSettingsService>(
+      builder: (context, settings, child) {
+        final isDark = settings.effectiveTheme == 'dark';
+        
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildStudyAction(
+                  Icons.info_outline,
+                  'Contexte',
+                  Colors.blue,
+                  () => _goToAdvancedStudyTab(0), // Tab Contexte
+                  isDark,
+                ),
+                const SizedBox(width: 12),
+                _buildStudyAction(
+                  Icons.label_outline,
+                  'Thèmes',
+                  Colors.purple,
+                  () => _goToAdvancedStudyTab(1), // Tab Thèmes
+                  isDark,
+                ),
+                const SizedBox(width: 12),
+                _buildStudyAction(
+                  Icons.person_outline,
+                  'Personnages',
+                  Colors.green,
+                  () => _goToAdvancedStudyTab(0), // Tab Contexte (contient personnages)
+                  isDark,
+                ),
+                const SizedBox(width: 12),
+                _buildStudyAction(
+                  Icons.menu_book_outlined,
+                  'Encyclopédie',
+                  Colors.orange,
+                  () => _goToAdvancedStudyTab(2), // Tab ISBE
+                  isDark,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildBottomAction(IconData icon, String label, Color color) {
+  Widget _buildStudyAction(IconData icon, String title, Color color, VoidCallback onTap, bool isDark) {
     return GestureDetector(
       onTap: () {
-        HapticFeedback.lightImpact();
-        _showSnackBar('$label activé', icon, color);
+        HapticFeedback.mediumImpact();
+        onTap();
       },
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(16),
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: color.withOpacity(0.3),
+            width: 1,
+          ),
         ),
-        child: Column(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: Colors.grey.shade700, size: 24),
-            const SizedBox(height: 4),
+            Icon(
+              icon,
+              color: color,
+              size: 18,
+            ),
+            const SizedBox(width: 8),
             Text(
-              label,
-              style: GoogleFonts.inter(
-                color: Colors.grey.shade700,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+              title,
+              style: TextStyle(
+                fontFamily: 'Gilroy',
+                color: isDark ? Colors.white : Colors.black87,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
@@ -1001,23 +1227,80 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
   
   /// Navigue vers le passage suivant
   void _goToNextPassage() {
-    if (_readingSession.canGoToNext) {
+    if (_readingSession?.canGoToNext == true) {
       setState(() {
-        _readingSession = _readingSession.goToNext();
-        _updateCurrentPassageText();
+        _readingSession = _readingSession!.goToNext();
       });
+      // ✅ Appeler _updateCurrentPassageText après setState
+      _updateCurrentPassageText();
       HapticFeedback.selectionClick();
     }
   }
   
   /// Navigue vers le passage précédent
   void _goToPreviousPassage() {
-    if (_readingSession.canGoToPrevious) {
+    if (_readingSession?.canGoToPrevious == true) {
       setState(() {
-        _readingSession = _readingSession.goToPrevious();
-        _updateCurrentPassageText();
+        _readingSession = _readingSession!.goToPrevious();
       });
+      // ✅ Appeler _updateCurrentPassageText après setState
+      _updateCurrentPassageText();
       HapticFeedback.selectionClick();
+    }
+  }
+  
+  /// Navigue vers la page d'étude biblique avancée
+  void _goToAdvancedStudy() {
+    // Extraire le verset ID depuis la référence du passage
+    final verseId = _extractVerseIdFromReference(_readingSession?.currentPassage?.reference ?? 'Jean 14:1-19');
+    
+    HapticFeedback.mediumImpact();
+    context.push('/advanced_bible_study', extra: {'verseId': verseId});
+  }
+  
+  /// Navigue vers la page d'étude biblique avancée avec un onglet spécifique
+  void _goToAdvancedStudyTab(int tabIndex) {
+    // Extraire le verset ID depuis la référence du passage
+    final verseId = _extractVerseIdFromReference(_readingSession?.currentPassage?.reference ?? 'Jean 14:1-19');
+    
+    HapticFeedback.mediumImpact();
+    context.push('/advanced_bible_study', extra: {
+      'verseId': verseId,
+      'initialTab': tabIndex,
+    });
+  }
+  
+  /// Extrait un ID de verset depuis une référence biblique
+  String _extractVerseIdFromReference(String reference) {
+    try {
+      // Exemple: "Jean 3:16" -> "Jean.3.16"
+      // Exemple: "Matthieu & Romains & Jacques Éphésiens 2:8-9" -> "Éphésiens.2.8"
+      
+      // Nettoyer la référence
+      final cleanRef = reference.trim();
+      
+      // Trouver le dernier espace pour séparer le livre du chapitre/verset
+      final lastSpace = cleanRef.lastIndexOf(' ');
+      if (lastSpace <= 0) return 'Jean.3.16'; // Fallback
+      
+      final bookPart = cleanRef.substring(0, lastSpace).trim();
+      final chapterVersePart = cleanRef.substring(lastSpace + 1).trim();
+      
+      // Extraire le livre (prendre le dernier mot si plusieurs livres)
+      final bookWords = bookPart.split(' ');
+      final book = bookWords.last;
+      
+      // Extraire chapitre et verset
+      final cv = chapterVersePart.split(':');
+      if (cv.length < 2) return 'Jean.3.16'; // Fallback
+      
+      final chapter = cv[0];
+      final verse = cv[1].split('-')[0]; // Prendre le premier verset si plage
+      
+      return '$book.$chapter.$verse';
+    } catch (e) {
+      print('⚠️ Erreur extraction verseId: $e');
+      return 'Jean.3.16'; // Fallback
     }
   }
   
@@ -1173,5 +1456,6 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
       ),
     );
   }
+
 }
 

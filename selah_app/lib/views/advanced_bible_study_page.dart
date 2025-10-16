@@ -8,10 +8,12 @@ import '../services/openbible_themes_service.dart';
 
 class AdvancedBibleStudyPage extends StatefulWidget {
   final String? verseId;
+  final int initialTab;
   
   const AdvancedBibleStudyPage({
     super.key,
     this.verseId,
+    this.initialTab = 0,
   });
 
   @override
@@ -29,7 +31,7 @@ class _AdvancedBibleStudyPageState extends State<AdvancedBibleStudyPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 4, vsync: this, initialIndex: widget.initialTab);
     _currentVerseId = widget.verseId ?? 'Jean.3.16';
     _loadStudyData();
   }

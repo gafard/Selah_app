@@ -368,7 +368,12 @@ class AppRouter {
           name: 'advanced_bible_study',
           builder: (context, state) {
             final verseId = state.uri.queryParameters['verseId'];
-            return AdvancedBibleStudyPage(verseId: verseId);
+            final extra = state.extra as Map<String, dynamic>?;
+            final initialTab = extra?['initialTab'] as int? ?? 0;
+            return AdvancedBibleStudyPage(
+              verseId: verseId,
+              initialTab: initialTab,
+            );
           },
         ),
       

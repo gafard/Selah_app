@@ -72,8 +72,8 @@ class AuthService {
         );
       }
       
-      // Sauvegarder localement
-      await _userRepo.getCurrentUser(); // Fetch et save
+      // Créer un profil local depuis Supabase
+      await _createLocalProfileFromSupabase(response.user!);
       
     } on AuthException {
       rethrow;
@@ -110,7 +110,7 @@ class AuthService {
   }
 
   /// Inscription avec email/password (OFFLINE-FIRST)
-  /// Retourne true si online (email confirmation requis), false si offline
+  /// Crée TOUJOURS un utilisateur local, Supabase est optionnel
   Future<bool> signUpWithEmail({
     required String name,
     required String email,
@@ -126,83 +126,57 @@ class AuthService {
       );
     }
     
-    final isOnline = ConnectivityService.instance.isOnline;
+    // 2️⃣ TOUJOURS créer un compte local en premier (OFFLINE-FIRST)
+    final passwordHash = password.hashCode.toString(); // Simple hash pour démo
     
-    if (!isOnline) {
-      // 2️⃣ Mode offline : créer compte local COMPLET
-      final passwordHash = password.hashCode.toString(); // Simple hash pour démo
-      
-      final newUser = await _userRepo.createLocalUser(
-        displayName: name,
-        email: email,
-      );
-      
-      // Stocker le password hash localement pour permettre connexion offline
-      await LocalStorageService.saveLocalUser({
-        ...newUser.toJson(),
-        'password_hash': passwordHash,
-        'needs_supabase_sync': true, // Marquer pour sync future
-      });
-      
-      print('✅ Compte local créé pour $email (offline)');
-      return false; // Offline
+    final newUser = await _userRepo.createLocalUser(
+      displayName: name,
+      email: email,
+    );
+    
+    // Stocker le password hash localement pour permettre connexion offline
+    await LocalStorageService.saveLocalUser({
+      ...newUser.toJson(),
+      'password_hash': passwordHash,
+      'needs_supabase_sync': true, // Marquer pour sync future
+    });
+    
+    print('✅ Compte local créé pour $email (offline-first)');
+    
+    // 3️⃣ Optionnel : tenter sync avec Supabase en arrière-plan (non bloquant)
+    final isOnline = ConnectivityService.instance.isOnline;
+    if (isOnline) {
+      _syncToSupabaseInBackground(email, password, name);
     }
     
-    // Mode online : utiliser Supabase
+    return false; // Toujours offline-first
+  }
+  
+  /// Synchronise avec Supabase en arrière-plan (non bloquant)
+  void _syncToSupabaseInBackground(String email, String password, String name) async {
     try {
+      print('🔄 Tentative de sync avec Supabase en arrière-plan...');
       final response = await Supabase.instance.client.auth.signUp(
         email: email,
         password: password,
         data: {'display_name': name},
       );
       
-      if (response.user == null) {
-        throw AuthException(
-          'Erreur lors de la création du compte',
-          'signup_failed',
-        );
+      if (response.user != null) {
+        print('✅ Sync Supabase réussie pour $email');
+        // Marquer comme synchronisé
+        final localUser = LocalStorageService.getLocalUser();
+        if (localUser != null) {
+          await LocalStorageService.saveLocalUser({
+            ...localUser,
+            'needs_supabase_sync': false,
+            'supabase_user_id': response.user!.id,
+          });
+        }
       }
-      
-      // Le trigger handle_new_user() va créer automatiquement :
-      // - users
-      // - reader_settings
-      // - user_progress
-      
-      // Sauvegarder localement
-      await _userRepo.getCurrentUser();
-      
-      return true; // Online - email confirmation envoyé
-      
-    } on AuthException {
-      rethrow;
     } catch (e) {
-      final errorMsg = e.toString().toLowerCase();
-      
-      if (errorMsg.contains('already registered') || 
-          errorMsg.contains('user already exists')) {
-        throw AuthException(
-          'Un compte existe déjà avec cet email',
-          'email_already_exists',
-          suggestion: 'Essayez de vous connecter ou utilisez "Mot de passe oublié".',
-        );
-      } else if (errorMsg.contains('password') && errorMsg.contains('weak')) {
-        throw AuthException(
-          'Mot de passe trop faible',
-          'weak_password',
-          suggestion: 'Utilisez au moins 6 caractères avec lettres et chiffres.',
-        );
-      } else if (errorMsg.contains('network')) {
-        throw AuthException(
-          'Erreur réseau',
-          'network_error',
-          suggestion: 'Vérifiez votre connexion ou créez un compte local (mode offline).',
-        );
-      } else {
-        throw AuthException(
-          'Erreur lors de l\'inscription: $e',
-          'unknown_error',
-        );
-      }
+      print('⚠️ Sync Supabase échouée (non critique): $e');
+      // Pas d'erreur car c'est juste un backup
     }
   }
 
@@ -238,5 +212,23 @@ class AuthService {
   /// Déconnexion
   Future<void> signOut() async {
     await _userRepo.signOut();
+  }
+  
+  /// Crée un profil local depuis un utilisateur Supabase
+  Future<void> _createLocalProfileFromSupabase(User supabaseUser) async {
+    final localProfile = {
+      'id': supabaseUser.id,
+      'email': supabaseUser.email,
+      'display_name': supabaseUser.userMetadata?['display_name'] ?? supabaseUser.email,
+      'is_complete': false,
+      'has_onboarded': false,
+      'created_at': supabaseUser.createdAt,
+      'updated_at_local': DateTime.now().toIso8601String(),
+      'is_local_only': false,
+      'supabase_user_id': supabaseUser.id,
+    };
+    
+    await LocalStorageService.saveLocalUser(localProfile);
+    print('✅ Profil local créé depuis Supabase pour ${supabaseUser.email}');
   }
 }

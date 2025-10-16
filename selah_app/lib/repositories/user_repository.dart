@@ -17,27 +17,14 @@ class UserRepository {
 
   /// Récupère l'utilisateur actuel (LOCAL d'abord)
   Future<UserProfile?> getCurrentUser() async {
-    // 1. Vérifier d'abord le stockage local
+    // 1. Vérifier d'abord le stockage local (OFFLINE-FIRST)
     final localUser = LocalStorageService.getLocalUser();
     if (localUser != null) {
       return UserProfile.fromJson(localUser);
     }
 
-    // 2. Si en ligne et pas de user local, tenter Supabase
-    final isOnline = await LocalStorageService.isOnline;
-    if (isOnline) {
-      try {
-        final supabaseUser = Supabase.instance.client.auth.currentUser;
-        if (supabaseUser != null) {
-          // Créer profil local depuis Supabase et sauvegarder
-          final profile = await _fetchAndSaveProfile(supabaseUser.id);
-          return profile;
-        }
-      } catch (e) {
-        print('⚠️ Failed to fetch from Supabase, using local only: $e');
-      }
-    }
-
+    // 2. Pas d'utilisateur local trouvé
+    print('⚠️ Aucun utilisateur local trouvé');
     return null;
   }
 

@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -89,157 +90,248 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: UniformBackButtonAppBar(
-          onPressed: () => context.pop(),
-          iconColor: Colors.black,
-        ),
-        title: Text(
-          'Réglages de lecture',
-          style: GoogleFonts.inter(
-            color: Colors.black,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-      body: Consumer<ReaderSettingsService>(
-        builder: (context, settings, child) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Preview du texte
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Aperçu',
-                        style: GoogleFonts.inter(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        '10 Jésus lui répondit : « Si tu connaissais le don de Dieu et qui est celui qui te dit : "Donne-moi à boire", tu lui aurais toi-même demandé à boire, et il t\'aurait donné de l\'eau vive. »',
-                        style: settings.getFontStyle(),
-                        textAlign: settings.getTextAlign(),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                const SizedBox(height: 30),
-                
-                // Section Thème
-                _buildSectionTitle('Thème'),
-                _buildThemeOptions(settings),
-                
-                const SizedBox(height: 30),
-                
-                // Section Police
-                _buildSectionTitle('Police'),
-                _buildFontOptions(settings),
-                
-                const SizedBox(height: 30),
-                
-                // Section Taille
-                _buildSectionTitle('Taille du texte'),
-                _buildFontSizeSlider(settings),
-                
-                const SizedBox(height: 30),
-                
-                // Section Luminosité
-                _buildSectionTitle('Luminosité'),
-                _buildBrightnessSlider(settings),
-                
-                const SizedBox(height: 30),
-                
-                // Section Alignement
-                _buildSectionTitle('Alignement du texte'),
-                _buildTextAlignmentOptions(settings),
-                
-                const SizedBox(height: 30),
-                
-                // ✅ Section Versions de Bible
-                _buildSectionTitle('Versions de Bible'),
-                _buildBibleVersionsSection(),
-                
-                const SizedBox(height: 30),
-                
-                // Section Options
-                _buildSectionTitle('Options'),
-                _buildOptions(settings),
-              ],
+    return Consumer<ReaderSettingsService>(
+      builder: (context, settings, child) {
+        final isDark = settings.effectiveTheme == 'dark';
+        
+        return Scaffold(
+          body: Container(
+            decoration: BoxDecoration(
+              gradient: isDark ? const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF0B1025), Color(0xFF1C1740), Color(0xFF2D1B69)],
+                stops: [0.0, 0.55, 1.0],
+              ) : const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Colors.white, Color(0xFFF8F9FA)],
+              ),
             ),
-          );
-        },
+            child: SafeArea(
+              child: Column(
+                children: [
+                  _buildHeader(isDark),
+                  Expanded(
+                    child: _buildContent(settings, isDark),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHeader(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => context.go('/reader'),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDark ? Colors.white.withOpacity(0.2) : Colors.black.withOpacity(0.2),
+                ),
+              ),
+              child: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: isDark ? Colors.white : Colors.black,
+                size: 20,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              'Réglages de lecture',
+              style: TextStyle(
+                fontFamily: 'Gilroy',
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : Colors.black,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildContent(ReaderSettingsService settings, bool isDark) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Preview du texte
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white.withOpacity(0.12) : Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(16),
+              border: isDark ? Border.all(color: Colors.white.withOpacity(0.2)) : null,
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Aperçu',
+                      style: TextStyle(
+                        fontFamily: 'Gilroy',
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      '10 Jésus lui répondit : « Si tu connaissais le don de Dieu et qui est celui qui te dit : "Donne-moi à boire", tu lui aurais toi-même demandé à boire, et il t\'aurait donné de l\'eau vive. »',
+                      style: settings.getFontStyle().copyWith(
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
+                      textAlign: settings.getTextAlign(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 30),
+          
+          // Section Thème
+          _buildSectionTitle('Thème', isDark),
+          _buildThemeOptions(settings, isDark),
+          
+          const SizedBox(height: 30),
+          
+          // Section Police
+          _buildSectionTitle('Police', isDark),
+          _buildFontOptions(settings, isDark),
+          
+          const SizedBox(height: 30),
+          
+          // Section Taille
+          _buildSectionTitle('Taille du texte', isDark),
+          _buildFontSizeSlider(settings, isDark),
+          
+          const SizedBox(height: 30),
+          
+          // Section Luminosité
+          _buildSectionTitle('Luminosité', isDark),
+          _buildBrightnessSlider(settings, isDark),
+          
+          const SizedBox(height: 30),
+          
+          // Section Alignement
+          _buildSectionTitle('Alignement du texte', isDark),
+          _buildTextAlignmentOptions(settings, isDark),
+          
+          const SizedBox(height: 30),
+          
+          // Section Versions de Bible
+          _buildSectionTitle('Versions de Bible', isDark),
+          _buildBibleVersionsSection(isDark),
+          
+          const SizedBox(height: 30),
+          
+          // Section Options
+          _buildSectionTitle('Options', isDark),
+          _buildOptions(settings, isDark),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title, bool isDark) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Text(
         title,
-        style: GoogleFonts.inter(
+        style: TextStyle(
+          fontFamily: 'Gilroy',
           fontSize: 18,
           fontWeight: FontWeight.bold,
-          color: Colors.black,
+          color: isDark ? Colors.white : Colors.black,
         ),
       ),
     );
   }
 
-  Widget _buildThemeOptions(ReaderSettingsService settings) {
-    return Row(
+  Widget _buildThemeOptions(ReaderSettingsService settings, bool isDark) {
+    return Column(
       children: [
-        Expanded(
-          child: _buildThemeOption(
-            'Clair',
-            Icons.light_mode,
-            settings.selectedTheme == 'light',
-            () => settings.setTheme('light'),
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: _buildThemeOption(
+                'Clair',
+                Icons.light_mode,
+                settings.selectedTheme == 'light',
+                () => settings.setTheme('light'),
+                isDark,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildThemeOption(
+                'Sombre',
+                Icons.dark_mode,
+                settings.selectedTheme == 'dark',
+                () => settings.setTheme('dark'),
+                isDark,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildThemeOption(
-            'Sombre',
-            Icons.dark_mode,
-            settings.selectedTheme == 'dark',
-            () => settings.setTheme('dark'),
-          ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildThemeOption(
+                'Auto',
+                Icons.schedule,
+                settings.selectedTheme == 'auto',
+                () => settings.setTheme('auto'),
+                isDark,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Container(), // Espace vide pour l'alignement
+            ),
+          ],
         ),
       ],
     );
   }
 
-  Widget _buildThemeOption(String label, IconData icon, bool isSelected, VoidCallback onTap) {
+  Widget _buildThemeOption(String label, IconData icon, bool isSelected, VoidCallback onTap, bool isDark) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.blue.shade100 : Colors.grey.shade100,
+          color: isSelected 
+              ? (isDark ? const Color(0xFF1553FF).withOpacity(0.2) : Colors.blue.shade100)
+              : (isDark ? Colors.white.withOpacity(0.1) : Colors.grey.shade100),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? Colors.blue : Colors.grey.shade300,
+            color: isSelected 
+                ? (isDark ? const Color(0xFF1553FF) : Colors.blue)
+                : (isDark ? Colors.white.withOpacity(0.2) : Colors.grey.shade300),
             width: 2,
           ),
         ),
@@ -247,16 +339,21 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
           children: [
             Icon(
               icon,
-              color: isSelected ? Colors.blue : Colors.grey.shade600,
+              color: isSelected 
+                  ? (isDark ? const Color(0xFF1553FF) : Colors.blue)
+                  : (isDark ? Colors.white70 : Colors.grey.shade600),
               size: 24,
             ),
             const SizedBox(height: 8),
             Text(
               label,
-              style: GoogleFonts.inter(
+              style: TextStyle(
+                fontFamily: 'Gilroy',
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.blue : Colors.grey.shade700,
+                color: isSelected 
+                    ? (isDark ? const Color(0xFF1553FF) : Colors.blue)
+                    : (isDark ? Colors.white70 : Colors.grey.shade700),
               ),
             ),
           ],
@@ -265,7 +362,7 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
     );
   }
 
-  Widget _buildFontOptions(ReaderSettingsService settings) {
+  Widget _buildFontOptions(ReaderSettingsService settings, bool isDark) {
     final fonts = [
       {'name': 'Inter', 'display': 'Inter'},
       {'name': 'Playfair Display', 'display': 'Playfair'},
@@ -289,18 +386,25 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
-              color: isSelected ? Colors.blue.shade100 : Colors.grey.shade100,
+              color: isSelected 
+                  ? (isDark ? const Color(0xFF1553FF).withOpacity(0.2) : Colors.blue.shade100)
+                  : (isDark ? Colors.white.withOpacity(0.1) : Colors.grey.shade100),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: isSelected ? Colors.blue : Colors.grey.shade300,
+                color: isSelected 
+                    ? (isDark ? const Color(0xFF1553FF) : Colors.blue)
+                    : (isDark ? Colors.white.withOpacity(0.2) : Colors.grey.shade300),
               ),
             ),
             child: Text(
               font['display']!,
-              style: GoogleFonts.inter(
+              style: TextStyle(
+                fontFamily: 'Gilroy',
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: isSelected ? Colors.blue : Colors.grey.shade700,
+                color: isSelected 
+                    ? (isDark ? const Color(0xFF1553FF) : Colors.blue)
+                    : (isDark ? Colors.white70 : Colors.grey.shade700),
               ),
             ),
           ),
@@ -309,12 +413,13 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
     );
   }
 
-  Widget _buildFontSizeSlider(ReaderSettingsService settings) {
+  Widget _buildFontSizeSlider(ReaderSettingsService settings, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: isDark ? Colors.white.withOpacity(0.12) : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(12),
+        border: isDark ? Border.all(color: Colors.white.withOpacity(0.2)) : null,
       ),
       child: Column(
         children: [
@@ -323,16 +428,19 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
             children: [
               Text(
                 'Taille: ${settings.fontSize.round()}',
-                style: GoogleFonts.inter(
+                style: TextStyle(
+                  fontFamily: 'Gilroy',
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : Colors.black,
                 ),
               ),
               Text(
                 '10 - 24',
-                style: GoogleFonts.inter(
+                style: TextStyle(
+                  fontFamily: 'Gilroy',
                   fontSize: 14,
-                  color: Colors.grey.shade600,
+                  color: isDark ? Colors.white70 : Colors.grey.shade600,
                 ),
               ),
             ],
@@ -343,8 +451,8 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
             min: 10,
             max: 24,
             divisions: 14,
-            activeColor: Colors.blue,
-            inactiveColor: Colors.grey.shade300,
+            activeColor: isDark ? const Color(0xFF1553FF) : Colors.blue,
+            inactiveColor: isDark ? Colors.white.withOpacity(0.3) : Colors.grey.shade300,
             onChanged: (value) => settings.setFontSize(value),
           ),
         ],
@@ -352,12 +460,13 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
     );
   }
 
-  Widget _buildBrightnessSlider(ReaderSettingsService settings) {
+  Widget _buildBrightnessSlider(ReaderSettingsService settings, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: isDark ? Colors.white.withOpacity(0.12) : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(12),
+        border: isDark ? Border.all(color: Colors.white.withOpacity(0.2)) : null,
       ),
       child: Column(
         children: [
@@ -366,16 +475,19 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
             children: [
               Text(
                 'Luminosité: ${(settings.brightness * 100).round()}%',
-                style: GoogleFonts.inter(
+                style: TextStyle(
+                  fontFamily: 'Gilroy',
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : Colors.black,
                 ),
               ),
               Text(
                 '10 - 100%',
-                style: GoogleFonts.inter(
+                style: TextStyle(
+                  fontFamily: 'Gilroy',
                   fontSize: 14,
-                  color: Colors.grey.shade600,
+                  color: isDark ? Colors.white70 : Colors.grey.shade600,
                 ),
               ),
             ],
@@ -386,8 +498,8 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
             min: 0.1,
             max: 1.0,
             divisions: 9,
-            activeColor: Colors.blue,
-            inactiveColor: Colors.grey.shade300,
+            activeColor: isDark ? const Color(0xFF1553FF) : Colors.blue,
+            inactiveColor: isDark ? Colors.white.withOpacity(0.3) : Colors.grey.shade300,
             onChanged: (value) => settings.setBrightness(value),
           ),
         ],
@@ -395,7 +507,7 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
     );
   }
 
-  Widget _buildTextAlignmentOptions(ReaderSettingsService settings) {
+  Widget _buildTextAlignmentOptions(ReaderSettingsService settings, bool isDark) {
     final alignments = [
       {'label': 'Gauche', 'icon': Icons.format_align_left, 'value': 'Left'},
       {'label': 'Centre', 'icon': Icons.format_align_center, 'value': 'Center'},
@@ -413,26 +525,35 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
               margin: const EdgeInsets.symmetric(horizontal: 4),
               padding: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: isSelected ? Colors.blue.shade100 : Colors.grey.shade100,
+                color: isSelected 
+                    ? (isDark ? const Color(0xFF1553FF).withOpacity(0.2) : Colors.blue.shade100)
+                    : (isDark ? Colors.white.withOpacity(0.1) : Colors.grey.shade100),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isSelected ? Colors.blue : Colors.grey.shade300,
+                  color: isSelected 
+                      ? (isDark ? const Color(0xFF1553FF) : Colors.blue)
+                      : (isDark ? Colors.white.withOpacity(0.2) : Colors.grey.shade300),
                 ),
               ),
               child: Column(
                 children: [
                   Icon(
                     align['icon']! as IconData,
-                    color: isSelected ? Colors.blue : Colors.grey.shade600,
+                    color: isSelected 
+                        ? (isDark ? const Color(0xFF1553FF) : Colors.blue)
+                        : (isDark ? Colors.white70 : Colors.grey.shade600),
                     size: 20,
                   ),
                   const SizedBox(height: 4),
                   Text(
                     align['label']!.toString(),
-                    style: GoogleFonts.inter(
+                    style: TextStyle(
+                      fontFamily: 'Gilroy',
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: isSelected ? Colors.blue : Colors.grey.shade700,
+                      color: isSelected 
+                          ? (isDark ? const Color(0xFF1553FF) : Colors.blue)
+                          : (isDark ? Colors.white70 : Colors.grey.shade700),
                     ),
                   ),
                 ],
@@ -444,7 +565,7 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
     );
   }
 
-  Widget _buildOptions(ReaderSettingsService settings) {
+  Widget _buildOptions(ReaderSettingsService settings, bool isDark) {
     return Column(
       children: [
         _buildSwitchOption(
@@ -453,6 +574,7 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
           Icons.cloud_off,
           settings.isOfflineMode,
           (value) => settings.setOfflineMode(value),
+          isDark,
         ),
         const SizedBox(height: 16),
         _buildSwitchOption(
@@ -461,6 +583,7 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
           Icons.lock,
           settings.isLocked,
           (value) => settings.setLocked(value),
+          isDark,
         ),
         const SizedBox(height: 16),
         _buildSwitchOption(
@@ -469,6 +592,7 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
           Icons.search,
           settings.isSearchEnabled,
           (value) => settings.setSearchEnabled(value),
+          isDark,
         ),
         const SizedBox(height: 16),
         _buildSwitchOption(
@@ -477,21 +601,27 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
           Icons.animation,
           settings.isTransitionsEnabled,
           (value) => settings.setTransitionsEnabled(value),
+          isDark,
         ),
       ],
     );
   }
 
-  Widget _buildBibleVersionsSection() {
+  Widget _buildBibleVersionsSection(bool isDark) {
     if (_isLoadingVersions) {
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.grey.shade100,
+          color: isDark ? Colors.white.withOpacity(0.12) : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(12),
+          border: isDark ? Border.all(color: Colors.white.withOpacity(0.2)) : null,
         ),
-        child: const Center(
-          child: CircularProgressIndicator(),
+        child: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(
+              isDark ? const Color(0xFF1553FF) : Colors.blue,
+            ),
+          ),
         ),
       );
     }
@@ -499,17 +629,17 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
     return Column(
       children: [
         // Versions intégrées
-        _buildVersionCategory('Versions intégrées', _availableVersions.where((v) => v['isIntegrated'] == true).toList()),
+        _buildVersionCategory('Versions intégrées', _availableVersions.where((v) => v['isIntegrated'] == true).toList(), isDark),
         
         const SizedBox(height: 16),
         
         // Versions téléchargeables
-        _buildVersionCategory('Versions téléchargeables', _availableVersions.where((v) => v['isIntegrated'] == false).toList()),
+        _buildVersionCategory('Versions téléchargeables', _availableVersions.where((v) => v['isIntegrated'] == false).toList(), isDark),
       ],
     );
   }
 
-  Widget _buildVersionCategory(String title, List<Map<String, dynamic>> versions) {
+  Widget _buildVersionCategory(String title, List<Map<String, dynamic>> versions, bool isDark) {
     if (versions.isEmpty) return const SizedBox.shrink();
     
     return Column(
@@ -517,19 +647,20 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
       children: [
         Text(
           title,
-          style: GoogleFonts.inter(
+          style: TextStyle(
+            fontFamily: 'Gilroy',
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: Colors.grey.shade700,
+            color: isDark ? Colors.white70 : Colors.grey.shade700,
           ),
         ),
         const SizedBox(height: 8),
-        ...versions.map((version) => _buildVersionCard(version)).toList(),
+        ...versions.map((version) => _buildVersionCard(version, isDark)).toList(),
       ],
     );
   }
 
-  Widget _buildVersionCard(Map<String, dynamic> version) {
+  Widget _buildVersionCard(Map<String, dynamic> version, bool isDark) {
     final versionId = version['id'] as String;
     final versionName = version['name'] as String;
     final isIntegrated = version['isIntegrated'] as bool;
@@ -539,10 +670,12 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: isDark ? Colors.white.withOpacity(0.12) : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDownloaded ? Colors.green : Colors.grey.shade300,
+          color: isDownloaded 
+              ? (isDark ? const Color(0xFF49C98D) : Colors.green)
+              : (isDark ? Colors.white.withOpacity(0.2) : Colors.grey.shade300),
           width: 1,
         ),
       ),
@@ -550,7 +683,9 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
         children: [
           Icon(
             isIntegrated ? Icons.folder : Icons.cloud_download,
-            color: isIntegrated ? Colors.blue : Colors.grey.shade600,
+            color: isIntegrated 
+                ? (isDark ? const Color(0xFF1553FF) : Colors.blue)
+                : (isDark ? Colors.white70 : Colors.grey.shade600),
             size: 20,
           ),
           const SizedBox(width: 12),
@@ -560,17 +695,19 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
               children: [
                 Text(
                   versionName,
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
+                    fontFamily: 'Gilroy',
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black,
+                    color: isDark ? Colors.white : Colors.black,
                   ),
                 ),
                 Text(
                   isIntegrated ? 'Intégrée dans l\'app' : 'Téléchargeable',
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
+                    fontFamily: 'Gilroy',
                     fontSize: 12,
-                    color: Colors.grey.shade600,
+                    color: isDark ? Colors.white70 : Colors.grey.shade600,
                   ),
                 ),
               ],
@@ -579,14 +716,14 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
           if (isDownloaded)
             Icon(
               Icons.check_circle,
-              color: Colors.green,
+              color: isDark ? const Color(0xFF49C98D) : Colors.green,
               size: 20,
             )
           else if (!isIntegrated)
             ElevatedButton(
               onPressed: () => _downloadVersion(versionId),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
+                backgroundColor: isDark ? const Color(0xFF1553FF) : Colors.blue,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 shape: RoundedRectangleBorder(
@@ -595,7 +732,8 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
               ),
               child: Text(
                 'Télécharger',
-                style: GoogleFonts.inter(
+                style: const TextStyle(
+                  fontFamily: 'Gilroy',
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
@@ -677,18 +815,20 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
     IconData icon,
     bool value,
     ValueChanged<bool> onChanged,
+    bool isDark,
   ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: isDark ? Colors.white.withOpacity(0.12) : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(12),
+        border: isDark ? Border.all(color: Colors.white.withOpacity(0.2)) : null,
       ),
       child: Row(
         children: [
           Icon(
             icon,
-            color: Colors.grey.shade600,
+            color: isDark ? Colors.white70 : Colors.grey.shade600,
             size: 24,
           ),
           const SizedBox(width: 16),
@@ -698,17 +838,19 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
+                    fontFamily: 'Gilroy',
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black,
+                    color: isDark ? Colors.white : Colors.black,
                   ),
                 ),
                 Text(
                   subtitle,
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
+                    fontFamily: 'Gilroy',
                     fontSize: 14,
-                    color: Colors.grey.shade600,
+                    color: isDark ? Colors.white70 : Colors.grey.shade600,
                   ),
                 ),
               ],
@@ -717,7 +859,10 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeThumbColor: Colors.blue,
+            activeThumbColor: isDark ? const Color(0xFF1553FF) : Colors.blue,
+            activeTrackColor: isDark ? const Color(0xFF1553FF).withOpacity(0.3) : Colors.blue.withOpacity(0.3),
+            inactiveThumbColor: isDark ? Colors.white70 : Colors.grey.shade400,
+            inactiveTrackColor: isDark ? Colors.white.withOpacity(0.3) : Colors.grey.shade300,
           ),
         ],
       ),

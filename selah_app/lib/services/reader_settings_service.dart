@@ -34,6 +34,21 @@ class ReaderSettingsService extends ChangeNotifier {
   bool get isSearchEnabled => _settings.isSearchEnabled;
   bool get isTransitionsEnabled => _settings.isTransitionsEnabled;
   double get brightness => _settings.brightness;
+  
+  /// 🌅 Retourne le thème effectif (auto adapté à l'heure)
+  String get effectiveTheme {
+    if (_settings.theme == 'auto') {
+      return _getAutoTheme();
+    }
+    return _settings.theme;
+  }
+  
+  /// 🌅 Détermine le thème automatique selon l'heure
+  String _getAutoTheme() {
+    final hour = DateTime.now().hour;
+    // 6h-18h = clair, 18h-6h = sombre
+    return (hour >= 6 && hour < 18) ? 'light' : 'dark';
+  }
 
   ReaderSettings get settings => _settings;
 
@@ -311,7 +326,7 @@ class ReaderSettingsService extends ChangeNotifier {
 
   // Helper methods
   TextStyle getFontStyle() {
-    Color textColor = _settings.theme == 'dark' ? Colors.white : const Color(0xFF333333);
+    Color textColor = effectiveTheme == 'dark' ? Colors.white : const Color(0xFF333333);
     
     // Apply brightness with minimum value to avoid text disappearing
     double adjustedBrightness = (_settings.brightness * 0.7) + 0.3; // Keep between 30% and 100% brightness
@@ -333,7 +348,7 @@ class ReaderSettingsService extends ChangeNotifier {
   }
 
   Color getBackgroundColor() {
-    return _settings.theme == 'dark' ? const Color(0xFF2D2D2D) : Colors.white;
+    return effectiveTheme == 'dark' ? const Color(0xFF2D2D2D) : Colors.white;
   }
 
   /// 🧠 Méthode intelligente pour adapter les paramètres à un contexte spécifique

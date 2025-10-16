@@ -265,6 +265,14 @@ class _PreMeditationPrayerPageState extends State<PreMeditationPrayerPage>
       print('🔍 DEBUG: Plan actif récupéré: ${activePlan?.id}');
       
       if (activePlan != null) {
+        // 🐛 DEBUG: Vérifier l'état du plan avant régénération
+        print('🔍 DEBUG: Vérification de l\'état du plan...');
+        await planService.debugPlanStatus();
+        
+        // 🔧 S'assurer que les jours du plan existent (auto-régénération si nécessaire)
+        print('🔍 DEBUG: Vérification et régénération des jours du plan...');
+        await planService.regenerateCurrentPlanDays();
+        
         // Récupérer les jours du plan
         print('🔍 DEBUG: Récupération des jours du plan...');
         final planDays = await planService.getPlanDays(activePlan.id);
@@ -285,8 +293,10 @@ class _PreMeditationPrayerPageState extends State<PreMeditationPrayerPage>
             if (todayPassage.readings.isNotEmpty) {
               final r = todayPassage.readings.first; // range est GARANTI String maintenant
               passageRef = '${r.book} ${r.range}'.trim(); // ex: "Jean 3:16-4:10"
+              print('🔍 DEBUG: Passage du jour ${todayPassage.dayIndex}: ${r.book} ${r.range}');
             } else {
               passageRef = _generatePassageRef(todayPassage.dayIndex);
+              print('🔍 DEBUG: Passage généré pour le jour ${todayPassage.dayIndex}: $passageRef');
             }
             
             // Navigation avec les données du passage et un casting explicite

@@ -24,4 +24,10 @@ abstract class PlanService {
     List<Map<String, dynamic>>? customPassages,
     List<int>? daysOfWeek,
   });
+  
+  /// 🔧 Force la régénération des jours du plan actuel
+  Future<void> regenerateCurrentPlanDays();
+  
+  /// 🐛 DEBUG: Vérifie l'état complet du plan actuel
+  Future<void> debugPlanStatus();
 }
