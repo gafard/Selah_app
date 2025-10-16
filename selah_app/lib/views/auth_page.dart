@@ -40,21 +40,33 @@ class _AuthPageState extends State<AuthPage> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-
+    print('🔐 AuthPage._submit() appelé - Mode: ${_isLogin ? "Login" : "Signup"}');
+    
+    if (!_formKey.currentState!.validate()) {
+      print('❌ Validation du formulaire échouée');
+      return;
+    }
+    
+    print('✅ Validation du formulaire réussie');
     setState(() => _isLoading = true);
+    
     try {
       if (_isLogin) {
+        print('🔐 Tentative de connexion avec email: ${_emailC.text.trim()}');
+        
         await AuthService.instance.signInWithEmail(
           _emailC.text.trim(),
           _passC.text.trim(),
         );
+        
+        print('✅ Connexion réussie');
         
         // ✅ Attendre que LocalStorage soit mis à jour
         await Future.delayed(const Duration(milliseconds: 200));
         
         // Login : navigation après sauvegarde locale
         if (!mounted) return;
+        print('🧭 Navigation vers /complete_profile');
         context.go('/complete_profile');
       } else {
         // Signup : récupérer si online ou offline
@@ -76,11 +88,14 @@ class _AuthPageState extends State<AuthPage> {
         context.go('/auth?mode=login');
       }
     } on AuthException catch (e) {
+      print('❌ AuthException: ${e.code} - ${e.message}');
       if (!mounted) return;
       _showErrorDialogWithActions(e);
     } catch (e) {
+      print('❌ Erreur générale: $e');
       _toast('Erreur: $e');
     } finally {
+      print('🔐 AuthPage._submit() terminé');
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -230,7 +245,7 @@ class _AuthPageState extends State<AuthPage> {
               ),
             ),
             child: ElevatedButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => context.pop(),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 foregroundColor: Colors.white,
@@ -327,7 +342,7 @@ class _AuthPageState extends State<AuthPage> {
           if (e.code == 'invalid_credentials' && _isLogin) ...[
             TextButton(
               onPressed: () {
-                Navigator.pop(context);
+                context.pop();
                 setState(() => _isLogin = false); // Passer en mode inscription
               },
               child: Text(
@@ -337,7 +352,7 @@ class _AuthPageState extends State<AuthPage> {
             ),
             TextButton(
               onPressed: () async {
-                Navigator.pop(context);
+                context.pop();
                 await _resetPassword();
               },
               child: Text(
@@ -348,7 +363,7 @@ class _AuthPageState extends State<AuthPage> {
           ] else if (e.code == 'email_already_exists' && !_isLogin) ...[
             TextButton(
               onPressed: () {
-                Navigator.pop(context);
+                context.pop();
                 setState(() => _isLogin = true); // Passer en mode connexion
               },
               child: Text(
@@ -360,7 +375,7 @@ class _AuthPageState extends State<AuthPage> {
           
           // Bouton OK par défaut
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => context.pop(),
             child: Text(
               'OK',
               style: GoogleFonts.inter(
@@ -497,7 +512,10 @@ class _AuthPageState extends State<AuthPage> {
                                   ],
                                 ),
                                 child: ElevatedButton(
-                                  onPressed: _isLoading ? null : _submit,
+                                  onPressed: _isLoading ? null : () {
+                                    print('🔘 Bouton "Se connecter" pressé');
+                                    _submit();
+                                  },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.transparent,
                                     foregroundColor: Colors.white,
@@ -815,7 +833,7 @@ class _AuthPageState extends State<AuthPage> {
                             children: [
                               Expanded(
                                 child: OutlinedButton(
-                                  onPressed: isLoading ? null : () => Navigator.pop(ctx),
+                                  onPressed: isLoading ? null : () => context.pop(),
                                   style: OutlinedButton.styleFrom(
                                     side: BorderSide(color: Colors.white.withOpacity(0.6)),
                                     foregroundColor: Colors.white,
@@ -855,7 +873,7 @@ class _AuthPageState extends State<AuthPage> {
                                             try {
                                               await AuthService.instance.resetPassword(emailC.text.trim());
                                               if (!mounted) return;
-                                              Navigator.pop(ctx);
+                                              context.pop();
                                               ScaffoldMessenger.of(context).showSnackBar(
                                                 SnackBar(
                                                   content: Text(

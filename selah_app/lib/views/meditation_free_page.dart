@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 
 class MeditationFreePage extends StatefulWidget {
   final String? passageRef;
@@ -52,7 +53,7 @@ class _MeditationFreePageState extends State<MeditationFreePage> {
       final list = _subjectsByTag[t];
       if (list != null) subjects.addAll(list);
     }
-    Navigator.pushNamed(context, '/prayer_subjects', arguments: {
+    context.go('/prayer_subjects', extra: {
       'suggestedSubjects': subjects.toList(),
       'memoryVerse': _controllers['verseHit']!.text.trim(),
     });

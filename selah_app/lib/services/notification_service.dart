@@ -47,7 +47,16 @@ class NotificationService {
   Future<void> init() async {
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosInit = DarwinInitializationSettings();
-    const initSettings = InitializationSettings(android: androidInit, iOS: iosInit);
+    const macosInit = DarwinInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
+    const initSettings = InitializationSettings(
+      android: androidInit, 
+      iOS: iosInit,
+      macOS: macosInit,
+    );
     await _fln.initialize(initSettings);
 
     if (!kIsWeb && Platform.isAndroid) {

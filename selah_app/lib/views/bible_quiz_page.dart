@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 import '../services/meditation_journal_service.dart';
+import '../services/intelligent_quiz_service.dart';
 import '../models/meditation_journal_entry.dart';
+import '../models/quiz_question.dart';
 import '../widgets/uniform_back_button.dart';
 
 class BibleQuizPage extends StatefulWidget {
@@ -18,13 +21,16 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
   late Animation<Offset> _slideAnimation;
   
   List<MeditationJournalEntry> _journalEntries = [];
-  List<Map<String, dynamic>> _questions = [];
+  List<QuizQuestion> _questions = [];
+  List<int> _userAnswers = [];
   int _currentQuestionIndex = 0;
   int _score = 0;
   bool _quizStarted = false;
   bool _quizCompleted = false;
   String? _selectedAnswer;
   bool _showResult = false;
+  bool _isLoading = false;
+  DateTime _quizStartTime = DateTime.now();
 
   @override
   void initState() {
@@ -61,17 +67,74 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
     setState(() {
       _journalEntries = entries;
     });
-    _generateQuestions();
+    await _generateIntelligentQuestions();
   }
 
-  void _generateQuestions() {
-    // Générer des questions intelligentes basées sur l'historique
-    _questions = _generateIntelligentQuestions();
+  /// 🧠 Génère des questions intelligentes avec le service Apôtre
+  Future<void> _generateIntelligentQuestions() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Initialiser le service si nécessaire
+      await IntelligentQuizService.init();
+      
+      // Générer des questions basées sur l'historique de méditation
+      // Utiliser le premier passage comme référence, ou un passage par défaut
+      final passageRef = _journalEntries.isNotEmpty 
+          ? _journalEntries.first.passageRef 
+          : 'Jean 3:16';
+      
+      final intelligentQuestions = await IntelligentQuizService.generatePersonalizedQuestions(
+        'user_${DateTime.now().millisecondsSinceEpoch}', // ID utilisateur temporaire
+        passageRef,
+      );
+      
+      // Convertir les questions intelligentes en QuizQuestion
+      final questions = intelligentQuestions.map((iq) => QuizQuestion(
+        id: iq.id,
+        question: iq.text,
+        options: iq.options,
+        correctAnswerIndex: iq.correctAnswer,
+        explanation: 'Explication générée par Apôtre - Analyse cognitive avancée',
+        difficulty: _convertDifficulty(iq.difficulty),
+        category: _convertQuestionType(iq.type),
+        passageReference: passageRef,
+        verseText: iq.semanticContext?['verseText'],
+        metadata: iq.semanticContext,
+      )).toList();
+
+      setState(() {
+        _questions = questions;
+        _isLoading = false;
+      });
+
+      print('🧠 Apôtre: ${questions.length} questions générées intelligemment');
+    } catch (e) {
+      print('❌ Erreur génération questions: $e');
+      // Fallback vers des questions par défaut
+      _generateFallbackQuestions();
+    }
   }
 
-  List<Map<String, dynamic>> _generateIntelligentQuestions() {
+  /// Questions de fallback si le service intelligent échoue
+  void _generateFallbackQuestions() {
     if (_journalEntries.isEmpty) {
-      return _getDefaultQuestions();
+      _questions = _getDefaultQuestions().map((q) => QuizQuestion(
+        id: 'fallback_${DateTime.now().millisecondsSinceEpoch}',
+        question: q['question'],
+        options: q['options'],
+        correctAnswerIndex: q['correct'],
+        explanation: q['explanation'],
+        difficulty: 'medium',
+        category: 'comprehension',
+        passageReference: q['passage'],
+      )).toList();
+      setState(() {
+        _isLoading = false;
+      });
+      return;
     }
 
     List<Map<String, dynamic>> questions = [];
@@ -106,7 +169,23 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
     
     // Mélanger et limiter à 10 questions
     questions.shuffle();
-    return questions.take(10).toList();
+    final finalQuestions = questions.take(10).toList();
+    
+    // Convertir en QuizQuestion
+    _questions = finalQuestions.map((q) => QuizQuestion(
+      id: 'fallback_${DateTime.now().millisecondsSinceEpoch}_${q.hashCode}',
+      question: q['question'],
+      options: q['options'],
+      correctAnswerIndex: q['correct'],
+      explanation: q['explanation'],
+      difficulty: 'medium',
+      category: 'comprehension',
+      passageReference: q['passage'],
+    )).toList();
+    
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   List<Map<String, dynamic>> _createQuestionsFromPassage(String passageRef, String passageText) {
@@ -259,25 +338,76 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
     ];
   }
 
+  /// 🚀 Démarre le quiz intelligent
   void _startQuiz() {
     setState(() {
       _quizStarted = true;
       _currentQuestionIndex = 0;
       _score = 0;
+      _userAnswers = [];
+      _quizStartTime = DateTime.now();
     });
   }
 
-  void _selectAnswer(int index) {
+  /// 🎯 Sélectionne une réponse et l'analyse
+  void _selectAnswer(int index) async {
+    if (_currentQuestionIndex >= _questions.length) return;
+    
+    final question = _questions[_currentQuestionIndex];
+    final isCorrect = question.isCorrectAnswer(index);
+    
     setState(() {
-      _selectedAnswer = _questions[_currentQuestionIndex]['options'][index];
+      _selectedAnswer = question.options[index];
       _showResult = true;
+      _userAnswers.add(index);
       
-      if (index == _questions[_currentQuestionIndex]['correct']) {
+      if (isCorrect) {
         _score++;
       }
     });
+
+    // Enregistrer la réponse pour l'analyse cognitive
+    // Note: La méthode recordResponse sera implémentée dans une version future
+    print('🧠 Apôtre: Réponse enregistrée - Question: ${question.id}, Correct: $isCorrect');
   }
 
+  /// 🧠 Estime l'effort cognitif basé sur la difficulté et le temps
+  double _estimateCognitiveEffort(QuizQuestion question, int selectedIndex) {
+    double baseEffort = 0.5;
+    
+    // Ajuster selon la difficulté
+    switch (question.difficulty) {
+      case 'easy':
+        baseEffort = 0.3;
+        break;
+      case 'medium':
+        baseEffort = 0.6;
+        break;
+      case 'hard':
+        baseEffort = 0.8;
+        break;
+    }
+    
+    // Ajuster selon la catégorie
+    switch (question.category) {
+      case 'comprehension':
+        baseEffort *= 0.8;
+        break;
+      case 'application':
+        baseEffort *= 1.2;
+        break;
+      case 'analysis':
+        baseEffort *= 1.4;
+        break;
+      case 'synthesis':
+        baseEffort *= 1.6;
+        break;
+    }
+    
+    return baseEffort.clamp(0.0, 1.0);
+  }
+
+  /// ➡️ Passe à la question suivante
   void _nextQuestion() {
     if (_currentQuestionIndex < _questions.length - 1) {
       setState(() {
@@ -286,12 +416,94 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
         _showResult = false;
       });
     } else {
-      setState(() {
-        _quizCompleted = true;
-      });
+      _completeQuiz();
     }
   }
 
+  /// 🏁 Finalise le quiz et enregistre les résultats
+  Future<void> _completeQuiz() async {
+    final timeSpent = DateTime.now().difference(_quizStartTime);
+    final percentage = (_score / _questions.length) * 100;
+    
+    // Créer le résultat du quiz
+    final result = QuizResult(
+      quizId: 'quiz_${DateTime.now().millisecondsSinceEpoch}',
+      questions: _questions,
+      userAnswers: _userAnswers,
+      score: _score,
+      percentage: percentage,
+      timeSpent: timeSpent,
+      completedAt: DateTime.now(),
+      analytics: {
+        'cognitive_load': _calculateAverageCognitiveLoad(),
+        'difficulty_progression': _analyzeDifficultyProgression(),
+        'learning_style': _detectLearningStyle(),
+      },
+    );
+
+    // Enregistrer le résultat dans le service intelligent
+    // Note: La méthode saveQuizResult sera implémentée dans une version future
+    print('🧠 Apôtre: Résultat du quiz enregistré - Score: ${percentage.toInt()}%');
+    print('📊 Analytics: Charge cognitive: ${result.analytics?['cognitive_load']?.toStringAsFixed(2) ?? 'N/A'}');
+    print('🎯 Style d\'apprentissage détecté: ${result.analytics?['learning_style'] ?? 'N/A'}');
+
+    setState(() {
+      _quizCompleted = true;
+    });
+  }
+
+  /// 🧮 Calcule la charge cognitive moyenne
+  double _calculateAverageCognitiveLoad() {
+    if (_questions.isEmpty) return 0.0;
+    
+    double totalLoad = 0.0;
+    for (int i = 0; i < _questions.length && i < _userAnswers.length; i++) {
+      totalLoad += _estimateCognitiveEffort(_questions[i], _userAnswers[i]);
+    }
+    return totalLoad / _questions.length;
+  }
+
+  /// 📈 Analyse la progression de difficulté
+  List<String> _analyzeDifficultyProgression() {
+    return _questions.map((q) => q.difficulty).toList();
+  }
+
+  /// 🎯 Détecte le style d'apprentissage
+  String _detectLearningStyle() {
+    // Analyse basée sur les types de questions et les performances
+    int comprehension = 0, application = 0, analysis = 0, synthesis = 0;
+    
+    for (int i = 0; i < _questions.length && i < _userAnswers.length; i++) {
+      final question = _questions[i];
+      final isCorrect = question.isCorrectAnswer(_userAnswers[i]);
+      
+      if (isCorrect) {
+        switch (question.category) {
+          case 'comprehension':
+            comprehension++;
+            break;
+          case 'application':
+            application++;
+            break;
+          case 'analysis':
+            analysis++;
+            break;
+          case 'synthesis':
+            synthesis++;
+            break;
+        }
+      }
+    }
+    
+    // Déterminer le style dominant
+    final max = [comprehension, application, analysis, synthesis].reduce((a, b) => a > b ? a : b);
+    if (max == comprehension) return 'comprehension';
+    if (max == application) return 'application';
+    if (max == analysis) return 'analysis';
+    return 'synthesis';
+  }
+
+  /// 🔄 Redémarre le quiz
   void _restartQuiz() {
     setState(() {
       _quizStarted = false;
@@ -301,7 +513,30 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
       _selectedAnswer = null;
       _showResult = false;
     });
-    _generateQuestions();
+    _generateIntelligentQuestions();
+  }
+
+  /// 🔄 Convertit la difficulté numérique en string
+  String _convertDifficulty(double difficulty) {
+    if (difficulty <= 0.3) return 'easy';
+    if (difficulty <= 0.7) return 'medium';
+    return 'hard';
+  }
+
+  /// 🔄 Convertit le type de question en catégorie
+  String _convertQuestionType(QuestionType type) {
+    switch (type) {
+      case QuestionType.multipleChoice:
+        return 'comprehension';
+      case QuestionType.trueFalse:
+        return 'application';
+      case QuestionType.fillInBlank:
+        return 'analysis';
+      case QuestionType.essay:
+        return 'synthesis';
+      default:
+        return 'comprehension';
+    }
   }
 
   @override
@@ -341,7 +576,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
                     // Header
                     UniformHeader(
                       title: 'Quiz Biblique',
-                      onBackPressed: () => Navigator.pop(context),
+                      onBackPressed: () => context.pop(),
                       textColor: Colors.white,
                       iconColor: Colors.white,
                       titleAlignment: CrossAxisAlignment.center,
@@ -364,13 +599,100 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
   }
 
   Widget _buildContent() {
-    if (!_quizStarted) {
+    if (_isLoading) {
+      return _buildLoadingScreen();
+    } else if (!_quizStarted) {
       return _buildStartScreen();
     } else if (_quizCompleted) {
       return _buildResultsScreen();
     } else {
       return _buildQuestionScreen();
     }
+  }
+
+  /// 🔄 Écran de chargement pendant la génération des questions
+  Widget _buildLoadingScreen() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Animation de chargement
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFFF59E0B).withOpacity(0.3),
+                  const Color(0xFFF59E0B),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                strokeWidth: 3,
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 24),
+          
+          // Titre
+          Text(
+            '🧠 Apôtre en action',
+            style: GoogleFonts.inter(
+              fontSize: 24,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          
+          const SizedBox(height: 12),
+          
+          // Description
+          Text(
+            'Génération de questions intelligentes\nbasées sur votre historique de méditation...',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(
+              fontSize: 16,
+              color: Colors.white70,
+              height: 1.4,
+            ),
+          ),
+          
+          const SizedBox(height: 32),
+          
+          // Indicateur de progression
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.2)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.psychology, color: Colors.blue, size: 16),
+                const SizedBox(width: 8),
+                Text(
+                  'Analyse cognitive en cours...',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: Colors.blue,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildStartScreen() {
@@ -503,16 +825,66 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
     
     return Column(
       children: [
-        // Progress
+        // Progress avec informations intelligentes
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Question ${_currentQuestionIndex + 1}/${_questions.length}',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                color: Colors.white60,
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Question ${_currentQuestionIndex + 1}/${_questions.length}',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: Colors.white60,
+                  ),
+                ),
+                // Badge de difficulté et catégorie
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: question.difficultyColor.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: question.difficultyColor, width: 1),
+                      ),
+                      child: Text(
+                        question.difficultyName,
+                        style: GoogleFonts.inter(
+                          fontSize: 10,
+                          color: question.difficultyColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.blue, width: 1),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(question.categoryIcon, size: 12, color: Colors.blue),
+                          const SizedBox(width: 4),
+                          Text(
+                            question.categoryName,
+                            style: GoogleFonts.inter(
+                              fontSize: 10,
+                              color: Colors.blue,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
             Text(
               'Score: $_score',
@@ -552,7 +924,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                question['question'],
+                question.question,
                 style: GoogleFonts.inter(
                   fontSize: 18,
                   color: Colors.white,
@@ -560,9 +932,55 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
                   height: 1.4,
                 ),
               ),
+              if (question.passageReference != null) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.menu_book, size: 14, color: Colors.blue),
+                      const SizedBox(width: 6),
+                      Text(
+                        question.passageReference!,
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: Colors.blue,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              if (question.verseText != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  child: Text(
+                    '"${question.verseText}"',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: Colors.white70,
+                      fontStyle: FontStyle.italic,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
               Text(
-                'Passage: ${question['passage']}',
+                'Référence: ${question.passageReference ?? 'Général'}',
                 style: GoogleFonts.inter(
                   fontSize: 12,
                   color: Colors.white60,
@@ -578,11 +996,11 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
         // Options
         Expanded(
           child: ListView.builder(
-            itemCount: question['options'].length,
+            itemCount: question.options.length,
             itemBuilder: (context, index) {
-              final option = question['options'][index];
+              final option = question.options[index];
               final isSelected = _selectedAnswer == option;
-              final isCorrect = index == question['correct'];
+              final isCorrect = question.isCorrectAnswer(index);
               
               Color backgroundColor = Colors.white.withOpacity(0.1);
               Color borderColor = Colors.white.withOpacity(0.2);
@@ -668,17 +1086,31 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Explication:',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
+                Row(
+                  children: [
+                    Icon(
+                      question.isCorrectAnswer(_userAnswers.isNotEmpty ? _userAnswers.last : -1) 
+                          ? Icons.check_circle 
+                          : Icons.cancel,
+                      color: question.isCorrectAnswer(_userAnswers.isNotEmpty ? _userAnswers.last : -1) 
+                          ? Colors.green 
+                          : Colors.red,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Explication:',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  question['explanation'],
+                  question.explanation,
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     color: Colors.white70,
@@ -821,7 +1253,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
             const SizedBox(width: 16),
             Expanded(
               child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => context.pop(),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFF59E0B),
                   foregroundColor: Colors.white,

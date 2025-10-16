@@ -200,11 +200,11 @@ class _SettingsPageState extends State<SettingsPage> {
         content: Text(message, style: GoogleFonts.inter(color: const Color(0xFF9CA3AF))),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => context.pop(false),
             child: Text(cancelLabel, style: const TextStyle(color: Color(0xFF9CA3AF))),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => context.pop(true),
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6)),
             child: Text(confirmLabel),
           ),
@@ -358,7 +358,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
           GestureDetector(
-            onTap: () => Navigator.pop(context),
+            onTap: () => context.pop(),
             child: Container(
               width: 32,
               height: 32,

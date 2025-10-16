@@ -11,6 +11,8 @@ abstract class PlanService {
   Future<void> setDayCompleted(String planId, int dayIndex, bool completed);
   Stream<PlanProgress> watchProgress(String planId);
   Future<void> archivePlan(String planId);
+  Future<void> restartPlanFromDay1(String planId);
+  Future<void> rescheduleFromToday(String planId);
   
   Future<Plan> createLocalPlan({
     required String name,

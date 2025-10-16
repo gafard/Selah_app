@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/services.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'bible_context_service.dart';
 import 'cross_ref_service.dart';
 import 'lexicon_service.dart';

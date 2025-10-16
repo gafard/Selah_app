@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 
 class PrayerSubjectsPage extends StatefulWidget {
   const PrayerSubjectsPage({super.key});
@@ -65,7 +66,7 @@ class _PrayerSubjectsPageState extends State<PrayerSubjectsPage> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: completed.isEmpty ? null : () {
-                    Navigator.pushNamed(context, '/prayer_editor', arguments: {
+                    context.go('/prayer_editor', extra: {
                       'selectedSubjects': completed.toList(),
                     });
                   },

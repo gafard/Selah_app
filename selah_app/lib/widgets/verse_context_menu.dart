@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../models/verse_key.dart';
 import '../services/bible_context_service.dart';
 import '../services/cross_ref_service.dart';
@@ -203,7 +204,7 @@ class VerseContextMenu {
       ),
       enabled: enabled,
       onTap: enabled ? () {
-        Navigator.pop(context);
+        context.pop();
         onTap?.call();
       } : null,
     );
@@ -370,17 +371,17 @@ class VerseContextMenu {
                 hintText: 'Note personnelle (optionnel)...',
                 border: OutlineInputBorder(),
               ),
-              onSubmitted: (value) => Navigator.pop(context, value),
+              onSubmitted: (value) => context.pop(value),
             ),
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => context.pop(),
             child: const Text('Annuler'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, ''),
+            onPressed: () => context.pop(''),
             child: const Text('Mémoriser'),
           ),
         ],
@@ -1029,7 +1030,7 @@ class ContextBottomSheet extends StatelessWidget {
           
           Center(
             child: TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => context.pop(),
               child: const Text('Fermer'),
             ),
           ),

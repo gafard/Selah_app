@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/bible_context_service.dart';
@@ -78,7 +79,7 @@ class ReadingActionSheet extends StatelessWidget {
                           icon: Icons.link_rounded,
                           label: 'Références croisées',
                           onTap: () async {
-                            Navigator.pop(context);
+                            context.pop();
                             await _showCrossRefs(context, verseId);
                           },
                         ),
@@ -89,7 +90,7 @@ class ReadingActionSheet extends StatelessWidget {
                           icon: Icons.translate_rounded,
                           label: 'Analyse lexicale (hébreu/grec)',
                           onTap: () async {
-                            Navigator.pop(context);
+                            context.pop();
                             await _showLexicon(context, verseId);
                           },
                         ),
@@ -100,7 +101,7 @@ class ReadingActionSheet extends StatelessWidget {
                           icon: Icons.compare_arrows_rounded,
                           label: 'Verset miroir',
                           onTap: () async {
-                            Navigator.pop(context);
+                            context.pop();
                             await _showMirror(context, verseId);
                           },
                         ),
@@ -111,7 +112,7 @@ class ReadingActionSheet extends StatelessWidget {
                           icon: Icons.auto_awesome_rounded,
                           label: 'Thèmes spirituels',
                           onTap: () async {
-                            Navigator.pop(context);
+                            context.pop();
                             await _showThemes(context, verseId);
                           },
                         ),
@@ -128,7 +129,7 @@ class ReadingActionSheet extends StatelessWidget {
                               enabled: enabled,
                               onTap: enabled
                                   ? () async {
-                                      Navigator.pop(context);
+                                      context.pop();
                                       await _showCompare(context, verseId);
                                     }
                                   : null,
@@ -142,7 +143,7 @@ class ReadingActionSheet extends StatelessWidget {
                           icon: Icons.history_edu_rounded,
                           label: 'Contexte historique',
                           onTap: () async {
-                            Navigator.pop(context);
+                            context.pop();
                             await _showContext(context, verseId, type: _ContextType.historical);
                           },
                         ),
@@ -153,7 +154,7 @@ class ReadingActionSheet extends StatelessWidget {
                           icon: Icons.public_rounded,
                           label: 'Contexte culturel',
                           onTap: () async {
-                            Navigator.pop(context);
+                            context.pop();
                             await _showContext(context, verseId, type: _ContextType.cultural);
                           },
                         ),
@@ -164,7 +165,7 @@ class ReadingActionSheet extends StatelessWidget {
                           icon: Icons.group_rounded,
                           label: 'Auteur / personnages',
                           onTap: () async {
-                            Navigator.pop(context);
+                            context.pop();
                             await _showContext(context, verseId, type: _ContextType.author);
                           },
                         ),
@@ -175,7 +176,7 @@ class ReadingActionSheet extends StatelessWidget {
                           icon: Icons.bookmark_add_rounded,
                           label: 'Mémoriser ce passage',
                           onTap: () async {
-                            Navigator.pop(context);
+                            context.pop();
                             await ReadingMemoryService.queueMemoryVerse(verseId);
                             _toast(context, 'Ajouté à mémorisation');
                           },
@@ -304,7 +305,7 @@ Future<void> _showCrossRefs(BuildContext context, String id) async {
                       context,
                       rid,
                       onTap: () {
-                        Navigator.pop(context);
+                                      context.pop();
                         // -> Naviguer dans le lecteur vers rid
                         _toast(context, 'Navigation vers ${rid.replaceAll('.', ' ')}');
                       },
@@ -378,7 +379,7 @@ Future<void> _showMirror(BuildContext context, String id) async {
                 mirror,
                 primary: true,
                 onTap: () {
-                  Navigator.pop(context);
+                                      context.pop();
                   // -> Aller au verset miroir
                   _toast(context, 'Navigation vers ${mirror.replaceAll('.', ' ')}');
                 },
@@ -694,7 +695,7 @@ Future<void> promptRetainedThenMarkRead(
                 addToWall: addToWall.value,
               );
               
-              Navigator.pop(context);
+                                      context.pop();
               _toast(context, '✅ Rétention enregistrée');
               
               // Ici : marquer comme lu (progress local)

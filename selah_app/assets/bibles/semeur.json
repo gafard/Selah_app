@@ -1,0 +1,42 @@
+{
+  "version": "semeur",
+  "name": "Bible du Semeur",
+  "language": "fr",
+  "description": "Version dynamique et accessible",
+  "books": {
+    "Genèse": {
+      "1": [
+        "Au commencement, Dieu créa le ciel et la terre.",
+        "Or la terre était vide et désertique, les ténèbres couvraient l'abîme, et l'Esprit de Dieu planait au-dessus des eaux.",
+        "Dieu dit: «Que la lumière soit!» Et la lumière fut.",
+        "Dieu vit que la lumière était bonne, et il sépara la lumière des ténèbres.",
+        "Dieu appela la lumière «jour» et les ténèbres «nuit». Il y eut un soir, il y eut un matin: ce fut le premier jour."
+      ]
+    },
+    "Jean": {
+      "3": [
+        "Il y avait un homme du groupe des pharisiens, nommé Nicodème, qui était l'un des dirigeants juifs.",
+        "Il vint trouver Jésus pendant la nuit et lui dit: «Maître, nous savons que tu es un enseignant envoyé par Dieu, car personne ne peut accomplir les signes miraculeux que tu fais si Dieu n'est pas avec lui.»",
+        "Jésus lui répondit: «Oui, je te l'assure: personne ne peut voir le royaume de Dieu s'il ne naît pas de nouveau.»",
+        "Nicodème lui dit: «Comment un homme peut-il naître quand il est vieux? Peut-il entrer une seconde fois dans le ventre de sa mère et naître?»",
+        "Jésus répondit: «Oui, je te l'assure: personne ne peut entrer dans le royaume de Dieu s'il ne naît pas d'eau et d'Esprit.",
+        "Ce qui naît de parents humains est humain, et ce qui naît de l'Esprit est esprit.",
+        "Ne sois pas étonné si je t'ai dit: Il vous faut naître de nouveau.",
+        "Le vent souffle où il veut, et tu en entends le bruit, mais tu ne sais pas d'où il vient ni où il va. Il en est ainsi pour quiconque est né de l'Esprit.»",
+        "Nicodème reprit: «Comment cela peut-il se faire?»",
+        "Jésus lui répondit: «Tu es l'enseignant d'Israël et tu ne comprends pas ces choses!",
+        "Oui, je te l'assure: nous parlons de ce que nous savons et nous témoignons de ce que nous avons vu, mais vous ne recevez pas notre témoignage.",
+        "Si vous ne croyez pas quand je vous parle des choses terrestres, comment croirez-vous quand je vous parlerai des choses célestes?",
+        "Personne n'est monté au ciel, sauf celui qui est descendu du ciel, le Fils de l'homme.",
+        "Et comme Moïse a élevé le serpent dans le désert, il faut de même que le Fils de l'homme soit élevé,",
+        "afin que quiconque croit en lui ait la vie éternelle.",
+        "Car Dieu a tant aimé le monde qu'il a donné son Fils unique, afin que quiconque croit en lui ne meure pas mais ait la vie éternelle.",
+        "En effet, Dieu n'a pas envoyé son Fils dans le monde pour juger le monde, mais pour que le monde soit sauvé par lui.",
+        "Celui qui croit en lui n'est pas jugé, mais celui qui ne croit pas est déjà jugé parce qu'il n'a pas cru au nom du Fils unique de Dieu.",
+        "Et voici le jugement: la lumière est venue dans le monde, mais les hommes ont préféré l'obscurité à la lumière parce que leurs œuvres étaient mauvaises.",
+        "En effet, toute personne qui fait le mal déteste la lumière et ne vient pas à la lumière de peur que ses œuvres soient dévoilées,",
+        "mais celui qui agit conformément à la vérité vient à la lumière afin qu'il soit évident que ses œuvres sont faites en Dieu.»"
+      ]
+    }
+  }
+}

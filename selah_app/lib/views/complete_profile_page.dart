@@ -6,7 +6,10 @@ import '../services/notification_service.dart';
 import '../services/daily_scheduler.dart';
 import '../services/user_prefs.dart'; // ✅ UserPrefs ESSENTIEL (offline-first)
 import '../services/user_prefs_hive.dart';
+import '../services/intelligent_duration_calculator.dart'; // 🧠 IntelligentDurationCalculator
 import '../repositories/user_repository.dart';
+import '../widgets/bible_version_selector.dart';
+import '../services/bible_version_manager.dart';
 
 class CompleteProfilePage extends StatefulWidget {
   const CompleteProfilePage({super.key});
@@ -17,7 +20,7 @@ class CompleteProfilePage extends StatefulWidget {
 
 class _CompleteProfilePageState extends State<CompleteProfilePage> {
   // Sélections
-  String bibleVersion = 'Louis Segond (LSG)';
+  String? selectedBibleVersion;
   int durationMin = 15;
   TimeOfDay reminder = const TimeOfDay(hour: 7, minute: 0);
   String goal = 'Discipline quotidienne';
@@ -26,29 +29,25 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
   bool autoReminder = true;
   bool isLoading = false; // ← Indicateur de chargement
   
-  // ═══ NOUVEAU ! Générateur Ultime (Jean 5:40) ⭐ ═══
-  String heartPosture = '💎 Rencontrer Jésus personnellement';
-  String motivation = '🔥 Passion pour Christ';
+  // ═══ Générateur Ultime (Jean 5:40) ═══
+  String heartPosture = 'Rencontrer Jésus personnellement';
+  String motivation = 'Passion pour Christ';
+  
+  // 🧠 Variables pour les recommandations intelligentes
+  List<Map<String, dynamic>> _durationRecommendations = [];
+  bool _isCalculatingRecommendations = false;
 
-  final bibleVersions = const [
-    'Louis Segond (LSG)',
-    'Segond 21 (S21)', 
-    'Bible du Semeur (BDS)',
-    'Parole de Vie (PDV)',
-    'Traduction Œcuménique de la Bible (TOB)',
-    'New International Version (NIV)'
-  ];
   final goals = const [
-    // ═══ NOUVEAU ! Objectifs Christ-centrés (Jean 5:40) ⭐ ═══
-    '✨ Rencontrer Jésus dans la Parole',
-    '💫 Voir Jésus dans chaque livre',
-    '🔥 Être transformé à son image',
-    '❤️ Développer l\'intimité avec Dieu',
-    '🙏 Apprendre à prier comme Jésus',
-    '👂 Reconnaître la voix de Dieu',
-    '💎 Développer le fruit de l\'Esprit',
-    '⚔️ Renouveler mes pensées',
-    '🕊️ Marcher par l\'Esprit',
+    // ═══ Objectifs Christ-centrés (Jean 5:40) ═══
+    'Rencontrer Jésus dans la Parole',
+    'Voir Jésus dans chaque livre',
+    'Être transformé à son image',
+    'Développer l\'intimité avec Dieu',
+    'Apprendre à prier comme Jésus',
+    'Reconnaître la voix de Dieu',
+    'Développer le fruit de l\'Esprit',
+    'Renouveler mes pensées',
+    'Marcher par l\'Esprit',
     
     // Existants
     'Discipline quotidienne',
@@ -60,6 +59,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     'Expérimenter la guérison',
     'Partager ma foi',
     'Mieux prier',
+    'Sagesse',
   ];
   
   final levels = const [
@@ -77,31 +77,73 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     'Prière silencieuse',
   ];
   
-  // ═══ NOUVEAU ! Posture du cœur (Jean 5:40) ⭐ ═══
+  // ═══ Posture du cœur (Jean 5:40) ═══
   final heartPostures = const [
-    '💎 Rencontrer Jésus personnellement',
-    '🔥 Être transformé par l\'Esprit',
-    '🙏 Écouter la voix de Dieu',
-    '📚 Approfondir ma connaissance',
-    '⚡ Recevoir la puissance de l\'Esprit',
-    '❤️ Développer l\'intimité avec le Père',
+    'Rencontrer Jésus personnellement',
+    'Être transformé par l\'Esprit',
+    'Écouter la voix de Dieu',
+    'Approfondir ma connaissance',
+    'Recevoir la puissance de l\'Esprit',
+    'Développer l\'intimité avec le Père',
   ];
   
-  // ═══ NOUVEAU ! Motivation spirituelle (Hébreux 11:6) ⭐ ═══
+  // ═══ Motivation spirituelle (Hébreux 11:6) ═══
   final spiritualMotivations = const [
-    '🔥 Passion pour Christ',
-    '❤️ Amour pour Dieu',
-    '🎯 Obéissance joyeuse',
-    '📖 Désir de connaître Dieu',
-    '⚡ Besoin de transformation',
-    '🙏 Recherche de direction',
-    '💪 Discipline spirituelle',
+    'Passion pour Christ',
+    'Amour pour Dieu',
+    'Obéissance joyeuse',
+    'Désir de connaître Dieu',
+    'Besoin de transformation',
+    'Recherche de direction',
+    'Discipline spirituelle',
   ];
 
   @override
   void initState() {
     super.initState();
     _loadSavedPreferences(); // ✅ Charger les préférences sauvegardées
+    _calculateDurationRecommendations(); // 🧠 Calculer les recommandations
+  }
+  
+  /// 🧠 Calcule les recommandations de durée pour différents objectifs
+  Future<void> _calculateDurationRecommendations() async {
+    if (_isCalculatingRecommendations) return;
+    
+    setState(() {
+      _isCalculatingRecommendations = true;
+    });
+    
+    try {
+      final recommendations = <Map<String, dynamic>>[];
+      
+      // Calculer pour chaque objectif
+      for (final goalOption in goals) {
+        final calculation = IntelligentDurationCalculator.calculateOptimalDuration(
+          goal: goalOption,
+          level: level,
+          dailyMinutes: durationMin,
+          meditationType: meditation,
+        );
+        
+        recommendations.add({
+          'goal': goalOption,
+          'calculation': calculation,
+          'isCurrentGoal': goalOption == goal,
+        });
+      }
+      
+      setState(() {
+        _durationRecommendations = recommendations;
+        _isCalculatingRecommendations = false;
+      });
+      
+      print('🧠 ${recommendations.length} recommandations de durée calculées');
+    } catch (e) {
+      print('❌ Erreur calcul recommandations: $e');
+      setState(() {
+        _isCalculatingRecommendations = false;
+      });
+    }
   }
   
   /// ✅ Charger les préférences sauvegardées depuis UserPrefs (offline-first)
@@ -120,7 +162,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
       
       setState(() {
         // Charger tous les paramètres sauvegardés
-        bibleVersion = _getBibleVersionFromCode(profileMap['bibleVersion'] as String? ?? 'LSG');
+        selectedBibleVersion = profileMap['bibleVersion'] as String? ?? 'lsg1910';
         durationMin = profileMap['durationMin'] as int? ?? 15;
         
         // Charger l'heure du rappel
@@ -130,12 +172,14 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
         
         autoReminder = profileMap['autoReminder'] as bool? ?? true;
         goal = profileMap['goal'] as String? ?? 'Discipline quotidienne';
-        level = profileMap['level'] as String? ?? 'Fidèle régulier';
+        final rawLevel = profileMap['level'] as String? ?? 'Fidèle régulier';
+        // ✅ Corriger l'incohérence "Rétrogarde" vs "Rétrograde"
+        level = rawLevel == 'Rétrogarde' ? 'Rétrograde' : rawLevel;
         meditation = profileMap['meditation'] as String? ?? 'Méditation biblique';
         
         // ✅ Charger les nouveaux champs (Générateur Ultime)
-        heartPosture = profileMap['heartPosture'] as String? ?? '💎 Rencontrer Jésus personnellement';
-        motivation = profileMap['motivation'] as String? ?? '🔥 Passion pour Christ';
+        heartPosture = profileMap['heartPosture'] as String? ?? 'Rencontrer Jésus personnellement';
+        motivation = profileMap['motivation'] as String? ?? 'Passion pour Christ';
       });
       
       print('✅ Préférences chargées depuis UserPrefs (offline-first)');
@@ -145,25 +189,6 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     }
   }
   
-  /// Convertir le code de version Bible en nom complet
-  String _getBibleVersionFromCode(String code) {
-    switch (code) {
-      case 'LSG':
-        return 'Louis Segond (LSG)';
-      case 'S21':
-        return 'Segond 21 (S21)';
-      case 'BDS':
-        return 'Bible du Semeur (BDS)';
-      case 'PDV':
-        return 'Parole de Vie (PDV)';
-      case 'TOB':
-        return 'Traduction Œcuménique de la Bible (TOB)';
-      case 'NIV':
-        return 'New International Version (NIV)';
-      default:
-        return 'Louis Segond (LSG)';
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -297,10 +322,15 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
         _buildField(
           label: 'Version de la Bible',
           icon: Icons.menu_book_rounded,
-          child: _buildDropdown(
-            value: bibleVersion,
-            items: bibleVersions,
-            onChanged: (v) => setState(() => bibleVersion = v),
+          child: BibleVersionSelector(
+            selectedVersion: selectedBibleVersion,
+            onVersionChanged: (version) {
+              setState(() {
+                selectedBibleVersion = version;
+              });
+            },
+            label: 'Version de la Bible',
+            showLabel: false,
           ),
         ),
 
@@ -313,6 +343,11 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
           child: _buildDurationSlider(),
         ),
 
+        const SizedBox(height: 16),
+        
+        // 🧠 Section de recommandations intelligentes
+        _buildIntelligenceRecommendations(),
+        
         const SizedBox(height: 16),
 
         // Rappels quotidiens
@@ -340,7 +375,11 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
           child: _buildDropdown(
             value: goal,
             items: goals,
-            onChanged: (v) => setState(() => goal = v),
+            onChanged: (v) {
+              setState(() => goal = v);
+              // 🧠 Recalculer les recommandations quand l'objectif change
+              _calculateDurationRecommendations();
+            },
           ),
         ),
 
@@ -501,13 +540,282 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
             max: 60,
             divisions: 11,
             label: '$durationMin min',
-            onChanged: (v) => setState(() => durationMin = v.round()),
+            onChanged: (v) {
+              setState(() => durationMin = v.round());
+              // 🧠 Recalculer les recommandations quand la durée change
+              _calculateDurationRecommendations();
+            },
           ),
         ),
       ),
     );
   }
-
+  
+  // Les systèmes intelligents travaillent en arrière-plan sans interface visible
+  Widget _buildIntelligenceRecommendations() {
+    return SizedBox.shrink(); // Pas d'interface visible
+    
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.psychology, color: Colors.blue, size: 20),
+              SizedBox(width: 8),
+              Text(
+                'Recommandations Spirituelles',
+                style: TextStyle(
+                  color: Colors.blue,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12),
+          Text(
+            'Durées optimales pour vos objectifs spirituels :',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+            ),
+          ),
+          SizedBox(height: 8),
+          ..._durationRecommendations.take(3).map((rec) => _buildRecommendationCard(rec)).toList(),
+          if (_durationRecommendations.length > 3) ...[
+            SizedBox(height: 8),
+            TextButton(
+              onPressed: () => _showAllRecommendations(),
+              child: Text(
+                'Voir toutes les recommandations',
+                style: TextStyle(
+                  color: Colors.blue,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+  
+  /// 🧠 Widget pour une carte de recommandation
+  Widget _buildRecommendationCard(Map<String, dynamic> recommendation) {
+    final goal = recommendation['goal'] as String;
+    final calculation = recommendation['calculation'] as DurationCalculation;
+    final isCurrentGoal = recommendation['isCurrentGoal'] as bool;
+    
+    return Container(
+      margin: EdgeInsets.only(bottom: 6),
+      padding: EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: isCurrentGoal 
+            ? Colors.green.withOpacity(0.1)
+            : Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isCurrentGoal 
+              ? Colors.green.withOpacity(0.3)
+              : Colors.white.withOpacity(0.1),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  goal,
+                  style: TextStyle(
+                    color: isCurrentGoal ? Colors.green : Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  '${calculation.optimalDays} jours recommandés',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 10,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: _getConfidenceColor(calculation.confidence).withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '${(calculation.confidence * 100).round()}%',
+              style: TextStyle(
+                fontSize: 9,
+                color: _getConfidenceColor(calculation.confidence),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  /// 🎨 Couleur basée sur le niveau de confiance
+  Color _getConfidenceColor(double confidence) {
+    if (confidence >= 0.8) return Colors.green;
+    if (confidence >= 0.6) return Colors.orange;
+    return Colors.red;
+  }
+  
+  /// 🧠 Affiche toutes les recommandations dans un dialog
+  Future<void> _showAllRecommendations() async {
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1D29),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.psychology, color: Colors.blue, size: 24),
+            SizedBox(width: 8),
+            Text(
+              'Toutes les Recommandations Spirituelles',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Durées optimales basées sur votre profil :',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                ),
+              ),
+              SizedBox(height: 16),
+              ..._durationRecommendations.map((rec) => _buildDetailedRecommendationCard(rec)).toList(),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Fermer',
+              style: TextStyle(
+                color: Colors.blue,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  /// 🧠 Widget pour une carte de recommandation détaillée
+  Widget _buildDetailedRecommendationCard(Map<String, dynamic> recommendation) {
+    final goal = recommendation['goal'] as String;
+    final calculation = recommendation['calculation'] as DurationCalculation;
+    final isCurrentGoal = recommendation['isCurrentGoal'] as bool;
+    
+    return Container(
+      margin: EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isCurrentGoal 
+            ? Colors.green.withOpacity(0.1)
+            : Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isCurrentGoal 
+              ? Colors.green.withOpacity(0.3)
+              : Colors.white.withOpacity(0.1),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  goal,
+                  style: TextStyle(
+                    color: isCurrentGoal ? Colors.green : Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _getConfidenceColor(calculation.confidence).withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '${(calculation.confidence * 100).round()}%',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: _getConfidenceColor(calculation.confidence),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Durée recommandée: ${calculation.optimalDays} jours',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Text(
+            'Intensité: ${calculation.intensity.name}',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+            ),
+          ),
+          if (calculation.warnings.isNotEmpty) ...[
+            SizedBox(height: 4),
+            Text(
+              '⚠️ ${calculation.warnings.first}',
+              style: TextStyle(
+                color: Colors.orange,
+                fontSize: 10,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+  
   Widget _buildSwitchTile() {
     return Container(
       height: 48, // Hauteur réduite pour Android
@@ -695,14 +1003,12 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     try {
       print('🔄 Début _onContinue()');
       
-      // Extraire le code de la version de la Bible (ex: "LSG" de "Louis Segond (LSG)")
-      final bibleVersionCode = bibleVersion.contains('(') 
-          ? bibleVersion.substring(bibleVersion.lastIndexOf('(') + 1, bibleVersion.lastIndexOf(')'))
-          : bibleVersion;
+      // Utiliser la version sélectionnée
+      final bibleVersionCode = selectedBibleVersion ?? 'lsg1910';
       
       print('📖 Version Bible: $bibleVersionCode');
 
-      // 1) Normaliser les clés attendues par l'IA
+      // 1) Normaliser les clés attendues par le système spirituel
       final preferredTime = _fmt(reminder);       // "HH:mm"
       final dailyMinutes = durationMin;           // miroir pour compat
       final correctedLevel = level == 'Rétrogarde' ? 'Rétrograde' : level; // ✅ corrige la valeur
@@ -827,24 +1133,48 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     // Ne pas bloquer l'UI - téléchargement asynchrone
     Future.microtask(() async {
       try {
-        // Vérifier connectivité AVANT de télécharger
-        // Si offline, on utilise la version minimale locale
         print('📖 Téléchargement Bible $versionCode en arrière-plan...');
         
-        // TODO: Implémenter téléchargement réel ici
-        // - Vérifier ConnectivityService.instance.isOnline
-        // - Si online : télécharger depuis API/CDN
-        // - Si offline : utiliser version minimale locale
-        // - Notification quand terminé
+        // ✅ Vérifier si la version est déjà disponible
+        final isAvailable = await BibleVersionManager.isVersionAvailable(versionCode);
+        if (isAvailable) {
+          print('✅ Version $versionCode déjà disponible');
+          return;
+        }
         
-        await Future.delayed(const Duration(seconds: 2)); // Simulation
+        // ✅ Télécharger la version depuis VideoPsalm
+        final success = await BibleVersionManager.downloadVideoPsalmVersion(versionCode);
         
-        print('✅ Bible $versionCode téléchargée (arrière-plan)');
+        if (success) {
+          print('✅ Bible $versionCode téléchargée avec succès (arrière-plan)');
+          
+          // ✅ Notification discrète de succès
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Version $versionCode téléchargée avec succès'),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        } else {
+          print('⚠️ Échec du téléchargement de $versionCode');
+        }
         
-        // Notification supprimée - pas de message en bas
       } catch (e) {
         print('⚠️ Erreur téléchargement Bible (non bloquant): $e');
-        // Ne pas bloquer l'utilisateur - version locale utilisée
+        
+        // ✅ Notification d'erreur discrète
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erreur téléchargement $versionCode: ${e.toString()}'),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
       }
     });
   }

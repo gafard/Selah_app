@@ -796,7 +796,7 @@ List<PrayerSubject> buildPrayerSubjectsFromMeditation({
   return out.take(10).toList();
 }
 
-/// Règles simples basées sur les libellés des options cochées (pas d'IA).
+/// Règles simples basées sur les libellés des options cochées (système spirituel).
 List<PrayerSubject> _fromQcm(Map<String, List<String>> answers) {
   final out = <PrayerSubject>[];
 

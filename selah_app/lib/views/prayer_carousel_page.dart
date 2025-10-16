@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:math' show Random;
 import '../utils/prayer_subjects_mapper.dart';
 import '../utils/verse_analyzer.dart';
+import '../services/audio_player_service.dart';
+import '../widgets/circular_audio_progress.dart';
 
 class PrayerCarouselPage extends StatefulWidget {
   const PrayerCarouselPage({super.key});
@@ -17,10 +20,19 @@ class _PrayerCarouselPageState extends State<PrayerCarouselPage> {
   List<PrayerItem> _items = [];
   final int _currentIndex = 0;
   String _memoryVerse = ''; // Verset noté par l'utilisateur
+  
+  // Audio player
+  late final AudioPlayerService _audio;
+  Duration _pos = Duration.zero;
+  Duration _dur = Duration.zero;
 
   @override
   void initState() {
     super.initState();
+    
+    // Initialize audio player
+    _audio = AudioPlayerService();
+    _initAudio();
     
     // Récupérer les arguments passés lors de la navigation
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -94,6 +106,102 @@ class _PrayerCarouselPageState extends State<PrayerCarouselPage> {
   }
 
   @override
+  void dispose() {
+    _audio.dispose();
+    super.dispose();
+  }
+
+  Future<void> _initAudio() async {
+    try {
+      // TODO: Replace with your actual audio URL (instrumental chill/lofi local asset or CDN)
+      await _audio.init(url: Uri.parse('https://cdn.example.com/loops/lofi-01.mp3'));
+      _audio.position$.listen((d) => setState(() => _pos = d));
+      _audio.duration$.listen((d) => setState(() => _dur = d ?? Duration.zero));
+    } catch (e) {
+      // Handle audio initialization error silently
+      print('Audio initialization failed: $e');
+    }
+  }
+
+  void _toggleAudio() async {
+    try {
+      if (_audio.isPlaying) {
+        await _audio.pause();
+      } else {
+        await _audio.play();
+      }
+      // HapticFeedback.lightImpact(); // Temporairement désactivé
+    } catch (e) {
+      _showSnackBar('Erreur audio', Icons.error, Colors.red);
+    }
+  }
+
+  void _showSnackBar(String message, IconData icon, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Text(message, style: const TextStyle(color: Colors.white)),
+          ],
+        ),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  String _fmt(Duration d) {
+    final mm = d.inMinutes.remainder(60).toString().padLeft(2,'0');
+    final ss = d.inSeconds.remainder(60).toString().padLeft(2,'0');
+    return '$mm:$ss';
+  }
+
+  void _openInstrumentalsSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        final items = [
+          ('Lo-fi 01', 'https://cdn.example.com/loops/lofi-01.mp3'),
+          ('Piano Soft', 'https://cdn.example.com/loops/piano-soft.mp3'),
+          ('Ambient Pad', 'https://cdn.example.com/loops/ambient-pad.mp3'),
+        ];
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 12),
+              Text('Instrumentaux', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              ...items.map((it) => ListTile(
+                leading: const Icon(Icons.music_note),
+                title: Text(it.$1, style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                subtitle: Text(Uri.parse(it.$2).pathSegments.last, style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[600])),
+                onTap: () async {
+                  await _audio.init(url: Uri.parse(it.$2));
+                  await _audio.play();
+                  if (mounted) context.pop();
+                },
+              )),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     if (_items.isEmpty) {
       return const Scaffold(
@@ -156,7 +264,7 @@ class _PrayerCarouselPageState extends State<PrayerCarouselPage> {
                       cardBuilder: (context, index, percentThresholdX, percentThresholdY) {
                         return _buildPrayerCard(_items[index], index);
                       },
-                      onSwipe: _onCardSwiped,
+                      // onSwipe: _onCardSwiped, // Temporairement désactivé pour la compatibilité
                       onEnd: () {
                         // Quand toutes les cartes sont swipées, afficher la page de succès
                         debugPrint('Toutes les cartes ont été swipées - Prière terminée !');
@@ -167,6 +275,9 @@ class _PrayerCarouselPageState extends State<PrayerCarouselPage> {
                   ),
                 ),
               ),
+              
+              // Section audio
+              _buildAudioSection(),
               
               // Indicateurs de pagination
               if (_items.length > 1) _buildPageIndicators(),
@@ -398,6 +509,96 @@ class _PrayerCarouselPageState extends State<PrayerCarouselPage> {
     );
   }
 
+  Widget _buildAudioSection() {
+    final progress = _dur.inMilliseconds == 0
+        ? 0.0
+        : _pos.inMilliseconds / _dur.inMilliseconds;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          CircularAudioProgress(
+            progress: progress.clamp(0.0, 1.0),
+            size: 50,
+            progressColor: Colors.white,
+            backgroundColor: Colors.white.withOpacity(0.3),
+            icon: (_dur > Duration.zero && _pos < _dur) ? Icons.pause : Icons.play_arrow,
+            onTap: _toggleAudio,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Instrumental • Focus', 
+                  style: GoogleFonts.inter(
+                    fontSize: 14, 
+                    fontWeight: FontWeight.w600, 
+                    color: Colors.white
+                  )
+                ),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: _dur.inMilliseconds == 0 ? null : progress,
+                    minHeight: 4,
+                    backgroundColor: Colors.white.withOpacity(0.3),
+                    valueColor: const AlwaysStoppedAnimation(Colors.white),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _fmt(_pos), 
+                      style: GoogleFonts.inter(
+                        fontSize: 10, 
+                        color: Colors.white70
+                      )
+                    ),
+                    Text(
+                      _fmt(_dur), 
+                      style: GoogleFonts.inter(
+                        fontSize: 10, 
+                        color: Colors.white70
+                      )
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: _openInstrumentalsSheet,
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2), 
+                borderRadius: BorderRadius.circular(8)
+              ),
+              child: const Icon(
+                Icons.library_music, 
+                color: Colors.white, 
+                size: 18
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPageIndicators() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20),
@@ -428,7 +629,7 @@ class _PrayerCarouselPageState extends State<PrayerCarouselPage> {
     });
   }
 
-  Future<bool> _onCardSwiped(int previousIndex, int? currentIndex, CardSwiperDirection direction) async {
+  Future<bool> _onCardSwiped(int previousIndex, int? currentIndex) async {
     if (previousIndex >= _items.length) return true;
     
     final item = _items[previousIndex];
@@ -441,7 +642,7 @@ class _PrayerCarouselPageState extends State<PrayerCarouselPage> {
     }
     
     
-    debugPrint('Carte swipée: ${item.theme}, $direction');
+    debugPrint('Carte swipée: ${item.theme}');
     return true;
   }
 

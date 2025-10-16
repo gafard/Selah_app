@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'openbible_themes_service.dart';
 import 'semantic_passage_boundary_service.dart';
 import 'thompson_plan_service.dart';
 import 'bible_context_service.dart';
@@ -46,12 +47,43 @@ class ThemesService {
       
       final baseThemes = List<String>.from(data as List);
       
+      // 🔥 PRIORITÉ 1: Enrichir avec OpenBible Themes
+      final openBibleThemes = await _getOpenBibleThemes(id);
+      
+      // Combiner les thèmes de base avec OpenBible
+      final combinedThemes = <String>{
+        ...baseThemes,
+        ...openBibleThemes,
+      }.toList();
+      
       // 🧠 INTELLIGENCE CONTEXTUELLE - Enrichir avec le contexte sémantique
-      final enrichedThemes = await _enrichThemesWithContext(id, baseThemes);
+      final enrichedThemes = await _enrichThemesWithContext(id, combinedThemes);
       
       return enrichedThemes;
     } catch (e) {
       print('⚠️ Erreur themes($id): $e');
+      return [];
+    }
+  }
+
+  /// 🔥 PRIORITÉ 1: Récupère les thèmes OpenBible pour un verset
+  static Future<List<String>> _getOpenBibleThemes(String id) async {
+    try {
+      if (!OpenBibleThemesService.isAvailable) return [];
+      
+      // Extraire des mots-clés de l'ID
+      final parts = id.split('.');
+      if (parts.isEmpty) return [];
+      
+      final book = parts[0];
+      
+      // Rechercher des thèmes OpenBible correspondants
+      final themes = await OpenBibleThemesService.searchThemes(book);
+      
+      // Extraire les noms des thèmes
+      return themes.map((theme) => theme['name'] as String? ?? '').where((name) => name.isNotEmpty).toList();
+    } catch (e) {
+      print('⚠️ Erreur thèmes OpenBible: $e');
       return [];
     }
   }

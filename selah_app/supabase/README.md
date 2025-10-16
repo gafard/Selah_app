@@ -1,6 +1,6 @@
-# API Supabase pour Selah
+# API Supabase pour Selah (Système 100% Local)
 
-Cette API fournit tous les endpoints nécessaires pour gérer les plans de lecture biblique dans l'application Selah.
+Cette API fournit tous les endpoints nécessaires pour gérer les plans de lecture biblique générés localement dans l'application Selah, avec support des presets Thompson et plans personnalisés.
 
 ## 🚀 Déploiement
 
@@ -42,126 +42,197 @@ supabase functions deploy plans-progress
 ## 📊 Base de données
 
 ### Tables
-- `plans` : Plans de lecture biblique
-- `plan_days` : Jours individuels avec lectures
+- `plan_presets` : Presets de plans (Thompson, thématiques)
+- `local_plans` : Plans générés localement
+- `local_plan_days` : Jours individuels avec lectures
+- `user_profiles_extended` : Profils utilisateur étendus
 
 ### Sécurité
 - Row Level Security (RLS) activé
 - Politiques pour que chaque utilisateur ne voit que ses propres plans
 - Authentification requise pour tous les endpoints
+- Presets en lecture publique, modification admin uniquement
 
-## ⚡ Edge Functions
+## ⚡ Edge Functions (Système Local)
 
-### 1. `plans-from-preset`
-**POST** `/functions/v1/plans-from-preset`
+### 1. `generate-local-plan`
+**POST** `/functions/v1/generate-local-plan`
 
-Crée un plan à partir d'un preset Thompson 21.
+Génère un plan de lecture 100% localement (preset ou personnalisé).
 
 **Body:**
 ```json
 {
-  "preset_slug": "thompson-compagnie",
-  "start_date": "2024-01-01",
-  "profile": {
+  "userId": "uuid",
+  "planName": "Mon Plan Spirituel",
+  "presetId": "uuid", // optionnel
+  "isCustom": false,
+  "startDate": "2024-01-01",
+  "parameters": {
+    "totalDays": 30,
+    "order": "traditional",
+    "books": ["OT", "NT"],
+    "focus": "spiritual_growth",
+    "daysPerWeek": 7,
     "minutesPerDay": 15,
-    "goals": ["weekend_rest"],
-    "level": "beginner"
-  }
+    "includePsalms": true,
+    "includeProverbs": false
+  },
+  "profileData": { /* données du profil utilisateur */ }
 }
 ```
 
 **Response:**
 ```json
 {
-  "id": "uuid",
-  "user_id": "uuid",
-  "name": "Compagnie avec Dieu",
-  "start_date": "2024-01-01",
-  "total_days": 60,
-  "is_active": true
+  "success": true,
+  "planId": "uuid",
+  "message": "Plan local généré avec succès",
+  "totalDays": 30,
+  "generatedDays": 30
 }
 ```
 
-### 2. `plans-import`
-**POST** `/functions/v1/plans-import`
+### 2. `get-plan-presets`
+**GET** `/functions/v1/get-plan-presets`
 
-Importe un plan depuis un fichier ICS (biblereadingplangenerator.com).
+Récupère tous les presets disponibles.
 
-**Body:**
-```json
-{
-  "name": "Plan personnalisé",
-  "ics_url": "https://biblereadingplangenerator.com/plan.ics"
-}
-```
-
-### 3. `plans-active`
-**GET** `/functions/v1/plans-active`
-
-Récupère le plan actif de l'utilisateur.
+**Query params:**
+- `category`: 'thompson', 'thematic', 'all'
+- `theme`: thème Thompson spécifique
 
 **Response:**
 ```json
 {
-  "id": "uuid",
-  "user_id": "uuid",
-  "name": "Compagnie avec Dieu",
-  "start_date": "2024-01-01",
-  "total_days": 60,
-  "is_active": true
+  "success": true,
+  "presets": {
+    "thompson": [
+      {
+        "id": "uuid",
+        "name": "Exigence Spirituelle",
+        "slug": "thompson-spiritual-demand",
+        "description": "Plan pour approfondir sa spiritualité",
+        "theme": "spiritual_demand",
+        "parameters": { /* paramètres du preset */ }
+      }
+    ]
+  },
+  "total": 12,
+  "categories": ["thompson", "thematic"]
 }
 ```
 
-### 4. `plans-days`
-**GET** `/functions/v1/plans-days`
+### 3. `get-user-plans`
+**GET** `/functions/v1/get-user-plans`
+
+Récupère tous les plans d'un utilisateur.
+
+**Query params:**
+- `userId`: ID de l'utilisateur
+- `status`: 'active', 'completed', 'all'
+- `includeDays`: true/false
+
+**Response:**
+```json
+{
+  "success": true,
+  "plans": [
+    {
+      "id": "uuid",
+      "name": "Mon Plan Spirituel",
+      "start_date": "2024-01-01",
+      "total_days": 30,
+      "status": "active",
+      "stats": {
+        "totalDays": 30,
+        "completedDays": 5,
+        "remainingDays": 25,
+        "progressPercentage": 17,
+        "isCompleted": false
+      },
+      "days": [ /* jours du plan si includeDays=true */ ]
+    }
+  ],
+  "total": 1,
+  "activePlans": 1,
+  "completedPlans": 0
+}
+```
+
+### 4. `get-plan-days`
+**GET** `/functions/v1/get-plan-days`
 
 Récupère les jours d'un plan.
 
 **Query params:**
-- `from`: Jour de début (optionnel)
-- `to`: Jour de fin (optionnel)
-
-**Response:**
-```json
-[
-  {
-    "id": "uuid",
-    "plan_id": "uuid",
-    "day_index": 1,
-    "date": "2024-01-01",
-    "readings": [
-      {
-        "book": "Jean",
-        "range": "1:1-50",
-        "url": "https://biblegateway.com/..."
-      }
-    ],
-    "completed": false
-  }
-]
-```
-
-### 5. `plans-set-active`
-**POST** `/functions/v1/plans-set-active`
-
-Active un plan (désactive les autres).
+- `planId`: ID du plan
+- `userId`: ID de l'utilisateur
+- `fromDay`: Jour de début (optionnel)
+- `toDay`: Jour de fin (optionnel)
+- `date`: Date spécifique (optionnel)
 
 **Response:**
 ```json
 {
-  "success": true
+  "success": true,
+  "plan": {
+    "id": "uuid",
+    "name": "Mon Plan Spirituel",
+    "status": "active"
+  },
+  "days": [
+    {
+      "id": "uuid",
+      "day_number": 1,
+      "date": "2024-01-01",
+      "bible_references": ["Jean 1", "Psaume 1"],
+      "meditation_theme": "Paix et sérénité",
+      "prayer_subjects": [ /* sujets de prière */ ],
+      "memory_verse": "Car Dieu a tant aimé le monde...",
+      "is_completed": false
+    }
+  ],
+  "stats": {
+    "totalDays": 30,
+    "completedDays": 5,
+    "remainingDays": 25,
+    "progressPercentage": 17,
+    "currentDayNumber": 6,
+    "isCompleted": false
+  }
 }
 ```
 
-### 6. `plans-progress`
-**PATCH** `/functions/v1/plans-progress`
+### 5. `update-plan-progress`
+**POST** `/functions/v1/update-plan-progress`
 
-Met à jour le statut de complétion d'un jour.
+Met à jour le progrès d'un jour de plan.
 
 **Body:**
 ```json
 {
-  "completed": true
+  "userId": "uuid",
+  "planId": "uuid",
+  "dayNumber": 1,
+  "isCompleted": true,
+  "notes": "Lecture terminée avec méditation"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Progrès mis à jour avec succès",
+  "day": { /* jour mis à jour */ },
+  "stats": {
+    "totalDays": 30,
+    "completedDays": 6,
+    "remainingDays": 24,
+    "progressPercentage": 20,
+    "isCompleted": false
+  }
 }
 ```
 

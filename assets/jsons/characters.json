@@ -1,0 +1,35 @@
+{
+  "Jean.3.16": [
+    {"name": "Nicodème", "description": "Pharisien, membre du sanhédrin, vient voir Jésus de nuit", "key_passages": ["Jean.3.1", "Jean.7.50", "Jean.19.39"]},
+    {"name": "Jésus", "description": "Fils de Dieu, enseigne sur la nouvelle naissance", "key_passages": ["Jean.1.1", "Jean.14.6", "Jean.20.31"]}
+  ],
+  
+  "Luc.15.20": [
+    {"name": "Le fils prodigue", "description": "Fils rebelle qui dilapide son héritage puis revient repentant", "key_passages": ["Luc.15.11", "Luc.15.32"]},
+    {"name": "Le père", "description": "Figure de Dieu le Père, plein de compassion et de pardon", "key_passages": ["Luc.15.20", "Luc.15.22"]},
+    {"name": "Le frère aîné", "description": "Fils fidèle mais jaloux et amer", "key_passages": ["Luc.15.25", "Luc.15.31"]}
+  ],
+  
+  "Genèse.22.8": [
+    {"name": "Abraham", "description": "Patriarche, père de la foi, testé par Dieu", "key_passages": ["Genèse.12.1", "Genèse.15.6", "Romains.4.3"]},
+    {"name": "Isaac", "description": "Fils unique promis, fils du miracle", "key_passages": ["Genèse.21.3", "Genèse.22.2", "Galates.4.28"]}
+  ],
+  
+  "Romains.8.28": [
+    {"name": "Paul", "description": "Apôtre, écrit aux chrétiens de Rome", "key_passages": ["Actes.9.15", "Romains.1.1", "2Timothée.4.7"]}
+  ]
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

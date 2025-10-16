@@ -178,27 +178,81 @@ class PlanServiceHttp implements PlanService {
     telemetry.event('plan_archive_queued_for_sync', {'plan_id': planId});
   }
 
+  /// 🐛 DEBUG: Supprime complètement le plan actuel pour forcer la création d'un nouveau
+  Future<void> debugDeleteCurrentPlan() async {
+    print('🐛 DEBUG: Suppression du plan actuel pour test');
+    
+    // Supprimer le plan actif
+    await cachePlans.delete('active_plan');
+    
+    // Supprimer tous les jours de plan du cache
+    final allKeys = cachePlanDays.keys.toList();
+    for (final key in allKeys) {
+      if (key.startsWith('days:')) {
+        await cachePlanDays.delete(key);
+        print('🐛 DEBUG: Supprimé $key');
+      }
+    }
+    
+    print('🐛 DEBUG: Plan actuel supprimé - prêt pour nouveau plan');
+  }
+
+
   // —— days ————————————————————————————————————————————————————————
   @override
   Future<List<PlanDay>> getPlanDays(String planId, {int? fromDay, int? toDay}) async {
     final key = 'days:$planId:${fromDay ?? 1}:${toDay ?? 0}';
-    final cached = cachePlanDays.get(key);
-    if (cached != null) {
-      final list = (cached as List).map((e) => PlanDay.fromJson(Map<String, dynamic>.from(e))).toList();
-      // Async refresh en arrière-plan (sans bloquer)
-      _authedGet('/plans/$planId/days${_range(fromDay, toDay)}').then((r) async {
-        if (r.statusCode ~/ 100 == 2) {
-          final List data = jsonDecode(r.body);
-          await cachePlanDays.put(key, data);
-        }
-      });
-      return list;
+    final altKey = 'days:$planId'; // ancien format
+
+    List _readFromCache(String cacheKey) {
+      final cached = cachePlanDays.get(cacheKey);
+      return (cached is List) ? cached : const [];
     }
+
+    List<PlanDay> _parse(List data) {
+      final days = <PlanDay>[];
+      for (final e in data) {
+        try {
+          final pd = PlanDay.fromJson(Map<String, dynamic>.from(e as Map));
+          days.add(pd);
+        } catch (err) {
+          print('⚠️ PlanDay.fromJson error: $err');
+        }
+      }
+      return days;
+    }
+
+    // 1) cache direct
+    final cached = _readFromCache(key);
+    if (cached.isNotEmpty) return _parse(cached);
+
+    // 2) alt cache
+    final alt = _readFromCache(altKey);
+    if (alt.isNotEmpty) {
+      final parsed = _parse(alt);
+
+      // 🔧 auto-migration: re-écrire au bon key (et formats normalisés via toJson)
+      await cachePlanDays.put(key, parsed.map((d) => d.toJson()).toList());
+      return parsed;
+    }
+
+    // 3) remote
     final r = await _authedGet('/plans/$planId/days${_range(fromDay, toDay)}');
-    if (r.statusCode ~/ 100 != 2) throw 'getPlanDays ${r.statusCode}: ${r.body}';
+    if (r.statusCode ~/ 100 != 2) {
+      if (r.statusCode == 404) {
+        print('⚠️ getPlanDays 404: fallback (vide)');
+        return [];
+      }
+      throw 'getPlanDays ${r.statusCode}: ${r.body}';
+    }
+
     final List data = jsonDecode(r.body);
-    await cachePlanDays.put(key, data);
-    return data.map((e) => PlanDay.fromJson(e)).toList();
+
+    // 🧹 normaliser & stocker
+    final parsed = _parse(data);
+    await cachePlanDays.put(key, parsed.map((d) => d.toJson()).toList());
+
+    return parsed;
   }
 
   String _range(int? from, int? to) {
@@ -444,8 +498,8 @@ class PlanServiceHttp implements PlanService {
       }
     }
     
-    // Sauvegarder les jours
-    await cachePlanDays.put('days:$planId', days.map((d) => d.toJson()).toList());
+    // Sauvegarder les jours avec la même clé que getPlanDays
+    await cachePlanDays.put('days:$planId:1:0', days.map((d) => d.toJson()).toList());
     print('✅ ${days.length} jours de plan sauvegardés localement');
   }
 

@@ -23,7 +23,7 @@ class QcmOption {
   QcmOption(this.label, {this.tags = const []});
 }
 
-/// QCM NEUTRE (sans IA).
+/// QCM NEUTRE (système spirituel).
 /// - Questions factuelles (qui/quoi/où/quand/à qui)
 /// - Paraphrases pré-écrites (anti-ennui)
 /// - Toujours "Je ne sais pas" + "J'écris moi-même"

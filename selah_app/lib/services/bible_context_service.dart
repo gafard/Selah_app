@@ -1,5 +1,6 @@
 import 'package:hive/hive.dart';
 import 'semantic_passage_boundary_service.dart';
+import 'isbe_service.dart';
 
 /// 🧠 PROPHÈTE - Service de contexte biblique avec intelligence sémantique
 /// 
@@ -109,6 +110,9 @@ class BibleContextService {
     // 🔥 PRIORITÉ 1: Contexte sémantique FALCON X
     final semanticContext = await _getSemanticContext(id);
     
+    // 🔥 PRIORITÉ 1.5: Contexte ISBE enrichi
+    final isbeContext = await _getISBEContext(id);
+    
     // 🔥 PRIORITÉ 2: Thèmes Thompson
     final thompsonTheme = await _getThompsonTheme(id);
     
@@ -122,6 +126,7 @@ class BibleContextService {
       author: auth,
       characters: chars,
       semanticContext: semanticContext,
+      isbeContext: isbeContext,
       thompsonTheme: thompsonTheme,
       crossReferences: crossReferences,
     );
@@ -145,13 +150,42 @@ class BibleContextService {
       return SemanticContext(
         unitName: unit.name,
         priority: unit.priority.name,
-        theme: unit.theme,
+        theme: unit.theme ?? '',
         liturgicalContext: unit.liturgicalContext,
-        emotionalTones: unit.emotionalTones,
+        emotionalTones: unit.emotionalTones ?? [],
         annotation: unit.annotation,
       );
     } catch (e) {
       print('⚠️ Erreur contexte sémantique: $e');
+      return null;
+    }
+  }
+
+  /// 🔥 PRIORITÉ 1.5: Récupère le contexte ISBE enrichi
+  static Future<Map<String, dynamic>?> _getISBEContext(String id) async {
+    try {
+      if (!ISBEService.isAvailable) return null;
+      
+      // Extraire des mots-clés de l'ID
+      final parts = id.split('.');
+      if (parts.isEmpty) return null;
+      
+      final book = parts[0];
+      
+      // Rechercher dans ISBE
+      final isbeEntry = await ISBEService.getEntry(book);
+      if (isbeEntry != null) {
+        return {
+          'title': isbeEntry['title'],
+          'content': isbeEntry['content'],
+          'category': isbeEntry['category'],
+          'source': 'ISBE'
+        };
+      }
+      
+      return null;
+    } catch (e) {
+      print('⚠️ Erreur contexte ISBE: $e');
       return null;
     }
   }
@@ -323,6 +357,7 @@ class IntelligentContextData {
   final AuthorInfo? author;
   final List<Character> characters;
   final SemanticContext? semanticContext;
+  final Map<String, dynamic>? isbeContext;
   final String? thompsonTheme;
   final List<String> crossReferences;
   
@@ -333,6 +368,7 @@ class IntelligentContextData {
     this.author,
     this.characters = const [],
     this.semanticContext,
+    this.isbeContext,
     this.thompsonTheme,
     this.crossReferences = const [],
   });
@@ -343,11 +379,15 @@ class IntelligentContextData {
                      author != null || 
                      characters.isNotEmpty ||
                      semanticContext != null ||
+                     isbeContext != null ||
                      thompsonTheme != null ||
                      crossReferences.isNotEmpty;
   
   /// Indique si le contexte est enrichi par FALCON X
   bool get hasSemanticContext => semanticContext != null;
+  
+  /// Indique si le contexte est enrichi par ISBE
+  bool get hasISBEContext => isbeContext != null;
   
   /// Indique si le contexte est enrichi par Thompson
   bool get hasThompsonTheme => thompsonTheme != null;

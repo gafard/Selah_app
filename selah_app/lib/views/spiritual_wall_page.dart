@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:circle_nav_bar/circle_nav_bar.dart';
+import 'package:go_router/go_router.dart';
 import '../services/meditation_journal_service.dart';
 import '../models/meditation_journal_entry.dart';
 import '../widgets/uniform_back_button.dart';
@@ -27,13 +28,13 @@ class _SpiritualWallPageState extends State<SpiritualWallPage> {
   void _handleNavigation(int index) {
     switch (index) {
       case 0: // Paramètres
-        Navigator.pushReplacementNamed(context, '/profile_settings');
+        context.go('/profile_settings');
         break;
       case 1: // Accueil
-        Navigator.pushReplacementNamed(context, '/home');
+        context.go('/home');
         break;
       case 2: // Journal
-        Navigator.pushReplacementNamed(context, '/journal');
+        context.go('/journal');
         break;
       case 3: // Mur spirituel (actuel)
         // Reste sur la page actuelle
@@ -119,7 +120,7 @@ class _SpiritualWallPageState extends State<SpiritualWallPage> {
           Row(
             children: [
               UniformBackButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => context.pop(),
                 iconColor: Colors.white,
               ),
               const SizedBox(width: 16),
@@ -231,7 +232,7 @@ class _SpiritualWallPageState extends State<SpiritualWallPage> {
             const SizedBox(height: 32),
             ElevatedButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/meditation/chooser');
+                context.go('/meditation/chooser');
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,

@@ -4,6 +4,58 @@ import 'intelligent_duration_calculator.dart';
 // ═══ NOUVEAU ! Générateur Ultime (Jean 5:40) ⭐ ═══
 import 'intelligent_heart_posture.dart';
 import 'intelligent_motivation.dart';
+// ═══ NOUVEAU ! Système Needs-First ⭐ ═══
+import 'needs_assessor.dart';
+import 'needs_first_scorer.dart';
+import 'doctrinal_guard.dart';
+
+/// Signaux du profil pour évaluer les BESOINS réels
+class NeedSignals {
+  final String level, goal, heartPosture, motivation;
+  final int minutesPerDay, streak, missed14;
+  final double quizChrist, quizGospel, quizScripture;
+  final List<String> recentEmotions, doctrinalErrors;
+
+  NeedSignals({
+    required this.level,
+    required this.goal,
+    required this.heartPosture,
+    required this.motivation,
+    required this.minutesPerDay,
+    required this.streak,
+    required this.missed14,
+    required this.quizChrist,
+    required this.quizGospel,
+    required this.quizScripture,
+    required this.recentEmotions,
+    required this.doctrinalErrors,
+  });
+
+  factory NeedSignals.fromProfile(Map<String, dynamic>? p) {
+    final m = p ?? const {};
+    return NeedSignals(
+      level: (m['level'] as String?) ?? 'Fidèle régulier',
+      goal: (m['goal'] as String?) ?? 'Discipline quotidienne',
+      heartPosture: (m['heartPosture'] as String?) ?? '',
+      motivation: (m['motivation'] as String?) ?? '',
+      minutesPerDay: (m['durationMin'] as int?) ?? (m['dailyMinutes'] as int? ?? 15),
+      streak: (m['streak'] as int?) ?? 0,
+      missed14: (m['missed14'] as int?) ?? 0,
+      quizChrist: (m['quiz_christ'] as double?) ?? 0.5,
+      quizGospel: (m['quiz_gospel'] as double?) ?? 0.5,
+      quizScripture: (m['quiz_scripture'] as double?) ?? 0.5,
+      recentEmotions: (m['recentEmotions'] as List?)?.map((e) => e.toString().toLowerCase()).toList() ?? const [],
+      doctrinalErrors: (m['doctrinalErrors'] as List?)?.map((e) => e.toString().toLowerCase()).toList() ?? const [],
+    );
+  }
+}
+
+class _ScoredPreset {
+  final PlanPreset preset;
+  final double score;
+  final List<String> reasons;
+  _ScoredPreset(this.preset, this.score, this.reasons);
+}
 
 /// -------- EXPLANATIONS DTO --------
 class PresetExplanation {
@@ -1881,8 +1933,47 @@ class IntelligentLocalPresetGenerator {
     print('💡 Raisonnement complet: ${durationCalculation.reasoning}');
     print('⏱️ Temps total: ${durationCalculation.totalHours.toStringAsFixed(1)}h');
     
-    // 2. Générer les presets de base avec toutes les informations enrichies
-    final basePresets = generateIntelligentPresets(profile);
+    // ═══ DÉTECTION : Première configuration vs Configuration suivante ═══
+    final isFirstConfiguration = _isFirstConfiguration(profile);
+    print('🔍 Mode détecté: ${isFirstConfiguration ? "PREMIÈRE CONFIGURATION" : "CONFIGURATION SUIVANTE"}');
+    
+    List<PlanPreset> basePresets;
+    
+    if (isFirstConfiguration) {
+      // ═══ PREMIÈRE CONFIGURATION : Basé uniquement sur CompleteProfilePage ═══
+      print('🎯 Mode première configuration - Génération basée sur les choix du profil');
+      basePresets = _generateFirstConfigurationPresets(goal, level, durationMin, heartPosture, motivation, profile);
+    } else {
+      // ═══ CONFIGURATION SUIVANTE : Utiliser le système needs-first complet ═══
+      print('🎯 Mode configuration suivante - Système needs-first avec quiz et historique');
+      
+      // 2. 🎯 NOUVEAU ! Système Needs-First - Analyser les besoins réels
+      final streak = (profile?['streak'] as int?) ?? 0;
+      final missed14 = (profile?['missed14'] as int?) ?? 0;
+      final quizChrist = (profile?['quiz_christ'] as double?) ?? 0.5;
+      final quizGospel = (profile?['quiz_gospel'] as double?) ?? 0.5;
+      final quizScript = (profile?['quiz_scripture'] as double?) ?? 0.5;
+      final emotions = getEmotionalState(level);
+      final errors = (profile?['doctrinalErrors'] as List<String>?) ?? [];
+
+      final needs = NeedsAssessor.compute(
+        profile,
+        streak: streak,
+        missedDays14: missed14,
+        quizChrist: quizChrist,
+        quizGospel: quizGospel,
+        quizScripture: quizScript,
+        recentEmotions: emotions,
+        commonErrors: errors,
+      );
+
+      final topThemes = NeedsAssessor.themesFor(needs);
+      print('🎯 Besoins détectés: Foundation=${needs.foundation.toStringAsFixed(2)}, Discipline=${needs.discipline.toStringAsFixed(2)}, Repentance=${needs.repentance.toStringAsFixed(2)}');
+      print('📋 Thèmes prioritaires: ${topThemes.join(', ')}');
+
+      // Générer les presets basés sur les besoins (needs-first)
+      basePresets = _generateNeedsBasedPresets(topThemes, level, durationMin, profile);
+    }
     
     // 3. Appliquer les enrichissements avec durée intelligente
     final enrichedPresets = basePresets.where((preset) {
@@ -2001,8 +2092,803 @@ class IntelligentLocalPresetGenerator {
       print('🔥 Ajusté par motivation "$motivation": durée et intensité optimisées');
     }
 
-    print('✅ ${finalPresets.length} presets enrichis générés avec durée intelligente');
-    return finalPresets.take(6).toList().cast<PlanPreset>();
+    // ═══════════════════════════════════════════════════════════
+    // 🎯 NOUVEAU ! Scoring Needs-First + Garde Doctrinale
+    // ═══════════════════════════════════════════════════════════
+    
+    // Récupérer l'historique des presets récents
+    final recentPresets = _userPlanHistory.take(5).map((h) => h['books'] as String).toList();
+    
+    // Appliquer le scoring needs-first (seulement si pas première configuration)
+    List<PlanPreset> needsRankedPresets;
+    if (isFirstConfiguration) {
+      // Pour la première configuration, pas de scoring needs-first
+      needsRankedPresets = finalPresets;
+    } else {
+      // Pour les configurations suivantes, utiliser le scoring needs-first
+      final streak = (profile?['streak'] as int?) ?? 0;
+      final missed14 = (profile?['missed14'] as int?) ?? 0;
+      final quizChrist = (profile?['quiz_christ'] as double?) ?? 0.5;
+      final quizGospel = (profile?['quiz_gospel'] as double?) ?? 0.5;
+      final quizScript = (profile?['quiz_scripture'] as double?) ?? 0.5;
+      final emotions = getEmotionalState(level);
+      final errors = (profile?['doctrinalErrors'] as List<String>?) ?? [];
+
+      final needs = NeedsAssessor.compute(
+        profile,
+        streak: streak,
+        missedDays14: missed14,
+        quizChrist: quizChrist,
+        quizGospel: quizGospel,
+        quizScripture: quizScript,
+        recentEmotions: emotions,
+        commonErrors: errors,
+      );
+      
+      needsRankedPresets = NeedsFirstScorer.rankPresets(
+        finalPresets,
+        needs,
+        profile,
+        recentPresets,
+      );
+    }
+    
+    // Appliquer la garde doctrinale
+    final checked = <PlanPreset>[];
+    final flaggedLogs = <String>[];
+    
+    for (final p in needsRankedPresets) {
+      final verdict = DoctrinalGuard.evaluate(p);
+      if (verdict.blocked) {
+        print('🚫 DOCTRINE BLOCKED: ${p.slug} -> ${verdict.reason}');
+        flaggedLogs.add('BLOCKED ${p.slug}: ${verdict.reason}');
+        continue;
+      }
+      final approved = verdict.corrected ?? p;
+      // S'assurer qu'on n'a pas rebaissé la durée
+      final safe = approved.copyWith(
+        durationDays: (approved.durationDays).clamp(21, 365),
+      );
+      checked.add(safe);
+    }
+    
+    // Fallback: si tout est bloqué, proposer un preset neutre et sûr
+    if (checked.isEmpty && needsRankedPresets.isNotEmpty) {
+      print('⚠️ Tous les presets ont été bloqués, fallback sécurisé.');
+      final fallback = needsRankedPresets.first.copyWith(
+        name: 'Évangile au centre — Jean & Romains • 30 jours • ${durationMin}min/jour',
+        books: 'Jean,Romains',
+        durationDays: 30,
+        description: 'Parcours ancré dans l\'Évangile (Jean 3:16; Romains 5:8). ' 
+                     'Objectif: connaître Christ et marcher dans la vérité.',
+        specificBooks: 'Jean 3:16, Romains 5:8, 1 Corinthiens 15:3-4',
+      );
+      return [fallback];
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // 🎨 NOUVEAU ! Système de nommage intelligent et unique
+    // ═══════════════════════════════════════════════════════════
+    
+    final seen = <String>{};
+    
+    // Générer des badges doctrinaux pour chaque preset
+    List<String> badgesFor(PlanPreset p) {
+      final b = <String>[];
+      final books = p.books.split(',').map((s) => s.trim()).toList();
+      // Heuristiques rapides basées sur les livres
+      if (books.any((x) => ['Jean','Colossiens','Hébreux','Philippiens'].contains(x))) b.add('christ');
+      if (books.any((x) => ['Romains','Galates','1 Corinthiens','2 Corinthiens','Jean'].contains(x))) b.add('gospel');
+      if (books.any((x) => ['2 Timothée','2 Pierre','Apocalypse'].contains(x))) b.add('scripture');
+      return b;
+    }
+    
+    final finalPresetsWithNames = checked.asMap().entries.map((entry) {
+      final index = entry.key;
+      final p = entry.value;
+      
+      // ✅ NOUVEAU : Seed unique basé sur l'index pour garantir l'unicité
+      final uniqueSeed = index + DateTime.now().millisecondsSinceEpoch;
+      
+      final pretty = buildDisplayNameForPreset(
+        p,
+        doctrinalBadges: badgesFor(p),
+        uniqueSeed: uniqueSeed,  // ✅ Utiliser le seed unique
+      );
+      return p.copyWith(name: _ensureUniqueName(pretty, seen));
+    }).toList();
+
+    // ═══════════════════════════════════════════════════════════
+    // 🩺 NOUVEAU ! Tri final par BESOIN (mode besoin)
+    // ═══════════════════════════════════════════════════════════
+    
+    final finalPresetsByNeed = _rankByNeed(finalPresetsWithNames, profile, limit: 6);
+
+    print('✅ ${finalPresetsByNeed.length} presets needs-first générés avec tri par besoin');
+    return finalPresetsByNeed;
+  }
+  
+  /// ═══════════════════════════════════════════════════════════
+  /// 🎯 NOUVEAU ! Générateur Needs-First (Jean 5:40)
+  /// ═══════════════════════════════════════════════════════════
+  
+  /// Génère des presets basés sur les besoins réels (needs-first)
+  static List<PlanPreset> _generateNeedsBasedPresets(
+    List<String> topThemes,
+    String level,
+    int durationMin,
+    Map<String, dynamic>? profile,
+  ) {
+    final presets = <PlanPreset>[];
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    
+    // Mapping des thèmes vers les livres bibliques appropriés
+    final themeToBooks = {
+      'Fondements de l\'Evangile (Jean, Romains, Galates)': ['Jean', 'Romains', 'Galates'],
+      'Discipline & Regularite (Proverbes, Matthieu 6)': ['Proverbes', 'Matthieu', 'Jacques'],
+      'Retour & Repentance (Psaumes 51, Luc 15)': ['Psaumes', 'Luc', '1 Jean'],
+      'Saine Doctrine (1-2 Timothee, Tite)': ['1 Timothée', '2 Timothée', 'Tite'],
+      'Consolation dans l\'epreuve (1 Pierre, Psaumes)': ['1 Pierre', 'Psaumes', 'Job'],
+      'Paix contre l\'anxiete (Philippiens 4, Matthieu 6)': ['Philippiens', 'Matthieu', '1 Pierre'],
+    };
+    
+    // Générer un preset pour chaque thème prioritaire
+    for (int i = 0; i < topThemes.length && i < 3; i++) {
+      final theme = topThemes[i];
+      final books = themeToBooks[theme] ?? ['Jean', 'Romains'];
+      final bookPair = books.take(2).toList();
+      
+      final preset = _createNeedsBasedPreset(
+        theme,
+        bookPair,
+        level,
+        durationMin,
+        timestamp + i,
+        profile,
+      );
+      
+      presets.add(preset);
+    }
+    
+    // Si pas assez de presets, ajouter des presets de base
+    if (presets.length < 3) {
+      final additionalPresets = generateIntelligentPresets(profile);
+      for (final preset in additionalPresets.take(3 - presets.length)) {
+        if (!presets.any((p) => p.slug == preset.slug)) {
+          presets.add(preset);
+        }
+      }
+    }
+    
+    return presets;
+  }
+  
+  /// Crée un preset basé sur les besoins
+  static PlanPreset _createNeedsBasedPreset(
+    String theme,
+    List<String> books,
+    String level,
+    int durationMin,
+    int timestamp,
+    Map<String, dynamic>? profile,
+  ) {
+    final themeNames = {
+      'Fondements de l\'Evangile (Jean, Romains, Galates)': 'Fondements de l\'Évangile',
+      'Discipline & Regularite (Proverbes, Matthieu 6)': 'Discipline & Régularité',
+      'Retour & Repentance (Psaumes 51, Luc 15)': 'Retour & Repentance',
+      'Saine Doctrine (1-2 Timothee, Tite)': 'Saine Doctrine',
+      'Consolation dans l\'epreuve (1 Pierre, Psaumes)': 'Consolation dans l\'Épreuve',
+      'Paix contre l\'anxiete (Philippiens 4, Matthieu 6)': 'Paix contre l\'Anxiété',
+    };
+    
+    final themeDescriptions = {
+      'Fondements de l\'Evangile (Jean, Romains, Galates)': 'Renforcer les fondements de votre foi en Christ et son Évangile.',
+      'Discipline & Regularite (Proverbes, Matthieu 6)': 'Développer une discipline spirituelle régulière et constante.',
+      'Retour & Repentance (Psaumes 51, Luc 15)': 'Expérimenter le pardon de Dieu et la guérison intérieure.',
+      'Saine Doctrine (1-2 Timothee, Tite)': 'Grandir en sagesse et en compréhension des Écritures.',
+      'Consolation dans l\'epreuve (1 Pierre, Psaumes)': 'Trouver espérance et encouragement dans les épreuves.',
+      'Paix contre l\'anxiete (Philippiens 4, Matthieu 6)': 'Découvrir la paix de Dieu qui surpasse toute intelligence.',
+    };
+    
+    final name = (themeNames[theme] ?? 'Plan Spirituel').toUpperCase();
+    final description = themeDescriptions[theme] ?? 'Parcours biblique personnalisé.';
+    final booksString = books.join(', ');
+    
+    // Calculer la durée selon le niveau et le thème
+    int duration = 30;
+    if (level == 'Nouveau converti') duration = 21;
+    else if (level == 'Serviteur/leader') duration = 60;
+    
+    // Ajuster selon le thème pour créer de la variété
+    if (theme.contains('Fondements')) duration = (duration * 1.2).round();
+    else if (theme.contains('Discipline')) duration = (duration * 0.8).round();
+    else if (theme.contains('Retour')) duration = (duration * 1.1).round();
+    else if (theme.contains('Doctrine')) duration = (duration * 1.3).round();
+    else if (theme.contains('Consolation')) duration = (duration * 0.9).round();
+    else if (theme.contains('Paix')) duration = (duration * 1.0).round();
+    
+    return PlanPreset(
+      slug: 'needs_${theme}_${timestamp}',
+      name: '$name — $booksString • $duration jours • ${durationMin}min/jour',
+      durationDays: duration,
+      order: 'thematic',
+      books: booksString,
+      coverImage: null,
+      minutesPerDay: durationMin,
+      recommended: const [],
+      description: description,
+      gradient: const [],
+      specificBooks: _getSpecificBooksForTheme(theme, books),
+    );
+  }
+  
+  /// Retourne les versets spécifiques pour un thème
+  static String _getSpecificBooksForTheme(String theme, List<String> books) {
+    final specificVerses = {
+      'faith_foundation': 'Jean 3:16, Romains 5:8, 1 Corinthiens 15:3-4',
+      'spiritual_discipline': 'Proverbes 3:5-6, Jacques 1:22, 1 Timothée 4:7-8',
+      'forgiveness_healing': 'Psaume 51:1-2, 1 Jean 1:9, Luc 15:11-32',
+      'wisdom_understanding': 'Proverbes 1:7, Ecclésiaste 12:13, Colossiens 2:2-3',
+      'hope_encouragement': 'Job 19:25, 2 Corinthiens 4:16-18, 1 Pierre 1:3-4',
+      'anxiety_peace': 'Matthieu 6:25-34, Philippiens 4:6-7, 1 Pierre 5:7',
+      'mission_evangelism': 'Matthieu 28:18-20, Actes 1:8, Marc 16:15',
+    };
+    
+    return specificVerses[theme] ?? 'Jean 3:16, Romains 5:8';
+  }
+
+  /// ═══════════════════════════════════════════════════════════
+  /// 🔍 DÉTECTION : Première configuration vs Configuration suivante
+  /// ═══════════════════════════════════════════════════════════
+  
+  /// Détermine si c'est la première configuration (pas d'historique de plans)
+  static bool _isFirstConfiguration(Map<String, dynamic>? profile) {
+    // Vérifier s'il y a des données d'historique (quiz, streak, etc.)
+    final hasQuizData = (profile?['quiz_christ'] as double?) != null ||
+                       (profile?['quiz_gospel'] as double?) != null ||
+                       (profile?['quiz_scripture'] as double?) != null;
+    
+    final hasStreakData = (profile?['streak'] as int?) != null && 
+                         (profile?['streak'] as int?)! > 0;
+    
+    final hasHistoricalData = (profile?['missed14'] as int?) != null ||
+                             (profile?['doctrinalErrors'] as List?) != null;
+    
+    // Si pas de données d'historique, c'est probablement la première configuration
+    return !hasQuizData && !hasStreakData && !hasHistoricalData;
+  }
+  
+  /// Génère des presets pour la première configuration basés uniquement sur CompleteProfilePage
+  static List<PlanPreset> _generateFirstConfigurationPresets(
+    String goal,
+    String level,
+    int durationMin,
+    String? heartPosture,
+    String? motivation,
+    Map<String, dynamic>? profile,
+  ) {
+    final presets = <PlanPreset>[];
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    
+    // ═══ MAPPING : Objectif → Thèmes spécifiques ═══
+    final goalToThemes = {
+      'Rencontrer Jésus dans la Parole': [
+        'Jean & Romains & Luc',
+        'Matthieu & Marc & Jean', 
+        'Évangiles & Actes',
+      ],
+      'Voir Jésus dans chaque livre': [
+        'Jean & Hébreux & Colossiens',
+        'Matthieu & Éphésiens & Philippiens',
+        'Luc & Romains & Galates',
+      ],
+      'Être transformé à son image': [
+        'Romains & 2 Corinthiens & Galates',
+        'Éphésiens & Colossiens & 1 Pierre',
+        'Philippiens & Jacques & 1 Jean',
+      ],
+      'Développer l\'intimité avec Dieu': [
+        'Psaumes & Jean & 1 Jean',
+        'Cantique & Jean & Éphésiens',
+        'Psaumes & Luc & Romains',
+      ],
+      'Apprendre à prier comme Jésus': [
+        'Matthieu & Luc & Jean',
+        'Psaumes & Matthieu & Éphésiens',
+        'Luc & Actes & 1 Thessaloniciens',
+      ],
+      'Reconnaître la voix de Dieu': [
+        'Jean & 1 Jean & Hébreux',
+        'Psaumes & Jean & Romains',
+        'Luc & Jean & 1 Corinthiens',
+      ],
+      'Développer le fruit de l\'Esprit': [
+        'Galates & Éphésiens & Colossiens',
+        'Jean & Romains & 1 Pierre',
+        'Luc & Galates & Jacques',
+      ],
+      'Renouveler mes pensées': [
+        'Romains & Éphésiens & Philippiens',
+        'Colossiens & 2 Corinthiens & 1 Pierre',
+        'Matthieu & Romains & Jacques',
+      ],
+      'Marcher par l\'Esprit': [
+        'Galates & Romains & Jean',
+        'Éphésiens & Colossiens & 1 Jean',
+        'Luc & Actes & Galates',
+      ],
+      'Discipline quotidienne': [
+        'Proverbes & Matthieu & Jacques',
+        'Psaumes & Luc & 1 Timothée',
+        'Matthieu & Proverbes & Hébreux',
+      ],
+      'Discipline de prière': [
+        'Psaumes & Matthieu & Luc',
+        'Jean & Éphésiens & 1 Thessaloniciens',
+        'Psaumes & Luc & Actes',
+      ],
+      'Approfondir la Parole': [
+        'Jean & Romains & Hébreux',
+        'Matthieu & Éphésiens & Colossiens',
+        'Luc & Galates & 1 Pierre',
+      ],
+      'Grandir dans la foi': [
+        'Romains & Hébreux & Jacques',
+        'Jean & Galates & 1 Pierre',
+        'Matthieu & Romains & Éphésiens',
+      ],
+      'Développer mon caractère': [
+        'Galates & Jacques & 1 Pierre',
+        'Romains & Éphésiens & Colossiens',
+        'Matthieu & Proverbes & 1 Jean',
+      ],
+      'Trouver de l\'encouragement': [
+        'Psaumes & Romains & 1 Pierre',
+        'Job & Psaumes & 2 Corinthiens',
+        'Psaumes & Luc & Philippiens',
+      ],
+      'Expérimenter la guérison': [
+        'Psaumes & Luc & 1 Jean',
+        'Psaumes & Matthieu & Jacques',
+        'Luc & Psaumes & Romains',
+      ],
+      'Partager ma foi': [
+        'Matthieu & Actes & 1 Pierre',
+        'Marc & Actes & Philippiens',
+        'Luc & Actes & 1 Corinthiens',
+      ],
+      'Mieux prier': [
+        'Psaumes & Matthieu & Luc',
+        'Jean & Éphésiens & 1 Thessaloniciens',
+        'Psaumes & Luc & Jacques',
+      ],
+    };
+    
+    // ═══ GÉNÉRATION : 3 presets basés sur l'objectif ═══
+    final themes = goalToThemes[goal] ?? [
+      'Jean & Romains & Galates',
+      'Matthieu & Luc & Actes', 
+      'Psaumes & Jean & Éphésiens',
+    ];
+    
+    for (int i = 0; i < 3 && i < themes.length; i++) {
+      final theme = themes[i];
+      final books = theme.split(' & ');
+      
+      // ═══ NOM : Basé sur l'objectif et la posture du cœur ═══
+      String presetName = _generateFirstConfigName(goal, heartPosture, motivation, i);
+      
+      // ═══ DURÉE : Basée sur le niveau et l'objectif ═══
+      int duration = _calculateFirstConfigDuration(level, goal, durationMin);
+      
+      // ═══ DESCRIPTION : Basée sur l'objectif et la motivation ═══
+      String description = _generateFirstConfigDescription(goal, heartPosture, motivation);
+      
+      final preset = PlanPreset(
+        slug: 'first_config_${goal.toLowerCase().replaceAll(' ', '_')}_${timestamp}_$i',
+        name: '$presetName — $theme • $duration jours • ${durationMin}min/jour',
+        durationDays: duration,
+        order: 'thematic',
+        books: theme,
+        coverImage: null,
+        minutesPerDay: durationMin,
+        recommended: const [],
+        description: description,
+        gradient: const [],
+        specificBooks: _getSpecificBooksForGoal(goal, books),
+      );
+      
+      presets.add(preset);
+    }
+    
+    return presets;
+  }
+  
+  /// Génère un nom pour la première configuration
+  static String _generateFirstConfigName(String goal, String? heartPosture, String? motivation, int index) {
+    final nameVariations = {
+      'Rencontrer Jésus dans la Parole': ['L\'Évangile au centre', 'Jésus dans les Écritures', 'La Parole vivante'],
+      'Voir Jésus dans chaque livre': ['Jésus révélé', 'Le Christ dans toute la Bible', 'Jésus partout'],
+      'Être transformé à son image': ['Transformation divine', 'À l\'image de Christ', 'Renouvellement spirituel'],
+      'Développer l\'intimité avec Dieu': ['Intimité divine', 'Relation profonde', 'Communion avec Dieu'],
+      'Apprendre à prier comme Jésus': ['Prière de Jésus', 'École de prière', 'Prière authentique'],
+      'Reconnaître la voix de Dieu': ['Écouter Dieu', 'La voix du Seigneur', 'Discernement spirituel'],
+      'Développer le fruit de l\'Esprit': ['Fruit de l\'Esprit', 'Caractère chrétien', 'Vie spirituelle'],
+      'Renouveler mes pensées': ['Renouvellement mental', 'Pensées de Dieu', 'Transformation intérieure'],
+      'Marcher par l\'Esprit': ['Marche spirituelle', 'Guidé par l\'Esprit', 'Vie dans l\'Esprit'],
+    };
+    
+    final variations = nameVariations[goal] ?? ['Plan spirituel', 'Parcours biblique', 'Découverte divine'];
+    return variations[index % variations.length].toUpperCase();
+  }
+  
+  /// Calcule la durée pour la première configuration
+  static int _calculateFirstConfigDuration(String level, String goal, int durationMin) {
+    int baseDuration = 30;
+    
+    // Ajuster selon le niveau
+    switch (level) {
+      case 'Nouveau converti':
+        baseDuration = 21;
+        break;
+      case 'Rétrograde':
+        baseDuration = 30;
+        break;
+      case 'Fidèle pas si régulier':
+        baseDuration = 45;
+        break;
+      case 'Fidèle régulier':
+        baseDuration = 60;
+        break;
+      case 'Serviteur/leader':
+        baseDuration = 90;
+        break;
+    }
+    
+    // Ajuster selon l'objectif
+    if (goal.contains('Rencontrer Jésus') || goal.contains('Voir Jésus')) {
+      baseDuration = (baseDuration * 1.2).round();
+    } else if (goal.contains('Discipline')) {
+      baseDuration = (baseDuration * 0.8).round();
+    } else if (goal.contains('Approfondir') || goal.contains('Grandir')) {
+      baseDuration = (baseDuration * 1.3).round();
+    }
+    
+    // Ajuster selon le temps quotidien
+    if (durationMin >= 30) {
+      baseDuration = (baseDuration * 1.1).round();
+    } else if (durationMin <= 10) {
+      baseDuration = (baseDuration * 0.9).round();
+    }
+    
+    return baseDuration.clamp(21, 120);
+  }
+  
+  /// Génère une description pour la première configuration
+  static String _generateFirstConfigDescription(String goal, String? heartPosture, String? motivation) {
+    final descriptions = {
+      'Rencontrer Jésus dans la Parole': 'Découvrez Jésus-Christ à travers les Écritures. Un parcours pour rencontrer le Sauveur dans chaque page de la Bible.',
+      'Voir Jésus dans chaque livre': 'Explorez comment Jésus est révélé dans tous les livres de la Bible. De l\'Ancien au Nouveau Testament.',
+      'Être transformé à son image': 'Laissez Dieu transformer votre vie pour ressembler davantage à Jésus-Christ. Un parcours de sanctification.',
+      'Développer l\'intimité avec Dieu': 'Approfondissez votre relation personnelle avec Dieu. Un chemin vers une intimité plus profonde.',
+      'Apprendre à prier comme Jésus': 'Découvrez la prière selon le modèle de Jésus. Apprenez à prier avec foi et authenticité.',
+      'Reconnaître la voix de Dieu': 'Développez votre capacité à discerner la voix de Dieu dans votre vie quotidienne.',
+      'Développer le fruit de l\'Esprit': 'Cultivez les qualités spirituelles que Dieu désire voir grandir en vous.',
+      'Renouveler mes pensées': 'Transformez votre façon de penser selon la perspective de Dieu. Renouvelez votre intelligence.',
+      'Marcher par l\'Esprit': 'Apprenez à vivre guidé par le Saint-Esprit dans tous les aspects de votre vie.',
+    };
+    
+    return descriptions[goal] ?? 'Un parcours biblique personnalisé pour grandir dans votre foi et votre relation avec Dieu.';
+  }
+  
+  /// Retourne les versets spécifiques pour un objectif
+  static String _getSpecificBooksForGoal(String goal, List<String> books) {
+    final goalVerses = {
+      'Rencontrer Jésus dans la Parole': 'Jean 5:39, Luc 24:27, Jean 1:1-14',
+      'Voir Jésus dans chaque livre': 'Luc 24:44, Jean 5:46, Hébreux 1:1-3',
+      'Être transformé à son image': '2 Corinthiens 3:18, Romains 8:29, Galates 4:19',
+      'Développer l\'intimité avec Dieu': 'Jean 15:4-5, Psaume 27:4, Jacques 4:8',
+      'Apprendre à prier comme Jésus': 'Matthieu 6:9-13, Luc 11:1-4, Jean 17:1-26',
+      'Reconnaître la voix de Dieu': 'Jean 10:27, 1 Rois 19:12, Jean 16:13',
+      'Développer le fruit de l\'Esprit': 'Galates 5:22-23, Jean 15:1-8, 2 Pierre 1:5-8',
+      'Renouveler mes pensées': 'Romains 12:2, Philippiens 4:8, 2 Corinthiens 10:5',
+      'Marcher par l\'Esprit': 'Galates 5:16, Romains 8:14, Jean 16:13',
+    };
+    
+    return goalVerses[goal] ?? 'Jean 3:16, Romains 5:8, 1 Corinthiens 15:3-4';
+  }
+
+  /// ═══════════════════════════════════════════════════════════
+  /// 🩺 NOUVEAU ! Système "Mode Besoin" - Scoring par besoin réel
+  /// ═══════════════════════════════════════════════════════════
+
+  // Mémo exposé pour l'UI (slug -> score & raisons)
+  static Map<String, Map<String, dynamic>> _lastNeedScores = {};
+  static Map<String, Map<String, dynamic>> getLastNeedScores() => _lastNeedScores;
+
+  /// Score "BESOIN" : hygiène, doctrine, émotions…
+  static _ScoredPreset _scoreByNeed(PlanPreset p, NeedSignals s) {
+    double score = 0;
+    final reasons = <String>[];
+
+    final name = p.name.toLowerCase();
+    final booksStr = (p.books.isNotEmpty ? p.books : (p.specificBooks ?? '')).toLowerCase();
+    bool has(String k) => name.contains(k) || booksStr.contains(k);
+
+    // A) Hygiène réaliste (durée / longueur)
+    final minutesOK = (p.minutesPerDay ?? s.minutesPerDay) <= (s.minutesPerDay + 5);
+    if (!minutesOK) { 
+      score -= 1.0; 
+      reasons.add('Durée trop lourde vs minutes dispo'); 
+    }
+    if (s.level == 'Nouveau converti' && p.durationDays > 42) {
+      score -= 1.0; 
+      reasons.add('Trop long pour débuter');
+    }
+    if (s.missed14 >= 5 && p.durationDays <= 35) {
+      score += 1.0; 
+      reasons.add('Consolider l\'habitude (absences récentes)');
+    }
+
+    // B) Remédiation doctrinale (quiz/faiblesses/erreurs)
+    if (s.quizGospel < 0.6 && (has('romains') || has('galates') || has('jean'))) {
+      score += 2.0; 
+      reasons.add('Renforcer l\'Evangile (quiz faible)');
+    }
+    if (s.quizChrist < 0.6 && (has('colossiens') || has('hébreux') || has('jean'))) {
+      score += 2.0; 
+      reasons.add('Renforcer la christologie (quiz faible)');
+    }
+    if (s.quizScripture < 0.6 && (has('psaume 119') || has('2 timothée') || has('2 pierre'))) {
+      score += 1.5; 
+      reasons.add('Autorité des Ecritures (quiz faible)');
+    }
+    if (s.doctrinalErrors.isNotEmpty && (has('romains') || has('jean') || has('colossiens') || has('galates'))) {
+      score += 1.0; 
+      reasons.add('Correction doctrinale prioritaire');
+    }
+
+    // C) Soutien pastoral (émotions)
+    final tristeOuAnxieux = s.recentEmotions.any((e) => ['tristesse','fatigue','anxiété','anxiete','peur'].contains(e));
+    if (tristeOuAnxieux && (has('psaumes') || has('consolation') || has('réconfort'))) {
+      score += 1.5; 
+      reasons.add('Soutien & consolation requis');
+    }
+
+    // D) Posture du cœur (bonus léger, sans dominer le besoin)
+    if ((s.heartPosture + s.goal).toLowerCase().contains('prier') && (has('psaumes') || has('prière'))) {
+      score += 0.8; 
+      reasons.add('Posture du cœur: prière');
+    }
+    if ((s.heartPosture).toLowerCase().contains('rencontrer jésus') && (has('évangile') || has('jean'))) {
+      score += 0.8; 
+      reasons.add('Posture: rencontrer Jésus');
+    }
+
+    // E) Habitude (streak)
+    if (s.streak >= 5 && p.durationDays >= 35 && p.durationDays <= 70) {
+      score += 0.6; 
+      reasons.add('Bonne constance (streak)');
+    }
+
+    return _ScoredPreset(p, score, reasons);
+  }
+
+  /// Classement par BESOIN + diversité + limite (7 cartes)
+  static List<PlanPreset> _rankByNeed(List<PlanPreset> all, Map<String, dynamic>? profile, {int limit = 7}) {
+    final s = NeedSignals.fromProfile(profile);
+    final scored = all.map((p) => _scoreByNeed(p, s)).toList()
+                      ..sort((a, b) => b.score.compareTo(a.score));
+
+    final keptKeys = <String>{};
+    final kept = <_ScoredPreset>[];
+
+    for (final sp in scored) {
+      final books = (sp.preset.books.isNotEmpty ? sp.preset.books : (sp.preset.specificBooks ?? ''));
+      final key = (books.split(',').first.trim().isEmpty) ? sp.preset.slug : books.split(',').first.trim();
+      if (keptKeys.contains(key) && kept.length >= 4) continue; // diversité après un minimum de cartes
+      keptKeys.add(key);
+      kept.add(sp);
+      if (kept.length >= limit) break;
+    }
+
+    _lastNeedScores = {for (final sp in kept) sp.preset.slug: {'score': sp.score, 'reasons': sp.reasons}};
+    return kept.map((e) => e.preset).toList();
+  }
+
+  /// Optionnel : surface l'explication lisible pour l'UI
+  static List<String> explainWhyRecommended(String slug, {int take = 3}) {
+    final r = _lastNeedScores[slug]?['reasons'] as List<String>? ?? const [];
+    return r.take(take).toList();
+  }
+
+  /// ═══════════════════════════════════════════════════════════
+  /// 🎨 NOUVEAU ! Système de nommage intelligent et unique
+  /// ═══════════════════════════════════════════════════════════
+  
+  /// Registre d'unicité pour éviter les doublons
+  static String _ensureUniqueName(String name, Set<String> seen) {
+    if (seen.add(name)) return name;
+    var i = 2;
+    while (!seen.add('$name ($i)')) i++;
+    return '$name ($i)';
+  }
+  
+  /// Builder de noms ciblé besoin + badges doctrinaux
+  static String buildDisplayNameForPreset(
+    PlanPreset p, {
+    String? heartPosture,         // optionnel
+    List<String> doctrinalBadges = const [], // ex: ['christ','gospel','scripture']
+    int? uniqueSeed,              // ✅ NOUVEAU : seed unique pour éviter les doublons
+  }) {
+    final books = p.books.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+    final hook = _pickHook(p, books, uniqueSeed: uniqueSeed);  // ✅ Utiliser le seed unique
+    final focus = _inferFocus(p);                      // phrase courte orientée besoin
+    final tempo = '${p.durationDays} j';               // compact
+    final badges = _renderDoctrinalBadges(doctrinalBadges);
+
+    // ✅ NOUVELLE Structure: Hook • Focus • Tempo • Badges (sans les livres)
+    final parts = <String>[];
+    parts.add(hook);  // ✅ Juste le hook, sans les livres
+    if (focus != null && focus.isNotEmpty) parts.add(focus);
+    parts.add(tempo);
+    if (badges.isNotEmpty) parts.add(badges);
+
+    return parts.join(' • ');
+  }
+  
+  /// Sélectionne un hook accrocheur selon le thème et les livres
+  static String _pickHook(PlanPreset p, List<String> books, {int? uniqueSeed}) {
+    final themeGuess = _guessThemeFromSlugOrDesc(p);
+    
+    // ✅ BANQUE ÉTENDUE avec plus de variété et de personnalisation
+    final bank = <String, List<String>>{
+      'prayer_life': [
+        'Respirer la prière','À l\'école de la prière','Le cœur qui parle à Dieu',
+        'L\'intimité du sanctuaire','Le murmure du cœur','L\'oraison du matin',
+        'Dialoguer avec le Père','L\'art de la supplication','Prier sans cesse',
+        'La communion silencieuse','Élever son âme','L\'entretien spirituel'
+      ],
+      'spiritual_growth': [
+        'Grandir en profondeur','De gloire en gloire','Enracinés & affermis',
+        'Comme un arbre planté','La graine qui grandit','De la force en force',
+        'Mûrir dans la foi','L\'épanouissement spirituel','Croître en sagesse',
+        'L\'ascension de l\'âme','Se transformer jour après jour','L\'évolution du cœur'
+      ],
+      'wisdom_understanding': [
+        'Sagesse au quotidien','Marcher avec discernement','Compréhension qui éclaire',
+        'La perle de grand prix','Le trésor caché','L\'intelligence du cœur',
+        'Voir avec les yeux de Dieu','Le discernement divin','La clarté spirituelle',
+        'L\'illumination de l\'esprit','Comprendre les mystères','La révélation progressive'
+      ],
+      'faith_foundation': [
+        'Fondés sur le Roc','L\'Évangile au centre','Justifiés par la foi',
+        'La pierre angulaire','Les fondements inébranlables','La maison bâtie sur le roc',
+        'L\'assurance du salut','La foi qui triomphe','Les bases solides',
+        'L\'ancrage dans la vérité','La certitude divine','L\'espérance vivante'
+      ],
+      'hope_encouragement': [
+        'Courage pour aujourd\'hui','Espérance ferme','Consolation & force',
+        'L\'ancre de l\'âme','La citadelle de la foi','Le rempart de la vérité',
+        'Renaître chaque matin','L\'élan de l\'espérance','La résilience divine',
+        'Surmonter les épreuves','La victoire en Christ','L\'encouragement céleste'
+      ],
+      'forgiveness_healing': [
+        'Pardon qui restaure','Guérison intérieure','Cœur libéré',
+        'La grâce qui transforme','Le chemin de la restauration','L\'amour qui guérit',
+        'Renaître de ses cendres','La rédemption personnelle','L\'apaisement de l\'âme',
+        'Se réconcilier avec soi','La paix retrouvée','L\'harmonie restaurée'
+      ],
+      'mission_evangelism': [
+        'Témoigner avec audace','La mission au quotidien','Récolte abondante',
+        'Porteurs de lumière','Ambassadeurs de Christ','Semences d\'espoir',
+        'Évangéliser par l\'exemple','Partager la bonne nouvelle','Être sel de la terre',
+        'Illuminer les ténèbres','Proclamer la vérité','Servir avec amour'
+      ],
+      'discipline_consistency': [
+        'La discipline quotidienne','Persévérer dans la foi','La constance qui paie',
+        'L\'habitude spirituelle','La régularité bénie','L\'engagement ferme',
+        'Tenir bon dans l\'épreuve','La fidélité récompensée','L\'assiduité divine',
+        'Cultiver la patience','L\'endurance spirituelle','La persistance victorieuse'
+      ],
+      'leadership_service': [
+        'Servir avec humilité','Le leadership chrétien','Guider par l\'exemple',
+        'L\'autorité spirituelle','Diriger avec sagesse','Le service désintéressé',
+        'Inspirer les autres','La responsabilité divine','L\'influence positive',
+        'Être un modèle','La conduite spirituelle','L\'exemple vivant'
+      ],
+      // fallback
+      'default': [
+        'Cheminer avec la Parole','Pas à pas avec Dieu','Route de vie',
+        'Marche avec le Seigneur','Le chemin étroit','La voie de la vie',
+        'L\'aventure spirituelle','Le pèlerinage de foi','La quête divine',
+        'L\'exploration biblique','Le voyage intérieur','La découverte de soi'
+      ]
+    };
+
+    final list = bank[themeGuess] ?? bank['default']!;
+    
+    // ✅ AMÉLIORATION : Seed plus varié et unique
+    final baseSeed = uniqueSeed ?? (p.slug.hashCode.abs() + p.durationDays + books.length);
+    final timeSeed = DateTime.now().millisecondsSinceEpoch % 1000;
+    final combinedSeed = baseSeed + timeSeed;
+    final idx = combinedSeed % list.length;
+    var title = list[idx];
+
+    // ✅ BONUS ÉTENDU : Contextualisation selon les livres
+    if (books.contains('Proverbes') && books.contains('Jacques')) {
+      title = 'Sagesse mise en pratique';
+    } else if (books.contains('Luc') && books.contains('Psaumes')) {
+      title = 'La prière au rythme de Jésus';
+    } else if (books.contains('Romains') && books.contains('Jean')) {
+      title = 'L\'Évangile en plein centre';
+    } else if (books.contains('Matthieu') && books.contains('Marc')) {
+      title = 'Les deux témoins de Christ';
+    } else if (books.contains('Philippiens') && books.contains('Colossiens')) {
+      title = 'La joie et la plénitude en Christ';
+    } else if (books.contains('Éphésiens') && books.contains('Galates')) {
+      title = 'La liberté en Christ';
+    } else if (books.contains('1 Corinthiens') && books.contains('2 Corinthiens')) {
+      title = 'L\'Église selon Paul';
+    } else if (books.contains('1 Timothée') && books.contains('2 Timothée')) {
+      title = 'Le leadership pastoral';
+    } else if (books.contains('Hébreux') && books.contains('Apocalypse')) {
+      title = 'La révélation finale';
+    } else if (books.contains('Psaumes') && books.contains('Cantique')) {
+      title = 'L\'adoration et l\'amour';
+    }
+    
+    return title;
+  }
+  
+  /// Devine le thème à partir du slug ou de la description
+  static String _guessThemeFromSlugOrDesc(PlanPreset p) {
+    final bag = '${p.slug} ${(p.description ?? '').toLowerCase()}';
+    
+    // ✅ DÉTECTION AMÉLIORÉE avec plus de mots-clés
+    if (bag.contains('prayer') || bag.contains('prière') || bag.contains('psaume')) return 'prayer_life';
+    if (bag.contains('wisdom') || bag.contains('sagesse') || bag.contains('proverbes') || bag.contains('discernement')) return 'wisdom_understanding';
+    if (bag.contains('evangel') || bag.contains('évang') || bag.contains('mission') || bag.contains('témoignage')) return 'mission_evangelism';
+    if (bag.contains('healing') || bag.contains('guérison') || bag.contains('pardon') || bag.contains('restauration')) return 'forgiveness_healing';
+    if (bag.contains('espérance') || bag.contains('encouragement') || bag.contains('consolation') || bag.contains('courage')) return 'hope_encouragement';
+    if (bag.contains('fondement') || bag.contains('justification') || bag.contains('évangile') || bag.contains('salut')) return 'faith_foundation';
+    if (bag.contains('croissance') || bag.contains('maturité') || bag.contains('développement') || bag.contains('transformation')) return 'spiritual_growth';
+    if (bag.contains('discipline') || bag.contains('constance') || bag.contains('régularité') || bag.contains('habitude')) return 'discipline_consistency';
+    if (bag.contains('leadership') || bag.contains('service') || bag.contains('diriger') || bag.contains('guider')) return 'leadership_service';
+    
+    return 'default';
+  }
+  
+  /// Infère le focus orienté besoin
+  static String? _inferFocus(PlanPreset p) {
+    // phrase courte orientée **besoin**
+    final bag = '${p.slug} ${p.description ?? ''}'.toLowerCase();
+    
+    // ✅ FOCUS AMÉLIORÉ avec plus de variété
+    if (bag.contains('prière') || bag.contains('psaume')) return 'Vie de prière quotidienne';
+    if (bag.contains('discipline') || bag.contains('régularité') || bag.contains('constance')) return 'Discipline & constance';
+    if (bag.contains('sagesse') || bag.contains('proverbes') || bag.contains('discernement')) return 'Discernement pratique';
+    if (bag.contains('guérison') || bag.contains('pardon') || bag.contains('restauration')) return 'Pardon & guérison';
+    if (bag.contains('espérance') || bag.contains('encouragement') || bag.contains('consolation')) return 'Consolation & persévérance';
+    if (bag.contains('évangile') || bag.contains('justification') || bag.contains('romains')) return 'Évangile & assurance';
+    if (bag.contains('croissance') || bag.contains('maturité') || bag.contains('développement')) return 'Croissance spirituelle';
+    if (bag.contains('leadership') || bag.contains('service') || bag.contains('diriger')) return 'Leadership & service';
+    if (bag.contains('mission') || bag.contains('évangélisation') || bag.contains('témoignage')) return 'Mission & témoignage';
+    if (bag.contains('fondement') || bag.contains('base') || bag.contains('salut')) return 'Fondements de la foi';
+    
+    return null;
+  }
+  
+  
+  /// Rend les badges doctrinaux
+  static String _renderDoctrinalBadges(List<String> flags) {
+    if (flags.isEmpty) return '';
+    final map = {
+      'christ': '✚ Christ',
+      'gospel': '✚ Evangile',
+      'scripture': '📜 Ecriture',
+    };
+    return flags.where(map.containsKey).map((f) => map[f]!).join(' · ');
   }
   
   /// ═══════════════════════════════════════════════════════════

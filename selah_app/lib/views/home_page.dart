@@ -9,6 +9,7 @@ import '../state/app_state.dart';
 import '../widgets/connectivity_indicator.dart';
 import '../widgets/selah_logo.dart';
 import '../services/stable_random_service.dart';
+import 'my_plan_page_modern.dart';
 
 // Widgets factorisés
 import '../widgets/home/header.dart';
@@ -29,7 +30,7 @@ class HomePageWidget extends StatefulWidget {
 
 class _HomePageWidgetState extends State<HomePageWidget>
     with TickerProviderStateMixin {
-  int _navIndex = 1; // 0 = Paramètres, 1 = Home, 2 = Journal, 3 = Mur spirituel
+  int _navIndex = 2; // 0 = Mon Plan, 1 = Journal, 2 = Home, 3 = Mur spirituel, 4 = Paramètres
 
   @override
   void initState() {
@@ -70,38 +71,47 @@ class _HomePageWidgetState extends State<HomePageWidget>
               ),
             ),
           ),
-
-      bottomNavigationBar: CircleNavBar(
+          bottomNavigationBar: CircleNavBar(
         activeIcons: const [
-          Icon(Icons.settings, color: Color(0xFF6D28D9)),
-          Icon(Icons.home, color: Color(0xFF059669)),
-          Icon(Icons.book, color: Color(0xFF2563EB)),
-          Icon(Icons.people, color: Color(0xFFDC2626)),
+          Icon(Icons.calendar_today, color: Colors.deepPurple),
+          Icon(Icons.book, color: Colors.deepPurple),
+          Icon(Icons.home, color: Colors.deepPurple),
+          Icon(Icons.people, color: Colors.deepPurple),
+          Icon(Icons.settings, color: Colors.deepPurple),
         ],
         inactiveIcons: const [
-          Icon(Icons.settings_outlined, color: Color(0xFF9CA3AF), size: 24),
-          Icon(Icons.home_outlined, color: Color(0xFF9CA3AF), size: 24),
+          Icon(Icons.calendar_today_outlined, color: Color(0xFF9CA3AF), size: 24),
           Icon(Icons.book_outlined, color: Color(0xFF9CA3AF), size: 24),
+          Icon(Icons.home_outlined, color: Color(0xFF9CA3AF), size: 24),
           Icon(Icons.people_outline, color: Color(0xFF9CA3AF), size: 24),
+          Icon(Icons.settings_outlined, color: Color(0xFF9CA3AF), size: 24),
         ],
         color: Colors.white,
-        height: 62,
-        circleWidth: 62,
-        initIndex: _navIndex,
-        onChanged: (v) {
+        circleColor: Colors.white,
+        height: 60,
+        circleWidth: 60,
+        activeIndex: _navIndex,
+        onTap: (v) {
           HapticFeedback.selectionClick();
           setState(() => _navIndex = v);
+          // La page change automatiquement via _buildCurrentPage
         },
         padding: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
         cornerRadius: const BorderRadius.only(
-          topLeft: Radius.circular(12),
-          topRight: Radius.circular(12),
-          bottomRight: Radius.circular(28),
-          bottomLeft: Radius.circular(28),
+          topLeft: Radius.circular(8),
+          topRight: Radius.circular(8),
+          bottomRight: Radius.circular(24),
+          bottomLeft: Radius.circular(24),
         ),
-        shadowColor: const Color(0xFF6D28D9),
+        shadowColor: Colors.deepPurple,
+        circleShadowColor: Colors.deepPurple,
         elevation: 10,
         gradient: const LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          colors: [Color(0xFFE0E7FF), Color(0xFFF0FDFA)],
+        ),
+        circleGradient: const LinearGradient(
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
           colors: [Color(0xFFE0E7FF), Color(0xFFF0FDFA)],
@@ -115,14 +125,16 @@ class _HomePageWidgetState extends State<HomePageWidget>
   /// Construit la page actuelle selon l'index de navigation
   Widget _buildCurrentPage(HomeVM vm) {
     switch (_navIndex) {
-      case 0: // Paramètres
-        return const ProfileSettingsPage();
-      case 1: // Home
-        return _buildHomeContent(vm);
-      case 2: // Journal
+      case 0: // Mon Plan
+        return const MyPlanPageModern();
+      case 1: // Journal
         return const JournalPage();
+      case 2: // Home
+        return _buildHomeContent(vm);
       case 3: // Mur spirituel
         return const SpiritualWallPage();
+      case 4: // Paramètres
+        return const ProfileSettingsPage();
       default:
         return _buildHomeContent(vm);
     }

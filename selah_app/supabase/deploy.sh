@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Script de déploiement pour Supabase Edge Functions
+# Script de déploiement pour Supabase Edge Functions (Système 100% Local)
 
-echo "🚀 Déploiement des Edge Functions Supabase..."
+echo "🚀 Déploiement des Edge Functions Supabase (Système Local)..."
 
 # Vérifier que Supabase CLI est installé
 if ! command -v supabase &> /dev/null; then
@@ -19,45 +19,61 @@ if ! supabase projects list &> /dev/null; then
 fi
 
 # Déployer les migrations
-echo "📊 Déploiement des migrations..."
+echo "📊 Déploiement des migrations (Système Local)..."
 supabase db push
 
-# Déployer les Edge Functions
-echo "⚡ Déploiement des Edge Functions..."
+# Déployer les nouvelles Edge Functions pour le système local
+echo "⚡ Déploiement des Edge Functions (Système Local)..."
 
-# Function: plans-from-preset
-echo "  - plans-from-preset"
-supabase functions deploy plans-from-preset
+# Function: generate-local-plan
+echo "  - generate-local-plan"
+supabase functions deploy generate-local-plan
 
-# Function: plans-import
-echo "  - plans-import"
-supabase functions deploy plans-import
+# Function: get-plan-presets
+echo "  - get-plan-presets"
+supabase functions deploy get-plan-presets
 
-# Function: plans-active
-echo "  - plans-active"
-supabase functions deploy plans-active
+# Function: get-user-plans
+echo "  - get-user-plans"
+supabase functions deploy get-user-plans
 
-# Function: plans-days
-echo "  - plans-days"
-supabase functions deploy plans-days
+# Function: get-plan-days
+echo "  - get-plan-days"
+supabase functions deploy get-plan-days
 
-# Function: plans-set-active
-echo "  - plans-set-active"
-supabase functions deploy plans-set-active
+# Function: update-plan-progress
+echo "  - update-plan-progress"
+supabase functions deploy update-plan-progress
 
-# Function: plans-progress
-echo "  - plans-progress"
-supabase functions deploy plans-progress
+# Déployer les anciennes fonctions (pour compatibilité)
+echo "🔄 Déploiement des fonctions de compatibilité..."
+
+# Function: create-reading-plan
+echo "  - create-reading-plan"
+supabase functions deploy create-reading-plan
+
+# Function: create-custom-plan
+echo "  - create-custom-plan"
+supabase functions deploy create-custom-plan
 
 echo "✅ Déploiement terminé!"
 echo ""
-echo "📋 URLs des endpoints:"
-echo "  - POST /functions/v1/plans-from-preset"
-echo "  - POST /functions/v1/plans-import"
-echo "  - GET  /functions/v1/plans-active"
-echo "  - GET  /functions/v1/plans-days"
-echo "  - POST /functions/v1/plans-set-active"
-echo "  - PATCH /functions/v1/plans-progress"
+echo "📋 Nouveaux Endpoints (Système Local):"
+echo "  - POST /functions/v1/generate-local-plan"
+echo "  - GET  /functions/v1/get-plan-presets"
+echo "  - GET  /functions/v1/get-user-plans"
+echo "  - GET  /functions/v1/get-plan-days"
+echo "  - POST /functions/v1/update-plan-progress"
+echo ""
+echo "📋 Endpoints de Compatibilité:"
+echo "  - POST /functions/v1/create-reading-plan"
+echo "  - POST /functions/v1/create-custom-plan"
+echo ""
+echo "📊 Tables créées:"
+echo "  - plan_presets (presets de plans)"
+echo "  - local_plans (plans générés localement)"
+echo "  - local_plan_days (jours des plans)"
+echo "  - user_profiles_extended (profils utilisateur étendus)"
 echo ""
 echo "🔧 Pour obtenir l'URL de votre projet:"
 echo "supabase status"

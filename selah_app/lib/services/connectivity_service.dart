@@ -126,7 +126,7 @@ class ConnectivityService extends ChangeNotifier {
     try {
       // 🔥 PRIORITÉ 1: Vérifier la queue de synchronisation
       final syncQueue = SyncQueueHive(
-        Hive.box('sync_queue'),
+        Hive.box('sync_tasks'),
         telemetry: TelemetryConsole(),
         userRepo: UserRepoSupabase(),
       );

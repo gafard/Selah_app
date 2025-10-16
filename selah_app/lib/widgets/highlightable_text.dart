@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 
 class HighlightableText extends StatefulWidget {
   final String text;
@@ -82,7 +83,7 @@ class _HighlightableTextState extends State<HighlightableText>
                         child: GestureDetector(
                           onTap: () {
                             _animationController.reverse().then((_) {
-                              Navigator.pop(context);
+                              context.pop();
                             });
                           },
                           child: Container(
@@ -196,7 +197,7 @@ class _HighlightableTextState extends State<HighlightableText>
                                       const Color(0xFFFFF8E1),
                                       () {
                                         _animationController.reverse().then((_) {
-                                          Navigator.pop(context);
+                                          context.pop();
                                           _highlightText();
                                         });
                                       },
@@ -208,7 +209,7 @@ class _HighlightableTextState extends State<HighlightableText>
                                       const Color(0xFFE3F2FD),
                                       () {
                                         _animationController.reverse().then((_) {
-                                          Navigator.pop(context);
+                                          context.pop();
                                           _showModernNoteDialog();
                                         });
                                       },
@@ -220,7 +221,7 @@ class _HighlightableTextState extends State<HighlightableText>
                                       const Color(0xFFE8F5E8),
                                       () {
                                         _animationController.reverse().then((_) {
-                                          Navigator.pop(context);
+                                          context.pop();
                                           _copyText();
                                         });
                                       },
@@ -232,7 +233,7 @@ class _HighlightableTextState extends State<HighlightableText>
                                       const Color(0xFFFFF3E0),
                                       () {
                                         _animationController.reverse().then((_) {
-                                          Navigator.pop(context);
+                                          context.pop();
                                           _searchText();
                                         });
                                       },
@@ -244,7 +245,7 @@ class _HighlightableTextState extends State<HighlightableText>
                                       const Color(0xFFF3E5F5),
                                       () {
                                         _animationController.reverse().then((_) {
-                                          Navigator.pop(context);
+                                          context.pop();
                                           _translateText();
                                         });
                                       },
@@ -256,7 +257,7 @@ class _HighlightableTextState extends State<HighlightableText>
                                       const Color(0xFFFFEBEE),
                                       () {
                                         _animationController.reverse().then((_) {
-                                          Navigator.pop(context);
+                                          context.pop();
                                           _showDictionary();
                                         });
                                       },
@@ -459,7 +460,7 @@ class _HighlightableTextState extends State<HighlightableText>
                           children: [
                             Expanded(
                               child: TextButton(
-                                onPressed: () => Navigator.pop(context),
+                                onPressed: () => context.pop(),
                                 style: TextButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(vertical: 12),
                                   shape: RoundedRectangleBorder(
@@ -484,7 +485,7 @@ class _HighlightableTextState extends State<HighlightableText>
                             Expanded(
                               child: ElevatedButton(
                                 onPressed: () {
-                                  Navigator.pop(context);
+                                  context.pop();
                                   _showFeedback('Note enregistrée !', Colors.green);
                                 },
                                 style: ElevatedButton.styleFrom(

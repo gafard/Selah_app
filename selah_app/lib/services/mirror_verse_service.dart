@@ -151,7 +151,7 @@ class MirrorVerseService {
     
     int count = 0;
     for (final entry in lexiconData.entries) {
-      await _lexiconBox?.put(entry.key, entry.value);
+      await _mirrorsBox?.put(entry.key, entry.value);
       count++;
     }
     

@@ -68,14 +68,27 @@ class PlanDay {
     required this.completed,
   });
 
-  factory PlanDay.fromJson(Map<String, dynamic> j) => PlanDay(
-        id: j['id'],
-        planId: j['plan_id'],
-        dayIndex: j['day_index'],
-        date: DateTime.parse(j['date']),
-        readings: (j['readings'] as List).map((e) => ReadingRef.fromJson(e)).toList(),
-        completed: j['completed'] ?? false,
-      );
+  factory PlanDay.fromJson(Map jAny) {
+    final j = Map<String, dynamic>.from(jAny);
+
+    final readingsRaw = (j['readings'] as List? ?? const []);
+    final readings = readingsRaw
+        .map((e) => ReadingRef.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList();
+
+    return PlanDay(
+      id: j['id'].toString(),
+      planId: j['plan_id'].toString(),
+      dayIndex: (j['day_index'] is int)
+          ? j['day_index'] as int
+          : int.tryParse(j['day_index'].toString()) ?? 1,
+      date: (j['date'] is DateTime)
+          ? j['date'] as DateTime
+          : DateTime.parse(j['date'].toString()),
+      readings: readings,
+      completed: (j['completed'] as bool?) ?? false,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -88,16 +101,38 @@ class PlanDay {
 }
 
 class ReadingRef {
-  final String book; // ex: "Jean"
-  final String range; // ex: "3:16-4:10"
-  final String? url; // lien BibleGateway/BOLLS/NBS si dispo
+  final String book;   // ex: "Jean"
+  final String range;  // ex: "3:16-4:10"
+  final String? url;
 
   ReadingRef({required this.book, required this.range, this.url});
 
-  factory ReadingRef.fromJson(Map<String, dynamic> j) =>
-      ReadingRef(book: j['book'], range: j['range'], url: j['url']);
+  /// Accepte String **ou** Map legacy (range/reference)
+  factory ReadingRef.fromJson(Map jAny) {
+    final j = Map<String, dynamic>.from(jAny);
+
+    // book
+    final book = (j['book'] ?? 'Jean').toString();
+
+    // range: accepter "3:16-4:10" (String) ou {"range":"..."} / {"reference":"..."}
+    final raw = j['range'];
+    String range;
+    if (raw is String) {
+      range = raw;
+    } else if (raw is Map) {
+      final m = Map<String, dynamic>.from(raw);
+      range = (m['range'] ?? m['reference'] ?? '1:1').toString();
+    } else {
+      range = '1:1';
+    }
+
+    return ReadingRef(book: book, range: range, url: (j['url'] as String?));
+  }
 
   Map<String, dynamic> toJson() => {'book': book, 'range': range, 'url': url};
+  
+  @override
+  String toString() => '$book $range';
 }
 
 class PlanProgress {

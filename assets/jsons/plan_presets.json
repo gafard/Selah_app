@@ -1,0 +1,98 @@
+[
+  {
+    "slug": "nt_90",
+    "name": "Nouveau Testament en 90 jours",
+    "duration_days": 90,
+    "description": "Parcours l'ensemble du NT avec ~3 chapitres/jour.",
+    "rule": "NT_90_LINEAR",
+    "params": {},
+    "cover_image": "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+  },
+  {
+    "slug": "proverbs_31",
+    "name": "Proverbes pour la sagesse (31j)",
+    "duration_days": 31,
+    "description": "1 chapitre de Proverbes par jour.",
+    "rule": "PROVERBS_31",
+    "params": {},
+    "cover_image": "https://images.unsplash.com/photo-1521587760476-6c12a4b040da"
+  },
+  {
+    "slug": "psalms_40",
+    "name": "Psaumes pour le cœur (40j)",
+    "duration_days": 40,
+    "description": "2 psaumes/jour (Ps 1–80).",
+    "rule": "PSALMS_40",
+    "params": {"start":1,"end":80,"per_day":2},
+    "cover_image": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee"
+  },
+  {
+    "slug": "genesis_1_25_14d",
+    "name": "Découvrir Dieu dans la Genèse (14j)",
+    "duration_days": 14,
+    "description": "Genèse 1–25 réparti sur 14 jours.",
+    "rule": "RANGE_SPLIT",
+    "params": {"book":"Genèse","start_ch":1,"end_ch":25,"days":14},
+    "cover_image": "https://images.unsplash.com/photo-1465101162946-4377e57745c3"
+  },
+  {
+    "slug": "light_15",
+    "name": "Marche dans la Lumière (15j)",
+    "duration_days": 15,
+    "description": "1 Jean (5) + Jacques (5) + 1 Pierre (5), 1 chapitre/jour.",
+    "rule": "SEQUENCE_CHAPTERS",
+    "params": {
+      "sequence": [
+        {"book":"1 Jean","chapters":5},
+        {"book":"Jacques","chapters":5},
+        {"book":"1 Pierre","chapters":5}
+      ]
+    },
+    "cover_image": "https://images.unsplash.com/photo-1496307042754-b4aa456c4a2d"
+  },
+  {
+    "slug": "bible_180",
+    "name": "Bible en 6 mois",
+    "duration_days": 180,
+    "description": "Lecture continue de Genèse à Apocalypse (~6–8 chap/jour).",
+    "rule": "COMING_SOON",
+    "params": {},
+    "cover_image": "https://images.unsplash.com/photo-1495446815901-a7297e633e8d"
+  },
+  {
+    "slug": "words_of_jesus_30",
+    "name": "Paroles de Jésus (30j)",
+    "duration_days": 30,
+    "description": "Sélection thématique des paroles du Christ.",
+    "rule": "COMING_SOON",
+    "params": {},
+    "cover_image": "https://images.unsplash.com/photo-1520975693414-44aa1a3a029f"
+  },
+  {
+    "slug": "promises_21",
+    "name": "Les Promesses de Dieu (21j)",
+    "duration_days": 21,
+    "description": "Passages clés sur les promesses divines.",
+    "rule": "COMING_SOON",
+    "params": {},
+    "cover_image": "https://images.unsplash.com/photo-1500043357865-c6b8827edf60"
+  },
+  {
+    "slug": "gospels_60",
+    "name": "La Vie de Jésus (60j)",
+    "duration_days": 60,
+    "description": "Lecture harmonisée des 4 Évangiles.",
+    "rule": "COMING_SOON",
+    "params": {},
+    "cover_image": "https://images.unsplash.com/photo-1519681391673-9d85f7f1b8df"
+  },
+  {
+    "slug": "spirit_life_30",
+    "name": "L'Esprit et la Vie (30j)",
+    "duration_days": 30,
+    "description": "Jean 14–16, Actes, Rom 8, Gal 5…",
+    "rule": "COMING_SOON",
+    "params": {},
+    "cover_image": "https://images.unsplash.com/photo-1519681391652-28741b31c2ab"
+  }
+]

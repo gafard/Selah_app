@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 import '../widgets/uniform_back_button.dart';
 
 class ScanBiblePage extends StatelessWidget {
@@ -30,7 +31,7 @@ class ScanBiblePage extends StatelessWidget {
                 child: Row(
                   children: [
                     UniformBackButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => context.pop(),
                       iconColor: Colors.white,
                     ),
                     const Spacer(),

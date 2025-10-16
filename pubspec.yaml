@@ -56,6 +56,15 @@ dependencies:
   # Swipeable stack
   swipable_stack: ^2.0.0
   
+  # Card swiper
+  flutter_card_swiper: ^3.0.1
+  
+  # Circle navigation
+  circle_nav_bar: ^1.0.2
+  
+  # Permissions
+  permission_handler: ^11.3.1
+  
 dev_dependencies:
   flutter_lints: ^4.0.0
   lints: ^4.0.0
@@ -72,3 +81,9 @@ flutter:
     - assets/rive_animations/
     - assets/pdfs/
     - assets/jsons/
+    - assets/bible/
+    - assets/data/
+    - assets/db/
+    - assets/fonts/
+    - assets/icon/
+    - assets/packs_real/

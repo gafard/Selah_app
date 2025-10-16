@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 
 class GratitudePage extends StatefulWidget {
   const GratitudePage({super.key});
@@ -69,11 +70,7 @@ class _GratitudePageState extends State<GratitudePage> with TickerProviderStateM
   }
 
   void _returnToHome() {
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      '/',
-      (route) => false,
-    );
+    context.go('/home');
   }
 
   @override

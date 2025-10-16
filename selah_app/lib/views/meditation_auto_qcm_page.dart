@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 import '../models/passage_qcm_builder.dart';
 import '../widgets/uniform_back_button.dart';
 import '../models/passage_analysis.dart';
@@ -144,17 +145,12 @@ class _MeditationAutoQcmPageState extends State<MeditationAutoQcmPage> {
     final subjectLabels = subjects.map((s) => s.label).toList();
 
     // Naviguer vers la page de workflow de prière avec les sujets
-    final result = await Navigator.pushNamed(
-      context,
-      '/prayer_workflow',
-      arguments: {
-        'subjects': subjectLabels,
-      },
-    );
+    context.go('/prayer_workflow', extra: {
+      'subjects': subjectLabels,
+    });
     
-    if (result != null && mounted) {
-      Navigator.pop(context, result);
-    }
+    // Note: Avec GoRouter, on ne peut pas attendre un résultat de la même manière
+    // Le résultat sera géré par la page de destination
   }
 
   @override
@@ -207,7 +203,7 @@ class _MeditationAutoQcmPageState extends State<MeditationAutoQcmPage> {
           Row(
             children: [
               UniformBackButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => context.pop(),
                 iconColor: Colors.white,
               ),
               const SizedBox(width: 16),

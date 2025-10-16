@@ -6,6 +6,9 @@ import '../bootstrap.dart' as bootstrap;
 import '../services/user_prefs_hive.dart';
 import '../services/plan_service.dart';
 import '../services/telemetry_console.dart';
+import '../services/supabase_auth.dart';
+import '../services/local_storage_service.dart';
+import '../widgets/bible_version_selector.dart';
 
 /// Page épurée des paramètres selon la spécification
 class ProfileSettingsPage extends StatefulWidget {
@@ -23,6 +26,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
   Map<String, dynamic>? _profile;
   bool _loading = true;
   bool _saving = false;
+  String? _selectedBibleVersion;
 
   // Contrôleurs
   final _nameController = TextEditingController();
@@ -31,7 +35,6 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
   bool _biometricsEnabled = false;
 
   // Lecture & Affichage
-  String _bibleVersion = 'LSG';
   String _selectedLanguage = 'Français';
   double _fontSize = 16.0;
   String _themeMode = 'system'; // system|light|dark
@@ -57,7 +60,6 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
 
   // Listes
   final _languages = const ['Français', 'English', 'Español', 'Português', 'العربية'];
-  final _availableVersions = ['LSG', 'S21', 'NIV', 'ESV', 'KJV'];
 
   @override
   void initState() {
@@ -75,7 +77,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
       setState(() {
         _profile = profile;
         _nameController.text = profile['displayName'] ?? '';
-        _bibleVersion = profile['bibleVersion'] ?? 'LSG';
+        _selectedBibleVersion = profile['bibleVersion'] ?? 'LSG';
         _time = profile['preferredTime'] ?? '08:00';
         _minutes = profile['dailyMinutes'] ?? 15;
         _notifications = true; // TODO: récupérer depuis le profil
@@ -97,7 +99,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
       updated['displayName'] = _nameController.text.trim().isEmpty 
           ? _profile!['displayName'] 
           : _nameController.text.trim();
-      updated['bibleVersion'] = _bibleVersion;
+      updated['bibleVersion'] = _selectedBibleVersion;
       updated['preferredTime'] = _time;
       updated['dailyMinutes'] = _minutes;
       updated['notifications'] = _notifications;
@@ -119,7 +121,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
       
       // Télémétrie
       telemetry.event('settings_saved', {
-        'version': _bibleVersion,
+        'version': _selectedBibleVersion,
         'minutes': _minutes,
         'time': _time,
         'notifications': _notifications,
@@ -175,8 +177,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
         return;
       }
 
-      // TODO: Implémenter restartPlanFromDay1
-      // await planSvc.restartPlanFromDay1(activePlanId);
+      await planSvc.restartPlanFromDay1(activePlanId);
       
       _toast('Plan recommencé depuis le jour 1 !');
       
@@ -202,8 +203,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
         return;
       }
 
-      // TODO: Implémenter rescheduleFromToday
-      // await planSvc.rescheduleFromToday(activePlanId);
+      await planSvc.rescheduleFromToday(activePlanId);
       
       _toast('Plan replanifié depuis aujourd\'hui !');
       
@@ -258,11 +258,11 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
         content: Text(message, style: const TextStyle(fontFamily: 'Gilroy', color: Color(0xFF9CA3AF))),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => context.pop(false),
             child: Text(cancelLabel, style: const TextStyle(color: Color(0xFF9CA3AF))),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => context.pop(true),
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6)),
             child: Text(confirmLabel),
           ),
@@ -323,6 +323,75 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
     _toast('Ouverture des licences');
   }
 
+  // Actions pour la déconnexion et suppression de compte
+  Future<void> _onLogoutTapped() async {
+    final confirmed = await _confirm(
+      title: 'Se déconnecter ?',
+      message: 'Vous devrez vous reconnecter pour accéder à votre compte.',
+      confirmLabel: 'Déconnexion',
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      // Déconnexion via SupabaseAuthService
+      await SupabaseAuthService.signOut();
+      
+      telemetry.event('user_logout', {});
+      
+      // Navigation vers la page d'accueil
+      if (mounted) {
+        context.go('/welcome');
+      }
+      
+    } catch (e) {
+      _toast('Erreur lors de la déconnexion: ${e.toString().split(':').last.trim()}', error: true);
+    }
+  }
+
+  Future<void> _onDeleteAccountTapped() async {
+    final confirmed = await _confirm(
+      title: 'Supprimer le compte ?',
+      message: 'Cette action est IRRÉVERSIBLE. Toutes vos données seront définitivement supprimées.',
+      confirmLabel: 'Supprimer définitivement',
+    );
+    
+    if (!confirmed) return;
+
+    // Double confirmation pour la suppression
+    final doubleConfirmed = await _confirm(
+      title: 'Dernière confirmation',
+      message: 'Êtes-vous ABSOLUMENT certain de vouloir supprimer votre compte ? Cette action ne peut pas être annulée.',
+      confirmLabel: 'OUI, SUPPRIMER',
+    );
+    
+    if (!doubleConfirmed) return;
+
+    try {
+      // 1) Supprimer le plan actif d'abord
+      final activePlanId = prefs.profile['activePlanId'] as String?;
+      if (activePlanId != null) {
+        await planSvc.archivePlan(activePlanId);
+      }
+      
+      // 2) Suppression offline-first du compte
+      await SupabaseAuthService.deleteAccount();
+      
+      // 3) Nettoyer complètement les données locales
+      await LocalStorageService.clearAllData();
+      
+      telemetry.event('account_deleted', {});
+      
+      // 4) Navigation vers la page d'accueil
+      if (mounted) {
+        context.go('/welcome');
+      }
+      
+    } catch (e) {
+      _toast('Erreur lors de la suppression: ${e.toString().split(':').last.trim()}', error: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -358,29 +427,25 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
           child: Column(
             children: [
               Expanded(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                  child: Stack(
-                    children: [
-                      // Ornements légers en arrière-plan
-                      RepaintBoundary(
-                        child: Positioned(
-                          right: -60,
-                          top: -40,
-                          child: _softBlob(180),
-                        ),
-                      ),
-                      RepaintBoundary(
-                        child: Positioned(
-                          left: -40,
-                          bottom: -50,
-                          child: _softBlob(220),
-                        ),
-                      ),
+                child: Stack(
+                  children: [
+                    // Ornements légers en arrière-plan
+                    Positioned(
+                      right: -60,
+                      top: -40,
+                      child: _softBlob(180),
+                    ),
+                    Positioned(
+                      left: -40,
+                      bottom: -50,
+                      child: _softBlob(220),
+                    ),
 
-                      // Contenu principal avec sections thématiques
-                      Padding(
+                    // Contenu principal avec sections thématiques
+                    SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                      child: Padding(
                         padding: const EdgeInsets.all(20),
                         child: Column(
                           children: [
@@ -414,12 +479,16 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
 
                             // Section Aide & À propos
                             _buildHelpSection(),
+                            const SizedBox(height: 20),
+
+                            // Section Compte & Sécurité
+                            _buildAccountSection(),
                             const SizedBox(height: 100), // Espace pour le bouton fixé
                           ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -595,13 +664,14 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
         _buildField(
           label: 'Version de la Bible',
           icon: Icons.menu_book_rounded,
-          child: _buildDropdown(
-            value: _bibleVersion,
-            items: _availableVersions,
-            onChanged: (v) {
+          child: BibleVersionSelector(
+            selectedVersion: _selectedBibleVersion,
+            onVersionChanged: (version) {
               HapticFeedback.selectionClick();
-              setState(() => _bibleVersion = v);
+              setState(() => _selectedBibleVersion = version);
             },
+            label: 'Version de la Bible',
+            showLabel: false,
           ),
         ),
         const SizedBox(height: 16),
@@ -980,6 +1050,59 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
     );
   }
 
+  Widget _buildAccountSection() {
+    return _buildSectionCard(
+      title: '🔐 Compte & Sécurité',
+      icon: Icons.security_rounded,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.orange.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.orange.withOpacity(0.3)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.orange[300], size: 16),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Ces actions affectent votre compte et vos données. Utilisez avec précaution.',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    color: Colors.orange[200],
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        
+        // Bouton de déconnexion
+        _buildAccountActionItem(
+          icon: Icons.logout_rounded,
+          title: 'Se déconnecter',
+          subtitle: 'Fermer la session actuelle',
+          onTap: _onLogoutTapped,
+          isDestructive: false,
+        ),
+        const SizedBox(height: 12),
+        
+        // Bouton de suppression de compte
+        _buildAccountActionItem(
+          icon: Icons.delete_forever_rounded,
+          title: 'Supprimer le compte',
+          subtitle: 'Suppression définitive de toutes les données',
+          onTap: _onDeleteAccountTapped,
+          isDestructive: true,
+        ),
+      ],
+    );
+  }
+
   Widget _buildSectionCard({
     required String title,
     required IconData icon,
@@ -1330,6 +1453,78 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
                   ),
                 ),
                 Icon(Icons.arrow_forward_ios, color: Colors.red[300], size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccountActionItem({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    required bool isDestructive,
+  }) {
+    final color = isDestructive ? Colors.red : Colors.orange;
+    
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            HapticFeedback.mediumImpact();
+            onTap();
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: color.withOpacity(0.2)),
+            ),
+            child: Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, color: color[300], size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          color: color[200],
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          color: color[100],
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.arrow_forward_ios, color: color[300], size: 16),
               ],
             ),
           ),

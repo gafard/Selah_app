@@ -9,8 +9,11 @@ import '../services/user_prefs_hive.dart';
 import '../bootstrap.dart' as bootstrap;
 import '../services/telemetry_console.dart';
 import '../services/semantic_passage_boundary_service.dart';
+import '../services/intelligent_duration_calculator.dart';
 import '../models/plan_models.dart';
 import '../widgets/uniform_back_button.dart';
+import '../services/doctrine/doctrine_pipeline.dart'; // 🕊️ Pipeline doctrinal modulaire
+import '../services/doctrine/anchored_doctrine_base.dart'; // 🕊️ DoctrineContext
 
 class CustomPlanGeneratorPage extends StatefulWidget {
   const CustomPlanGeneratorPage({super.key});
@@ -34,10 +37,17 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
   bool _isGenerating = false;
   bool _blockPop = false; // empêcher retour pendant génération
   
+  // 🧠 Variables pour IntelligentDurationCalculator
+  DurationCalculation? _durationRecommendation;
+  bool _isCalculatingDuration = false;
+  
   // Détection réseau
   late final Connectivity _conn;
   Stream<List<ConnectivityResult>>? _connStream;
   bool _online = true;
+  
+  // 🕊️ Profil utilisateur pour le pipeline doctrinal
+  Map<String, dynamic>? _userProfile;
 
   // mapping "UI -> générateur"
   static const Map<String, String> _versionMap = {
@@ -71,6 +81,9 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
     try {
       final userPrefs = context.read<UserPrefsHive>();
       final profile = userPrefs.profile;
+      
+      // 🕊️ Charger le profil utilisateur pour le pipeline doctrinal
+      _userProfile = profile;
       final version = profile['bibleVersion'] as String?; // ex: 'LSG'
       final dow = (profile['daysOfWeek'] as List?)?.cast<int>();
       final goal = profile['goal'] as String? ?? '';
@@ -119,6 +132,47 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
       });
     } catch (_) {
       // silent fallback
+    }
+    
+    // 🧠 Calculer la durée optimale au chargement
+    _calculateOptimalDuration();
+  }
+  
+  /// 🧠 Calcule la durée optimale avec IntelligentDurationCalculator
+  Future<void> _calculateOptimalDuration() async {
+    if (_isCalculatingDuration) return;
+    
+    setState(() {
+      _isCalculatingDuration = true;
+    });
+    
+    try {
+      final profile = context.read<UserPrefsHive>().profile;
+      
+      // 🧠 CALCUL INTELLIGENT DE LA DURÉE
+      final durationCalculation = IntelligentDurationCalculator.calculateOptimalDuration(
+        goal: profile['goal'] ?? 'Discipline quotidienne',
+        level: profile['level'] ?? 'Fidèle régulier',
+        dailyMinutes: profile['durationMin'] ?? 15,
+        meditationType: profile['meditation'] ?? 'Méditation biblique',
+      );
+      
+      setState(() {
+        _durationRecommendation = durationCalculation;
+        _totalDays = durationCalculation.optimalDays;
+        _isCalculatingDuration = false;
+      });
+      
+      print('🧠 Durée optimale calculée: ${durationCalculation.optimalDays} jours');
+      print('📊 Raisonnement: ${durationCalculation.reasoning}');
+      if (durationCalculation.warnings.isNotEmpty) {
+        print('⚠️ Avertissements: ${durationCalculation.warnings.join(', ')}');
+      }
+    } catch (e) {
+      print('❌ Erreur calcul durée: $e');
+      setState(() {
+        _isCalculatingDuration = false;
+      });
     }
   }
 
@@ -208,7 +262,13 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
                             // Durée
                             _buildSection(
                               title: 'Durée (jours)',
-                              child: _buildDurationSlider(),
+                              child: Column(
+                                children: [
+                                  _buildDurationSlider(),
+                                  SizedBox(height: 8),
+                                  // Les systèmes intelligents travaillent en arrière-plan
+                                ],
+                              ),
                             ),
 
                             // Ordre de lecture
@@ -388,6 +448,11 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
   }
 
   Widget _buildDurationSlider() {
+    // 🧠 Utiliser les bornes intelligentes si disponibles
+    final minDays = _durationRecommendation?.minDays ?? 5;
+    final maxDays = _durationRecommendation?.maxDays ?? 360;
+    final divisions = maxDays - minDays;
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -400,14 +465,16 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
       ),
       child: Column(
         children: [
+          // Les systèmes intelligents travaillent en arrière-plan
+          
           Row(
             children: [
               Expanded(
                 child: Slider(
-                  value: _totalDays.toDouble(),
-                  min: 5,
-                  max: 360,
-                  divisions: 355,
+                  value: _totalDays.toDouble().clamp(minDays.toDouble(), maxDays.toDouble()),
+                  min: minDays.toDouble(),
+                  max: maxDays.toDouble(),
+                  divisions: divisions,
                   onChanged: (value) {
                     setState(() {
                       _totalDays = value.round();
@@ -443,9 +510,23 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
               color: Colors.white70,
             ),
           ),
+          
+          // Les systèmes intelligents travaillent en arrière-plan
         ],
       ),
     );
+  }
+  
+  // Les systèmes intelligents travaillent en arrière-plan sans interface visible
+  Widget _buildIntelligenceRecommendations() {
+    return SizedBox.shrink(); // Pas d'interface visible
+  }
+  
+  /// 🎨 Couleur basée sur le niveau de confiance
+  Color _getConfidenceColor(double confidence) {
+    if (confidence >= 80) return Colors.green;
+    if (confidence >= 60) return Colors.orange;
+    return Colors.red;
   }
 
   Widget _buildModernDropdown({
@@ -987,7 +1068,14 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
     }
 
     print('📖 ${result.length} passages générés offline (INTELLIGENTS)');
-    return result;
+    
+    // 🕊️ INTÉGRATION DOCTRINALE - Application du pipeline doctrinal modulaire
+    final ctx = DoctrineContext(userProfile: _userProfile, minutesPerDay: 15);
+    final pipeline = DoctrinePipeline.defaultModules();
+    final withDoctrine = pipeline.apply(result, context: ctx);
+    
+    print('🕊️ Plan structuré par le pipeline doctrinal modulaire');
+    return withDoctrine;
   }
 
   /// 🧠 Expand books pool vers chapitres (pour génération intelligente)

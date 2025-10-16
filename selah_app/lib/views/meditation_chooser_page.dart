@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 import '../constants/app_tokens.dart';
 import '../widgets/uniform_back_button.dart';
 import '../widgets/calm_ui_components.dart';
@@ -23,7 +24,7 @@ class MeditationChooserPage extends StatelessWidget {
           // Header avec navigation
           UniformHeader(
             title: 'Méditation',
-            onBackPressed: () => Navigator.pop(context),
+            onBackPressed: () => context.pop(),
             textColor: Colors.white,
             iconColor: Colors.black,
             titleAlignment: CrossAxisAlignment.center,
@@ -71,12 +72,10 @@ class MeditationChooserPage extends StatelessWidget {
                     gradient: const [AppTokens.indigo, Color(0xFF8B5CF6)],
                     onTap: () {
                       HapticFeedback.lightImpact();
-                      Navigator.push(context, MaterialPageRoute(
-                        builder: (_) => MeditationFreePage(
-                          passageRef: passagePayload.ref.isNotEmpty ? passagePayload.ref : null,
-                          passageText: passagePayload.text.isNotEmpty ? passagePayload.text : null,
-                        ),
-                      ));
+                      context.go('/meditation/free', extra: {
+                        'passageRef': passagePayload.ref.isNotEmpty ? passagePayload.ref : null,
+                        'passageText': passagePayload.text.isNotEmpty ? passagePayload.text : null,
+                      });
                     },
                   ),
                   const SizedBox(height: AppTokens.gap16),
@@ -87,12 +86,10 @@ class MeditationChooserPage extends StatelessWidget {
                     gradient: const [AppTokens.teal, Color(0xFF3B82F6)],
                     onTap: () {
                       HapticFeedback.lightImpact();
-                      Navigator.push(context, MaterialPageRoute(
-                        builder: (_) => MeditationQcmPage(
-                          passageRef: passagePayload.ref,
-                          passageText: passagePayload.text,
-                        ),
-                      ));
+                      context.go('/meditation/qcm', extra: {
+                        'passageRef': passagePayload.ref,
+                        'passageText': passagePayload.text,
+                      });
                     },
                   ),
                   const SizedBox(height: AppTokens.gap16),
@@ -103,11 +100,7 @@ class MeditationChooserPage extends StatelessWidget {
                     gradient: const [Color(0xFF10B981), Color(0xFF059669)],
                     onTap: () {
                       HapticFeedback.lightImpact();
-                      Navigator.pushNamed(
-                        context, 
-                        '/meditation/auto_qcm',
-                        arguments: passagePayload.toMap(),
-                      );
+                      context.go('/meditation/auto_qcm', extra: passagePayload.toMap());
                     },
                   ),
                 ],
@@ -156,12 +149,12 @@ class MeditationChooserPage extends StatelessWidget {
                 const SizedBox(height: AppTokens.gap12),
                 _buildHelpItem(
                   'Méditation intelligente',
-                  'L\'IA génère des questions adaptées au passage biblique.',
+                  'Le système génère des questions adaptées au passage biblique.',
                 ),
                 const SizedBox(height: AppTokens.gap24),
                 CalmButton(
                   text: 'Compris',
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => context.pop(),
                 ),
               ],
             ),

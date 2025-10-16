@@ -13,6 +13,7 @@ import 'package:selah_app/views/settings_page.dart';
 import 'package:selah_app/views/profile_settings_page.dart';
 import 'package:selah_app/views/reader_page_modern.dart';
 import 'package:selah_app/views/reader_settings_page.dart';
+import 'package:selah_app/models/reading_passage.dart';
 import 'package:selah_app/views/meditation_chooser_page.dart';
 import 'package:selah_app/views/meditation_free_page.dart';
 import 'package:selah_app/views/meditation_qcm_page.dart';
@@ -26,11 +27,17 @@ import 'package:selah_app/views/coming_soon_page.dart';
 import 'package:selah_app/views/bible_quiz_page.dart';
 import 'package:selah_app/views/scan_bible_page.dart';
 import 'package:selah_app/views/advanced_scan_bible_page.dart';
+import 'package:selah_app/views/falcon_x_demo_page.dart';
+import 'package:selah_app/views/bible_versions_page.dart';
+import 'package:selah_app/views/bible_packs_page.dart';
+import 'package:selah_app/views/bible_pack_test_page.dart';
+import 'package:selah_app/views/advanced_bible_study_page.dart';
 import 'package:selah_app/views/profile_page.dart';
 import 'package:selah_app/views/splash_page.dart';
 import 'package:selah_app/views/pre_meditation_prayer_page.dart';
 import 'package:selah_app/views/onboarding_dynamic_page.dart';
 import 'package:selah_app/views/congrats_discipline_page.dart';
+import 'package:selah_app/views/my_plan_page_modern.dart';
 import 'package:selah_app/repositories/user_repository.dart';
 
 class AppRouter {
@@ -79,9 +86,21 @@ class AppRouter {
         }
         
         // ─────────────────────────────────────────────────────────────
-        // GUARD 4: Vérifier onboarding (AVANT le plan)
+        // GUARD 4: Vérifier onboarding (APRÈS avoir un plan)
         // ─────────────────────────────────────────────────────────────
-        print('🧭 Router Guard: hasOnboarded=${user.hasOnboarded}, path=$path');
+        print('🧭 Router Guard: hasOnboarded=${user.hasOnboarded}, currentPlanId=${user.currentPlanId}, path=$path');
+        
+        // Si pas de plan, permettre l'accès à goals, custom_plan et complete_profile
+        if (user.currentPlanId == null) {
+          if (path == '/goals' || path == '/custom_plan' || path == '/complete_profile') {
+            print('🧭 Router Guard: Autorisation pages de création (pas de plan)');
+            return null;
+          }
+          print('🧭 Router Guard: Redirection vers /goals (pas de plan)');
+          return '/goals';
+        }
+        
+        // Si plan existe mais pas d'onboarding, rediriger vers onboarding
         if (!user.hasOnboarded) {
           // Autoriser explicitement onboarding et l'écran de succès
           if (path == '/onboarding' || path == '/congrats') {
@@ -93,24 +112,11 @@ class AppRouter {
         }
         
         // ─────────────────────────────────────────────────────────────
-        // GUARD 5: Vérifier plan actif (APRÈS onboarding)
+        // GUARD 5: Permettre l'accès à goals pour changer de plan
         // ─────────────────────────────────────────────────────────────
-        print('🧭 Router Guard: currentPlanId=${user.currentPlanId}, path=$path');
-        if (user.currentPlanId == null) {
-          // Permettre l'accès à complete_profile, goals et custom_plan
-          if (path == '/goals' || path == '/custom_plan' || path == '/complete_profile') {
-            print('🧭 Router Guard: Autorisation pages de création (pas de plan)');
-            return null;
-          }
-          print('🧭 Router Guard: Redirection vers /goals (pas de plan)');
-          return '/goals';
-        } else {
-          // 🔒 GUARD 5B: Si plan existe, BLOQUER l'accès aux pages de création
-          if (path == '/goals' || path == '/custom_plan') {
-            print('🧭 Router Guard: Redirection vers /settings (plan existe)');
-            // Rediriger vers settings pour gérer le plan existant
-            return '/settings';
-          }
+        if (path == '/goals' || path == '/custom_plan') {
+          print('🧭 Router Guard: Autorisation pages de création (changement de plan autorisé)');
+          return null;
         }
         
         // ─────────────────────────────────────────────────────────────
@@ -199,7 +205,17 @@ class AppRouter {
       GoRoute(
         path: '/reader',
         name: 'reader',
-        builder: (context, state) => const ReaderPageModern(),
+        builder: (context, state) {
+          // Extraire les paramètres de state.extra
+          final extra = state.extra as Map<String, dynamic>?;
+          return ReaderPageModern(
+            passageRef: extra?['passageRef'] as String?,
+            passageText: extra?['passageText'] as String?,
+            dayTitle: extra?['dayTitle'] as String?,
+            passageRefs: extra?['passageRefs'] as List<String>?,
+            readingSession: extra?['readingSession'] as ReadingSession?,
+          );
+        },
       ),
       GoRoute(
         path: '/reader_settings',
@@ -225,6 +241,11 @@ class AppRouter {
         path: '/profile_settings',
         name: 'profile_settings',
         builder: (context, state) => const ProfileSettingsPage(),
+      ),
+      GoRoute(
+        path: '/my_plan',
+        name: 'my_plan',
+        builder: (context, state) => const MyPlanPageModern(),
       ),
       
       // ─────────────────────────────────────────────────────────────────
@@ -322,6 +343,34 @@ class AppRouter {
         name: 'bible_quiz',
         builder: (context, state) => const BibleQuizPage(),
       ),
+      GoRoute(
+        path: '/falcon_x_demo',
+        name: 'falcon_x_demo',
+        builder: (context, state) => const FalconXDemoPage(),
+      ),
+        GoRoute(
+          path: '/bible_versions',
+          name: 'bible_versions',
+          builder: (context, state) => const BibleVersionsPage(),
+        ),
+        GoRoute(
+          path: '/bible_packs',
+          name: 'bible_packs',
+          builder: (context, state) => const BiblePacksPage(),
+        ),
+        GoRoute(
+          path: '/bible_pack_test',
+          name: 'bible_pack_test',
+          builder: (context, state) => const BiblePackTestPage(),
+        ),
+        GoRoute(
+          path: '/advanced_bible_study',
+          name: 'advanced_bible_study',
+          builder: (context, state) {
+            final verseId = state.uri.queryParameters['verseId'];
+            return AdvancedBibleStudyPage(verseId: verseId);
+          },
+        ),
       
       // ─────────────────────────────────────────────────────────────────
       // Coming Soon (PROTECTED)

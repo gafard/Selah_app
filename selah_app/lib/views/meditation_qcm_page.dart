@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 import '../models/passage_qcm_builder.dart';
 import '../models/passage_analysis.dart';
 import '../utils/prayer_subjects_mapper.dart';
@@ -393,21 +394,15 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
       print('🔍 Item $i: ${items[i].theme} - ${items[i].subject}');
     }
 
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const PrayerCarouselPage(),
-                settings: RouteSettings(arguments: {
-                  'items': items,
-                  'memoryVerse': '', // Sera rempli par le bottom sheet
-                  'passageRef': widget.passageRef,
-                  'passageText': widget.passageText,
-                  'selectedTagsByField': _selectedTagsByField,
-                  'selectedAnswersByField': selectedAnswersByField,
-                  'freeTextResponses': freeTextResponses,
-                }),
-              ),
-            );
+            context.go('/payerpage', extra: {
+              'items': items,
+              'memoryVerse': '', // Sera rempli par le bottom sheet
+              'passageRef': widget.passageRef,
+              'passageText': widget.passageText,
+              'selectedTagsByField': _selectedTagsByField,
+              'selectedAnswersByField': selectedAnswersByField,
+              'freeTextResponses': freeTextResponses,
+            });
   }
 
   @override
@@ -452,7 +447,7 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
     return UniformHeader(
       title: 'Méditation Guidée',
       subtitle: widget.passageRef,
-      onBackPressed: () => Navigator.pop(context),
+      onBackPressed: () => context.pop(),
       textColor: Colors.white,
       iconColor: Colors.white,
       titleAlignment: CrossAxisAlignment.center,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 import '../widgets/uniform_back_button.dart';
 
 class ComingSoonPage extends StatefulWidget {
@@ -56,10 +57,10 @@ class _ComingSoonPageState extends State<ComingSoonPage> with TickerProviderStat
         // Ne rien faire, on est déjà sur la page des paramètres
         break;
       case 1: // Accueil
-        Navigator.pushReplacementNamed(context, '/home');
+        context.go('/home');
         break;
       case 2: // Étude
-        Navigator.pushReplacementNamed(context, '/bible_quiz');
+        context.go('/bible_quiz');
         break;
     }
   }
@@ -73,7 +74,7 @@ class _ComingSoonPageState extends State<ComingSoonPage> with TickerProviderStat
         backgroundColor: const Color(0xFF1a1a2e),
         elevation: 0,
         leading: UniformBackButtonAppBar(
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => context.pop(),
           iconColor: Colors.white,
         ),
         title: Text(
@@ -242,7 +243,7 @@ class _ComingSoonPageState extends State<ComingSoonPage> with TickerProviderStat
                   
                   // Bouton retour
                   ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => context.pop(),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF8B5CF6),
                       foregroundColor: Colors.white,

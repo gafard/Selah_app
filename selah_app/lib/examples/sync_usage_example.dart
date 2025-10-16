@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../app_state.dart';
 
 /// Example d'utilisation du nouveau système de sync dans l'UI
@@ -128,7 +129,7 @@ class OnboardingExample extends StatelessWidget {
                 
                 if (context.mounted) {
                   // Redirection immédiate
-                  Navigator.of(context).pushReplacementNamed('/congrats');
+                  context.go('/congrats');
                 }
               },
               child: const Text('Continuer'),

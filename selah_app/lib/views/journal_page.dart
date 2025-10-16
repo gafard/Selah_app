@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../widgets/uniform_back_button.dart';
 
@@ -171,7 +172,7 @@ class _JournalPageState extends State<JournalPage> with TickerProviderStateMixin
           Row(
             children: [
               UniformBackButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => context.pop(),
                 iconColor: Colors.white,
               ),
               const SizedBox(width: 16),
@@ -644,7 +645,7 @@ class _JournalPageState extends State<JournalPage> with TickerProviderStateMixin
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => context.pop(),
             child: Text(
               'Annuler',
               style: GoogleFonts.inter(color: const Color(0xFF9CA3AF)),
@@ -655,7 +656,7 @@ class _JournalPageState extends State<JournalPage> with TickerProviderStateMixin
               setState(() {
                 _searchQuery = _searchController.text;
               });
-              Navigator.pop(context);
+              context.pop();
               _loadNotes();
             },
             child: Text(
@@ -764,7 +765,7 @@ class _JournalPageState extends State<JournalPage> with TickerProviderStateMixin
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => context.pop(),
           child: Text(
             'Annuler',
             style: GoogleFonts.inter(color: const Color(0xFF9CA3AF)),
@@ -813,7 +814,7 @@ class _JournalPageState extends State<JournalPage> with TickerProviderStateMixin
       }
     });
 
-    Navigator.pop(context);
+    context.pop();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(_editingNoteId == null ? 'Note créée' : 'Note modifiée'),
@@ -837,7 +838,7 @@ class _JournalPageState extends State<JournalPage> with TickerProviderStateMixin
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => context.pop(),
             child: Text(
               'Annuler',
               style: GoogleFonts.inter(color: const Color(0xFF9CA3AF)),
@@ -848,7 +849,7 @@ class _JournalPageState extends State<JournalPage> with TickerProviderStateMixin
               setState(() {
                 _notes.removeWhere((n) => n['id'] == noteId);
               });
-              Navigator.pop(context);
+              context.pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Note supprimée'),

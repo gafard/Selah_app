@@ -5,6 +5,7 @@ import 'package:flutter/rendering.dart';
 import 'package:share_plus/share_plus.dart';
 // import 'package:image_gallery_saver/image_gallery_saver.dart'; // Temporairement désactivé
 import 'package:permission_handler/permission_handler.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:ui' as ui;
 import '../services/meditation_journal_service.dart';
 
@@ -56,8 +57,54 @@ class _VersePosterPageState extends State<VersePosterPage> {
   }
 
   Future<void> _saveToGallery() async {
-    if (await Permission.photos.request().isDenied &&
-        await Permission.storage.request().isDenied) {
+    // Vérifier le statut des permissions
+    var photosStatus = await Permission.photos.status;
+    var storageStatus = await Permission.storage.status;
+    
+    // Demander les permissions si nécessaire
+    if (photosStatus.isDenied || storageStatus.isDenied) {
+      await Permission.photos
+          .onDeniedCallback(() {
+            // Permission refusée
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Permission refusée pour sauvegarder l\'image')),
+            );
+          })
+          .onGrantedCallback(() {
+            // Permission accordée
+          })
+          .onPermanentlyDeniedCallback(() {
+            // Permission définitivement refusée
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Permission définitivement refusée. Veuillez l\'activer dans les paramètres.')),
+            );
+          })
+          .request();
+          
+      await Permission.storage
+          .onDeniedCallback(() {
+            // Permission refusée
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Permission refusée pour accéder au stockage')),
+            );
+          })
+          .onGrantedCallback(() {
+            // Permission accordée
+          })
+          .onPermanentlyDeniedCallback(() {
+            // Permission définitivement refusée
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Permission de stockage définitivement refusée. Veuillez l\'activer dans les paramètres.')),
+            );
+          })
+          .request();
+    }
+    
+    // Vérifier à nouveau après la demande
+    photosStatus = await Permission.photos.status;
+    storageStatus = await Permission.storage.status;
+    
+    if (photosStatus.isDenied || storageStatus.isDenied) {
       return;
     }
 
@@ -73,7 +120,7 @@ class _VersePosterPageState extends State<VersePosterPage> {
     if (!mounted) return;
     
     // Naviguer vers la page de gratitude
-    Navigator.pushReplacementNamed(context, '/gratitude');
+    context.go('/gratitude');
   }
 
   Future<void> _share() async {
@@ -84,21 +131,18 @@ class _VersePosterPageState extends State<VersePosterPage> {
     _saveToJournal(); // Sauvegarder dans le journal
     
     // Naviguer vers la page de gratitude
-    Navigator.pushReplacementNamed(context, '/gratitude');
+    context.go('/gratitude');
   }
 
   void _toCommunity() {
     _saveToJournal(); // Sauvegarder dans le journal
-    Navigator.pushNamed(context, '/community/new-post', arguments: {
+    context.go('/community/new-post', extra: {
       'imageFromPoster': true,
       'verseRef': _ref,
       'caption': _text,
-    }).then((_) {
-      // Après avoir fermé la page "Coming Soon", naviguer vers la gratitude
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/gratitude');
-      }
     });
+    // Note: Avec GoRouter, on ne peut pas utiliser .then() car context.go() retourne void
+    // La navigation vers gratitude sera gérée par la page de destination
   }
 
   void _setAsWallpaper() {
@@ -175,7 +219,7 @@ class _VersePosterPageState extends State<VersePosterPage> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.close_rounded, color: Colors.black87),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => context.pop(),
         ),
         actions: [
           IconButton(

@@ -1,0 +1,32 @@
+{
+  "Jean.3.16": [
+    {"lemma": "agapao", "lang": "grc", "gloss": "aimer (amour divin, sacrificiel)"},
+    {"lemma": "kosmos", "lang": "grc", "gloss": "monde, univers, humanité"},
+    {"lemma": "monogenes", "lang": "grc", "gloss": "unique, bien-aimé, seul de son genre"},
+    {"lemma": "pisteuo", "lang": "grc", "gloss": "croire, avoir foi, faire confiance"}
+  ],
+  "Matthieu.5.3": [
+    {"lemma": "makarios", "lang": "grc", "gloss": "heureux, béni, fortuné"},
+    {"lemma": "ptochos", "lang": "grc", "gloss": "pauvre, mendiant, démuni"},
+    {"lemma": "pneuma", "lang": "grc", "gloss": "esprit, souffle, vent"},
+    {"lemma": "basileia", "lang": "grc", "gloss": "royaume, règne, souveraineté"}
+  ],
+  "Psaumes.23.1": [
+    {"lemma": "YHWH", "lang": "hbr", "gloss": "L'Éternel, nom propre de Dieu"},
+    {"lemma": "ro'eh", "lang": "hbr", "gloss": "berger, pasteur"},
+    {"lemma": "lo'", "lang": "hbr", "gloss": "ne pas, négation"},
+    {"lemma": "chaser", "lang": "hbr", "gloss": "manquer, être dans le besoin"}
+  ],
+  "Genèse.1.1": [
+    {"lemma": "bereshit", "lang": "hbr", "gloss": "au commencement, en premier"},
+    {"lemma": "bara", "lang": "hbr", "gloss": "créer (action divine exclusive)"},
+    {"lemma": "Elohim", "lang": "hbr", "gloss": "Dieu (pluriel de majesté)"},
+    {"lemma": "shamayim", "lang": "hbr", "gloss": "cieux, firmament"}
+  ],
+  "Romains.8.28": [
+    {"lemma": "sunergeo", "lang": "grc", "gloss": "travailler ensemble, coopérer"},
+    {"lemma": "agathos", "lang": "grc", "gloss": "bon, bienfaisant, utile"},
+    {"lemma": "agapao", "lang": "grc", "gloss": "aimer (amour divin)"},
+    {"lemma": "kaleo", "lang": "grc", "gloss": "appeler, inviter, nommer"}
+  ]
+}

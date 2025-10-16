@@ -372,7 +372,7 @@ class _ActivityCard extends StatelessWidget {
       case 'Rencontrer Dieu':
         return 'Méditation biblique quotidienne pour nourrir votre âme et grandir dans la foi.';
       case 'Affermir ma foi':
-        return 'Quiz intelligent couvrant les 27 livres du Nouveau Testament avec IA divine.';
+        return 'Quiz intelligent couvrant les 27 livres du Nouveau Testament avec sagesse divine.';
       case 'Partager la lumière':
         return 'Communauté de croyants pour partager, encourager et grandir ensemble.';
       default:

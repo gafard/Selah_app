@@ -548,6 +548,11 @@ class IntelligentDurationCalculator {
     // 10. Calculer l'intensité recommandée
     final intensity = _calculateIntensity(level, dailyMinutes, calculatedDays);
     
+    // 🧠 Calculer les bornes et la confiance
+    final bounds = _calculateBounds(level, dailyMinutes, goal);
+    final confidence = _calculateConfidence(level, dailyMinutes, calculatedDays, goal);
+    final warnings = _generateWarnings(level, dailyMinutes, calculatedDays, goal);
+    
     return DurationCalculation(
       optimalDays: calculatedDays,
       dailyMinutes: dailyMinutes,
@@ -556,6 +561,10 @@ class IntelligentDurationCalculator {
       behavioralType: behavioralType,
       scientificBasis: behavioralData['studies'] as List<String>,
       reasoning: _generateEnhancedReasoning(goal, level, dailyMinutes, calculatedDays, behavioralType, emotionalState, emotionalNeeds),
+      minDays: bounds['min']!,
+      maxDays: bounds['max']!,
+      confidence: confidence,
+      warnings: warnings,
     );
   }
   
@@ -809,12 +818,114 @@ class IntelligentDurationCalculator {
     final testimoniesStr = spiritualTestimonies.take(2).join(', ');
     
     return '''Basé sur la science comportementale et les témoignages chrétiens ($behavioralType):
-• $goalDesc
-• $levelDesc (État: $emotionalStateStr)
-• Besoins émotionnels: $emotionalNeedsStr
-• Témoignages pertinents: $testimoniesStr
-• $dailyMinutes min/jour = ${(days * dailyMinutes / 60).toStringAsFixed(1)}h total
-• Durée optimale: $days jours pour une transformation durable, émotionnellement adaptée et ancrée dans les témoignages de foi''';
+    • $goalDesc
+    • $levelDesc (État: $emotionalStateStr)
+    • Besoins émotionnels: $emotionalNeedsStr
+    • Témoignages pertinents: $testimoniesStr
+    • $dailyMinutes min/jour = ${(days * dailyMinutes / 60).toStringAsFixed(1)}h total
+    • Durée optimale: $days jours pour une transformation durable, émotionnellement adaptée et ancrée dans les témoignages de foi''';
+  }
+  
+  /// 🧠 Calcule les bornes min/max pour le slider
+  static Map<String, int> _calculateBounds(String level, int dailyMinutes, String goal) {
+    int minDays = _DurationBounds.minPlanDays;
+    int maxDays = 365; // Maximum absolu
+    
+    // Ajustements selon le niveau
+    switch (level) {
+      case 'Nouveau converti':
+        maxDays = _DurationBounds.newConvertMax;
+        minDays = math.max(minDays, 14); // Minimum 2 semaines
+        break;
+      case 'Rétrograde':
+        maxDays = _DurationBounds.backsliderMax;
+        minDays = math.max(minDays, 21); // Minimum 3 semaines
+        break;
+      case 'Serviteur/leader':
+        minDays = _DurationBounds.leaderMin;
+        maxDays = 180; // Maximum 6 mois
+        break;
+      default:
+        maxDays = 120; // Maximum 4 mois pour fidèles réguliers
+    }
+    
+    // Ajustements selon le temps quotidien
+    if (dailyMinutes <= 5) {
+      maxDays = _DurationBounds.maxIf5Min;
+    } else if (dailyMinutes >= 30) {
+      minDays = _DurationBounds.minIf30Min;
+    }
+    
+    // Ajustements selon l'objectif
+    if (goal.contains('Discipline') || goal.contains('quotidienne')) {
+      minDays = math.max(minDays, 21); // Minimum 3 semaines pour la discipline
+    } else if (goal.contains('Approfondir') || goal.contains('Parole')) {
+      minDays = math.max(minDays, 30); // Minimum 1 mois pour approfondir
+    }
+    
+    return {'min': minDays, 'max': maxDays};
+  }
+  
+  /// 🧠 Calcule le niveau de confiance du calcul
+  static double _calculateConfidence(String level, int dailyMinutes, int days, String goal) {
+    double confidence = 0.7; // Base de 70%
+    
+    // Bonus pour données cohérentes
+    if (level == 'Fidèle régulier' && dailyMinutes >= 15 && dailyMinutes <= 25) {
+      confidence += 0.15; // +15% pour profil standard
+    }
+    
+    if (days >= 21 && days <= 90) {
+      confidence += 0.1; // +10% pour durée dans la zone optimale
+    }
+    
+    // Bonus pour objectifs clairs
+    if (goal.contains('Discipline') || goal.contains('Approfondir')) {
+      confidence += 0.05; // +5% pour objectifs précis
+    }
+    
+    // Malus pour profils extrêmes
+    if (level == 'Nouveau converti' && days > 60) {
+      confidence -= 0.1; // -10% pour risque d'overwhelm
+    }
+    
+    if (dailyMinutes < 5 || dailyMinutes > 45) {
+      confidence -= 0.05; // -5% pour temps extrêmes
+    }
+    
+    return confidence.clamp(0.0, 1.0);
+  }
+  
+  /// 🧠 Génère les avertissements si nécessaire
+  static List<String> _generateWarnings(String level, int dailyMinutes, int days, String goal) {
+    List<String> warnings = [];
+    
+    // Avertissement overwhelm
+    if (level == 'Nouveau converti' && days > 45) {
+      warnings.add('⚠️ Durée élevée pour un nouveau converti - risque d\'overwhelm spirituel');
+    }
+    
+    // Avertissement temps insuffisant
+    if (dailyMinutes < 5) {
+      warnings.add('⚠️ Temps quotidien très court - transformation limitée possible');
+    }
+    
+    // Avertissement temps excessif
+    if (dailyMinutes > 45) {
+      warnings.add('⚠️ Temps quotidien élevé - risque de fatigue spirituelle');
+    }
+    
+    // Avertissement durée courte
+    if (days < 14) {
+      warnings.add('⚠️ Durée très courte - habitudes peu durables');
+    }
+    
+    // Avertissement durée longue
+    if (days > 120 && level != 'Serviteur/leader') {
+      warnings.add('⚠️ Durée très longue - risque d\'abandon en cours de route');
+    }
+    
+    return warnings;
   }
 }
 
@@ -828,6 +939,12 @@ class DurationCalculation {
   final List<String> scientificBasis;
   final String reasoning;
   
+  // 🧠 Nouvelles propriétés pour l'interface utilisateur
+  final int minDays;
+  final int maxDays;
+  final double confidence;
+  final List<String> warnings;
+  
   DurationCalculation({
     required this.optimalDays,
     required this.dailyMinutes,
@@ -836,6 +953,10 @@ class DurationCalculation {
     required this.behavioralType,
     required this.scientificBasis,
     required this.reasoning,
+    required this.minDays,
+    required this.maxDays,
+    required this.confidence,
+    this.warnings = const [],
   });
   
   /// Retourne le temps total formaté

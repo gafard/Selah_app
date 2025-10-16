@@ -1,0 +1,425 @@
+{
+  "Matthieu": [
+    {
+      "name": "Sermon sur la montagne",
+      "book": "Matthieu",
+      "startChapter": 5,
+      "startVerse": 1,
+      "endChapter": 7,
+      "endVerse": 29,
+      "type": "discourse",
+      "priority": "critical",
+      "description": "Enseignement fondamental de Jésus sur la vie du Royaume"
+    },
+    {
+      "name": "Discours missionnaire",
+      "book": "Matthieu",
+      "startChapter": 10,
+      "startVerse": 1,
+      "endChapter": 10,
+      "endVerse": 42,
+      "type": "discourse",
+      "priority": "high",
+      "description": "Instructions pour la mission des douze"
+    },
+    {
+      "name": "Paraboles du Royaume",
+      "book": "Matthieu",
+      "startChapter": 13,
+      "startVerse": 1,
+      "endChapter": 13,
+      "endVerse": 52,
+      "type": "collection",
+      "priority": "critical",
+      "description": "Collection de 7 paraboles sur le Royaume"
+    },
+    {
+      "name": "Discours sur l'Église",
+      "book": "Matthieu",
+      "startChapter": 18,
+      "startVerse": 1,
+      "endChapter": 18,
+      "endVerse": 35,
+      "type": "discourse",
+      "priority": "high",
+      "description": "Enseignements sur la vie communautaire"
+    },
+    {
+      "name": "Discours eschatologique",
+      "book": "Matthieu",
+      "startChapter": 24,
+      "startVerse": 1,
+      "endChapter": 25,
+      "endVerse": 46,
+      "type": "discourse",
+      "priority": "critical",
+      "description": "Enseignement sur la fin des temps et le jugement"
+    }
+  ],
+  "Marc": [
+    {
+      "name": "Paraboles du Royaume",
+      "book": "Marc",
+      "startChapter": 4,
+      "startVerse": 1,
+      "endChapter": 4,
+      "endVerse": 34,
+      "type": "collection",
+      "priority": "high",
+      "description": "Collection de paraboles"
+    },
+    {
+      "name": "Discours eschatologique",
+      "book": "Marc",
+      "startChapter": 13,
+      "startVerse": 1,
+      "endChapter": 13,
+      "endVerse": 37,
+      "type": "discourse",
+      "priority": "high",
+      "description": "Prophéties sur la fin"
+    }
+  ],
+  "Luc": [
+    {
+      "name": "Collection de paraboles (Luc 15)",
+      "book": "Luc",
+      "startChapter": 15,
+      "startVerse": 1,
+      "endChapter": 15,
+      "endVerse": 32,
+      "type": "collection",
+      "priority": "critical",
+      "description": "Trilogie : brebis perdue, drachme perdue, fils prodigue"
+    },
+    {
+      "name": "Parabole de la brebis perdue",
+      "book": "Luc",
+      "startChapter": 15,
+      "startVerse": 3,
+      "endChapter": 15,
+      "endVerse": 7,
+      "type": "parable",
+      "priority": "high",
+      "description": "Première parabole sur la joie du ciel"
+    },
+    {
+      "name": "Parabole de la drachme perdue",
+      "book": "Luc",
+      "startChapter": 15,
+      "startVerse": 8,
+      "endChapter": 15,
+      "endVerse": 10,
+      "type": "parable",
+      "priority": "high",
+      "description": "Deuxième parabole sur la recherche"
+    },
+    {
+      "name": "Parabole du fils prodigue",
+      "book": "Luc",
+      "startChapter": 15,
+      "startVerse": 11,
+      "endChapter": 15,
+      "endVerse": 32,
+      "type": "parable",
+      "priority": "critical",
+      "description": "Parabole culminante sur l'amour du Père"
+    },
+    {
+      "name": "Sermon sur la plaine",
+      "book": "Luc",
+      "startChapter": 6,
+      "startVerse": 20,
+      "endChapter": 6,
+      "endVerse": 49,
+      "type": "discourse",
+      "priority": "critical",
+      "description": "Version lucanienne du Sermon sur la montagne"
+    },
+    {
+      "name": "Récit de la nativité",
+      "book": "Luc",
+      "startChapter": 1,
+      "startVerse": 5,
+      "endChapter": 2,
+      "endVerse": 52,
+      "type": "narrative",
+      "priority": "high",
+      "description": "Récit détaillé de la naissance de Jésus"
+    }
+  ],
+  "Jean": [
+    {
+      "name": "Prologue",
+      "book": "Jean",
+      "startChapter": 1,
+      "startVerse": 1,
+      "endChapter": 1,
+      "endVerse": 18,
+      "type": "poetry",
+      "priority": "critical",
+      "description": "Hymne christologique fondateur"
+    },
+    {
+      "name": "Discours du pain de vie",
+      "book": "Jean",
+      "startChapter": 6,
+      "startVerse": 22,
+      "endChapter": 6,
+      "endVerse": 71,
+      "type": "discourse",
+      "priority": "critical",
+      "description": "Jésus pain vivant descendu du ciel"
+    },
+    {
+      "name": "Discours d'adieu (partie 1)",
+      "book": "Jean",
+      "startChapter": 13,
+      "startVerse": 1,
+      "endChapter": 14,
+      "endVerse": 31,
+      "type": "discourse",
+      "priority": "critical",
+      "description": "Commandement nouveau et promesse de l'Esprit"
+    },
+    {
+      "name": "Discours d'adieu (partie 2)",
+      "book": "Jean",
+      "startChapter": 15,
+      "startVerse": 1,
+      "endChapter": 17,
+      "endVerse": 26,
+      "type": "discourse",
+      "priority": "critical",
+      "description": "Cep, haine du monde, Esprit, prière sacerdotale"
+    },
+    {
+      "name": "Récit de la passion",
+      "book": "Jean",
+      "startChapter": 18,
+      "startVerse": 1,
+      "endChapter": 19,
+      "endVerse": 42,
+      "type": "narrative",
+      "priority": "critical",
+      "description": "Récit johannique de la crucifixion"
+    }
+  ],
+  "Actes": [
+    {
+      "name": "Discours de Pierre (Pentecôte)",
+      "book": "Actes",
+      "startChapter": 2,
+      "startVerse": 14,
+      "endChapter": 2,
+      "endVerse": 41,
+      "type": "discourse",
+      "priority": "critical",
+      "description": "Premier sermon de l'Église"
+    },
+    {
+      "name": "Discours d'Étienne",
+      "book": "Actes",
+      "startChapter": 7,
+      "startVerse": 2,
+      "endChapter": 7,
+      "endVerse": 53,
+      "type": "discourse",
+      "priority": "high",
+      "description": "Résumé de l'histoire du salut"
+    },
+    {
+      "name": "Discours de Paul (Aréopage)",
+      "book": "Actes",
+      "startChapter": 17,
+      "startVerse": 16,
+      "endChapter": 17,
+      "endVerse": 34,
+      "type": "discourse",
+      "priority": "critical",
+      "description": "Évangélisation des philosophes grecs"
+    }
+  ],
+  "Romains": [
+    {
+      "name": "Argument sur la justification",
+      "book": "Romains",
+      "startChapter": 3,
+      "startVerse": 21,
+      "endChapter": 5,
+      "endVerse": 21,
+      "type": "argument",
+      "priority": "critical",
+      "description": "Thèse centrale : justification par la foi"
+    },
+    {
+      "name": "Vie par l'Esprit",
+      "book": "Romains",
+      "startChapter": 8,
+      "startVerse": 1,
+      "endChapter": 8,
+      "endVerse": 39,
+      "type": "argument",
+      "priority": "critical",
+      "description": "Liberté et assurance en Christ"
+    },
+    {
+      "name": "Le mystère d'Israël",
+      "book": "Romains",
+      "startChapter": 9,
+      "startVerse": 1,
+      "endChapter": 11,
+      "endVerse": 36,
+      "type": "argument",
+      "priority": "high",
+      "description": "Réflexion théologique sur Israël"
+    }
+  ],
+  "1Corinthiens": [
+    {
+      "name": "Hymne à l'amour",
+      "book": "1Corinthiens",
+      "startChapter": 13,
+      "startVerse": 1,
+      "endChapter": 13,
+      "endVerse": 13,
+      "type": "poetry",
+      "priority": "critical",
+      "description": "Poème sur la primauté de l'amour"
+    },
+    {
+      "name": "Argument sur la résurrection",
+      "book": "1Corinthiens",
+      "startChapter": 15,
+      "startVerse": 1,
+      "endChapter": 15,
+      "endVerse": 58,
+      "type": "argument",
+      "priority": "critical",
+      "description": "Théologie de la résurrection"
+    }
+  ],
+  "Éphésiens": [
+    {
+      "name": "Bénédiction spirituelle",
+      "book": "Éphésiens",
+      "startChapter": 1,
+      "startVerse": 3,
+      "endChapter": 1,
+      "endVerse": 14,
+      "type": "poetry",
+      "priority": "high",
+      "description": "Grande bénédiction trinitaire"
+    },
+    {
+      "name": "Prière de Paul",
+      "book": "Éphésiens",
+      "startChapter": 3,
+      "startVerse": 14,
+      "endChapter": 3,
+      "endVerse": 21,
+      "type": "poetry",
+      "priority": "high",
+      "description": "Prière pour l'enracinement en Christ"
+    }
+  ],
+  "Philippiens": [
+    {
+      "name": "Hymne christologique",
+      "book": "Philippiens",
+      "startChapter": 2,
+      "startVerse": 5,
+      "endChapter": 2,
+      "endVerse": 11,
+      "type": "poetry",
+      "priority": "critical",
+      "description": "Hymne sur l'abaissement et l'exaltation de Christ"
+    }
+  ],
+  "Colossiens": [
+    {
+      "name": "Hymne à Christ",
+      "book": "Colossiens",
+      "startChapter": 1,
+      "startVerse": 15,
+      "endChapter": 1,
+      "endVerse": 20,
+      "type": "poetry",
+      "priority": "critical",
+      "description": "Primauté de Christ sur la création"
+    }
+  ],
+  "Hébreux": [
+    {
+      "name": "Argument sur la supériorité de Christ",
+      "book": "Hébreux",
+      "startChapter": 1,
+      "startVerse": 1,
+      "endChapter": 2,
+      "endVerse": 18,
+      "type": "argument",
+      "priority": "critical",
+      "description": "Christ supérieur aux anges"
+    },
+    {
+      "name": "Chapitre sur la foi",
+      "book": "Hébreux",
+      "startChapter": 11,
+      "startVerse": 1,
+      "endChapter": 11,
+      "endVerse": 40,
+      "type": "argument",
+      "priority": "critical",
+      "description": "Galerie des héros de la foi"
+    }
+  ],
+  "Apocalypse": [
+    {
+      "name": "Lettres aux sept Églises",
+      "book": "Apocalypse",
+      "startChapter": 2,
+      "startVerse": 1,
+      "endChapter": 3,
+      "endVerse": 22,
+      "type": "collection",
+      "priority": "critical",
+      "description": "Messages prophétiques aux Églises"
+    },
+    {
+      "name": "Vision du trône",
+      "book": "Apocalypse",
+      "startChapter": 4,
+      "startVerse": 1,
+      "endChapter": 5,
+      "endVerse": 14,
+      "type": "narrative",
+      "priority": "high",
+      "description": "Vision céleste du trône et de l'Agneau"
+    },
+    {
+      "name": "Nouvelle Jérusalem",
+      "book": "Apocalypse",
+      "startChapter": 21,
+      "startVerse": 1,
+      "endChapter": 22,
+      "endVerse": 5,
+      "type": "narrative",
+      "priority": "critical",
+      "description": "Vision finale de la nouvelle création"
+    }
+  ]
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

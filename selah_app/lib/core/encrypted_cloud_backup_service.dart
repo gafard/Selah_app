@@ -62,7 +62,7 @@ class EncryptedCloudBackupService {
         data: backupData,
         password: password,
       );
-      print('  🔒 Données chiffrées (${encryptedResult['encrypted'].length} chars)');
+      print('  🔒 Données chiffrées (${encryptedResult['encrypted']?.length ?? 0} chars)');
       
       // 3. Uploader dans Supabase
       final userId = _supabase.auth.currentUser?.id;

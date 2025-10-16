@@ -2,22 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../services/reader_settings_service.dart';
-import '../services/audio_player_service.dart';
+import '../services/bible_text_service.dart';
 import '../widgets/highlightable_text.dart';
-import '../widgets/circular_audio_progress.dart';
 import '../widgets/uniform_back_button.dart';
+import '../models/reading_passage.dart';
+import '../services/bible_version_manager.dart';
+import '../services/user_prefs.dart';
 
 class ReaderPageModern extends StatefulWidget {
   final String? passageRef;
   final String? passageText;
   final String? dayTitle;
+  final List<String>? passageRefs; // Support pour passages multiples
+  final ReadingSession? readingSession; // Session complète
   
   const ReaderPageModern({
     super.key,
     this.passageRef,
     this.passageText,
     this.dayTitle,
+    this.passageRefs,
+    this.readingSession,
   });
 
   @override
@@ -31,23 +38,212 @@ class _ReaderPageModernState extends State<ReaderPageModern>
   late AnimationController _buttonAnimationController;
   String _notedVerse = ''; // Verset noté par l'utilisateur
   
-  // Audio player
-  late final AudioPlayerService _audio;
-  Duration _pos = Duration.zero;
-  Duration _dur = Duration.zero;
   
-  // Default passage data
+  // Passage data
   late final String _passageRef;
-  late final String _passageText;
+  String _passageText = '';
   late final String _dayTitle;
+  bool _isLoadingText = true;
+  
+  // Multi-passage support
+  late ReadingSession _readingSession;
+  
+  // Version selection
+  String _selectedVersion = 'lsg1910'; // ✅ Version VideoPsalm par défaut
+  List<Map<String, String>> _availableVersions = [];
 
   @override
   void initState() {
     super.initState();
     
-    // Initialize passage data with defaults or arguments
-    _passageRef = widget.passageRef ?? 'Jean 14:1-19';
-    _passageText = widget.passageText ?? '''Que votre cœur ne se trouble point. Croyez en Dieu, et croyez en moi.
+    // ✅ Charger la version de Bible de l'utilisateur
+    _loadUserBibleVersion();
+    
+    // Initialiser la session de lecture
+    _initializeReadingSession();
+    
+    _buttonAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    
+  }
+  
+  /// ✅ Charge la version de Bible de l'utilisateur
+  Future<void> _loadUserBibleVersion() async {
+    try {
+      final profile = await UserPrefs.loadProfile();
+      final userVersion = profile['bibleVersion'] as String?;
+      if (userVersion != null && userVersion.isNotEmpty) {
+        setState(() {
+          _selectedVersion = userVersion;
+        });
+        print('📖 Version utilisateur chargée: $userVersion');
+      }
+    } catch (e) {
+      print('⚠️ Erreur chargement version utilisateur: $e');
+    }
+  }
+  
+  /// Initialise la session de lecture selon les paramètres fournis
+  void _initializeReadingSession() {
+    if (widget.readingSession != null) {
+      // Session complète fournie
+      _readingSession = widget.readingSession!;
+    } else if (widget.passageRefs != null && widget.passageRefs!.isNotEmpty) {
+      // Plusieurs références fournies
+      _readingSession = ReadingSession.fromReferences(
+        references: widget.passageRefs!,
+        dayTitle: widget.dayTitle,
+      );
+    } else {
+      // Une seule référence (rétrocompatibilité)
+      _readingSession = ReadingSession.fromSingleReference(
+        reference: widget.passageRef ?? 'Jean 14:1-19',
+        text: widget.passageText,
+        title: widget.dayTitle,
+        dayTitle: widget.dayTitle ?? 'Jour 15',
+      );
+    }
+    
+    // Initialiser les variables de compatibilité
+    _passageRef = _readingSession.currentPassage?.reference ?? 'Jean 14:1-19';
+    _dayTitle = _readingSession.dayTitle ?? 'Jour 15';
+    
+    // Charger les versions disponibles
+    _loadAvailableVersions();
+    
+    // Charger tous les passages
+    _loadAllPassages();
+  }
+
+  /// Charge tous les passages de la session
+  Future<void> _loadAllPassages() async {
+    try {
+      await BibleTextService.init();
+      
+      // Charger tous les passages en parallèle
+      final futures = _readingSession.passages.asMap().entries.map((entry) {
+        final index = entry.key;
+        final passage = entry.value;
+        return _loadSinglePassage(index, passage);
+      });
+      
+      await Future.wait(futures);
+      
+      // Mettre à jour le texte du passage actuel
+      _updateCurrentPassageText();
+      
+    } catch (e) {
+      print('⚠️ Erreur chargement passages multiples: $e');
+      setState(() {
+        _isLoadingText = false;
+      });
+    }
+  }
+  
+  /// Charge un passage spécifique
+  Future<void> _loadSinglePassage(int index, ReadingPassage passage) async {
+    try {
+      // Marquer comme en cours de chargement
+      setState(() {
+        _readingSession = _readingSession.updatePassage(
+          index,
+          passage.copyWith(isLoading: true),
+        );
+      });
+      
+      // Récupérer le texte depuis la base de données avec la version sélectionnée
+      final text = await BibleTextService.getPassageText(passage.reference, version: _selectedVersion);
+      
+      if (mounted) {
+        setState(() {
+          _readingSession = _readingSession.updatePassage(
+            index,
+            passage.copyWith(
+              text: text ?? _getFallbackText(passage.reference),
+              isLoaded: true,
+              isLoading: false,
+              error: text == null ? 'Texte non trouvé' : null,
+            ),
+          );
+        });
+      }
+    } catch (e) {
+      print('⚠️ Erreur chargement passage ${passage.reference}: $e');
+      if (mounted) {
+        setState(() {
+          _readingSession = _readingSession.updatePassage(
+            index,
+            passage.copyWith(
+              text: _getFallbackText(passage.reference),
+              isLoaded: true,
+              isLoading: false,
+              error: e.toString(),
+            ),
+          );
+        });
+      }
+    }
+  }
+  
+  /// Met à jour le texte du passage actuel
+  void _updateCurrentPassageText() {
+    final currentPassage = _readingSession.currentPassage;
+    if (currentPassage != null && currentPassage.isReady) {
+      setState(() {
+        _passageText = currentPassage.text!;
+        _isLoadingText = false;
+      });
+    } else {
+      setState(() {
+        _isLoadingText = _readingSession.hasLoadingPassages;
+      });
+    }
+  }
+  
+  /// Charge le texte biblique depuis la base de données (rétrocompatibilité)
+  Future<void> _loadBibleText() async {
+    try {
+      // Initialiser le service si nécessaire
+      await BibleTextService.init();
+      
+      // Si un texte est déjà fourni, l'utiliser
+      if (widget.passageText != null && widget.passageText!.isNotEmpty) {
+        setState(() {
+          _passageText = widget.passageText!;
+          _isLoadingText = false;
+        });
+        return;
+      }
+      
+      // Sinon, récupérer depuis la base de données avec la version sélectionnée
+      final text = await BibleTextService.getPassageText(_passageRef, version: _selectedVersion);
+      
+      if (mounted) {
+        setState(() {
+          _passageText = text ?? _getFallbackText();
+          _isLoadingText = false;
+        });
+      }
+      
+      if (text == null) {
+        print('⚠️ Texte non trouvé pour: $_passageRef');
+      }
+    } catch (e) {
+      print('⚠️ Erreur chargement texte biblique: $e');
+      if (mounted) {
+        setState(() {
+          _passageText = _getFallbackText();
+          _isLoadingText = false;
+        });
+      }
+    }
+  }
+
+  /// Texte de fallback si la base de données n'est pas disponible
+  String _getFallbackText([String? reference]) {
+    return '''Que votre cœur ne se trouble point. Croyez en Dieu, et croyez en moi.
 
 Il y a plusieurs demeures dans la maison de mon Père. Si cela n'était pas, je vous l'aurais dit. Je vais vous préparer une place.
 
@@ -84,50 +280,14 @@ l'Esprit de vérité, que le monde ne peut recevoir, parce qu'il ne le voit poin
 Je ne vous laisserai pas orphelins, je viendrai à vous.
 
 Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez, car je vis, et vous vivrez aussi.''';
-    _dayTitle = widget.dayTitle ?? 'Jour 15';
-    
-    _buttonAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 200),
-      vsync: this,
-    );
-    
-    // Initialize audio player
-    _audio = AudioPlayerService();
-    _initAudio();
   }
 
   @override
   void dispose() {
     _buttonAnimationController.dispose();
-    _audio.dispose();
     super.dispose();
   }
 
-  Future<void> _initAudio() async {
-    try {
-      // TODO: Replace with your actual audio URL (instrumental chill/lofi local asset or CDN)
-      await _audio.init(url: Uri.parse('https://cdn.example.com/loops/lofi-01.mp3'));
-      _audio.position$.listen((d) => setState(() => _pos = d));
-      _audio.duration$.listen((d) => setState(() => _dur = d ?? Duration.zero));
-    } catch (e) {
-      // Handle audio initialization error silently
-      print('Audio initialization failed: $e');
-    }
-  }
-
-
-  void _toggleAudio() async {
-    try {
-      if (_audio.isPlaying) {
-        await _audio.pause();
-      } else {
-        await _audio.play();
-      }
-      HapticFeedback.lightImpact();
-    } catch (e) {
-      _showSnackBar('Erreur audio', Icons.error, Colors.red);
-    }
-  }
 
 
   void _markAsRead() {
@@ -160,15 +320,11 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
     }
     
     HapticFeedback.mediumImpact();
-    Navigator.pushNamed(
-      context,
-      '/meditation/chooser', // page avec 2 options
-      arguments: {
-        'passageRef': _passageRef,
-        'passageText': _passageText,
-        'memoryVerse': _notedVerse, // Verset noté par l'utilisateur
-      },
-    );
+    context.go('/meditation/chooser', extra: {
+      'passageRef': _passageRef,
+      'passageText': _passageText,
+      'memoryVerse': _notedVerse, // Verset noté par l'utilisateur
+    }); // page avec 2 options
   }
 
   void _showSnackBar(String message, IconData icon, Color color) {
@@ -457,12 +613,12 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
     return UniformHeader(
       title: _dayTitle,
       subtitle: _passageRef,
-      onBackPressed: () => Navigator.pop(context),
+      onBackPressed: () => context.pop(),
       textColor: Colors.grey.shade800,
       iconColor: Colors.grey.shade700,
       titleAlignment: CrossAxisAlignment.center,
       trailing: GestureDetector(
-        onTap: () => Navigator.pushNamed(context, '/reader_settings'),
+        onTap: () => context.go('/reader_settings'),
         child: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
@@ -512,24 +668,207 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                _passageRef,
-                style: GoogleFonts.playfairDisplay(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF2D2D2D),
-                ),
-              ),
+              // En-tête avec navigation si plusieurs passages
+              _buildPassageHeader(),
               const SizedBox(height: 16),
-              HighlightableText(
-                text: _passageText,
-                style: settings.getFontStyle(),
-                textAlign: settings.getTextAlign(),
-              ),
+              
+              // Contenu du passage
+              if (_isLoadingText)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32.0),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else
+                HighlightableText(
+                  text: _passageText,
+                  style: settings.getFontStyle(),
+                  textAlign: settings.getTextAlign(),
+                ),
             ],
           ),
         );
       },
+    );
+  }
+  
+  /// Construit l'en-tête avec navigation pour les passages multiples
+  Widget _buildPassageHeader() {
+    if (!_readingSession.hasMultiplePassages) {
+      // Un seul passage - affichage simple
+      return Text(
+        _passageRef,
+        style: GoogleFonts.playfairDisplay(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          color: const Color(0xFF2D2D2D),
+        ),
+      );
+    }
+    
+    // Plusieurs passages - affichage avec navigation
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Indicateur de progression
+        Row(
+          children: [
+            Text(
+              'Passage ${_readingSession.currentPassageIndex + 1} sur ${_readingSession.totalPassages}',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const Spacer(),
+            // Boutons de navigation
+            Row(
+              children: [
+                // Bouton précédent
+                if (_readingSession.canGoToPrevious)
+                  GestureDetector(
+                    onTap: _goToPreviousPassage,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.chevron_left,
+                        color: Colors.grey.shade700,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                const SizedBox(width: 8),
+                // Bouton suivant
+                if (_readingSession.canGoToNext)
+                  GestureDetector(
+                    onTap: _goToNextPassage,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.chevron_right,
+                        color: Colors.grey.shade700,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        // Référence du passage actuel
+        Text(
+          _passageRef,
+          style: GoogleFonts.playfairDisplay(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF2D2D2D),
+          ),
+        ),
+        const SizedBox(height: 8),
+        // Liste des passages (mini-indicateurs)
+        _buildPassageIndicators(),
+        const SizedBox(height: 12),
+        // Sélecteur de version
+        _buildVersionSelector(),
+      ],
+    );
+  }
+  
+  /// Construit les indicateurs de passages
+  Widget _buildPassageIndicators() {
+    return Row(
+      children: _readingSession.passages.asMap().entries.map((entry) {
+        final index = entry.key;
+        final passage = entry.value;
+        final isCurrent = index == _readingSession.currentPassageIndex;
+        
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              _readingSession = _readingSession.copyWith(currentPassageIndex: index);
+              _updateCurrentPassageText();
+            });
+            HapticFeedback.selectionClick();
+          },
+          child: Container(
+            margin: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: isCurrent ? Colors.blue.shade100 : Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(12),
+              border: isCurrent ? Border.all(color: Colors.blue.shade300) : null,
+            ),
+            child: Text(
+              passage.autoTitle,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500,
+                color: isCurrent ? Colors.blue.shade700 : Colors.grey.shade600,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+  
+  /// Construit le sélecteur de version
+  Widget _buildVersionSelector() {
+    if (_availableVersions.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    
+    final currentVersion = _availableVersions.firstWhere(
+      (v) => v['id'] == _selectedVersion,
+      orElse: () => _availableVersions.first,
+    );
+    
+    return GestureDetector(
+      onTap: _showVersionSelector,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.blue.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.blue.withOpacity(0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.menu_book,
+              size: 16,
+              color: Colors.blue,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              currentVersion['name']!,
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.blue,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.keyboard_arrow_down,
+              size: 16,
+              color: Colors.blue,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -538,121 +877,12 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          _buildAudioSection(),
-          const SizedBox(height: 16),
           _buildActionButtons(),
         ],
       ),
     );
   }
 
-  Widget _buildAudioSection() {
-    final progress = _dur.inMilliseconds == 0
-        ? 0.0
-        : _pos.inMilliseconds / _dur.inMilliseconds;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FA),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          CircularAudioProgress(
-            progress: progress.clamp(0.0, 1.0),
-            size: 60,
-            progressColor: const Color(0xFFD77B04),
-            backgroundColor: Colors.grey.shade300,
-            icon: (_dur > Duration.zero && _pos < _dur) ? Icons.pause : Icons.play_arrow,
-            onTap: _toggleAudio,
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Instrumental • Focus', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF2D2D2D))),
-                const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: LinearProgressIndicator(
-                    value: _dur.inMilliseconds == 0 ? null : progress,
-                    minHeight: 6,
-                    backgroundColor: Colors.grey.shade300,
-                    valueColor: const AlwaysStoppedAnimation(Color(0xFFD77B04)),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(_fmt(_pos), style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600)),
-                    Text(_fmt(_dur), style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: _openInstrumentalsSheet,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(12)),
-              child: const Icon(Icons.library_music, color: Colors.white, size: 22),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _fmt(Duration d) {
-    final mm = d.inMinutes.remainder(60).toString().padLeft(2,'0');
-    final ss = d.inSeconds.remainder(60).toString().padLeft(2,'0');
-    return '$mm:$ss';
-  }
-
-  void _openInstrumentalsSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) {
-        final items = [
-          ('Lo-fi 01', 'https://cdn.example.com/loops/lofi-01.mp3'),
-          ('Piano Soft', 'https://cdn.example.com/loops/piano-soft.mp3'),
-          ('Ambient Pad', 'https://cdn.example.com/loops/ambient-pad.mp3'),
-        ];
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
-              const SizedBox(height: 12),
-              Text('Instrumentaux', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 8),
-              ...items.map((it) => ListTile(
-                leading: const Icon(Icons.music_note),
-                title: Text(it.$1, style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
-                subtitle: Text(Uri.parse(it.$2).pathSegments.last, style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[600])),
-                onTap: () async {
-                  await _audio.init(url: Uri.parse(it.$2));
-                  await _audio.play();
-                  if (mounted) Navigator.pop(context);
-                },
-              )),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
   Widget _buildActionButtons() {
     return Row(
@@ -668,13 +898,18 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min, // ✅ Éviter l'overflow
                 children: [
-                  Text(
-                    'Marquer comme lu',
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                  Flexible( // ✅ Permettre au texte de se réduire
+                    child: Text(
+                      'Marquer comme lu',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -694,13 +929,18 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min, // ✅ Éviter l'overflow
                 children: [
-                  Text(
-                    'Méditation',
-                    style: GoogleFonts.inter(
-                      color: _isMarkedAsRead ? Colors.white : Colors.grey[600],
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                  Flexible( // ✅ Permettre au texte de se réduire
+                    child: Text(
+                      'Méditation',
+                      style: GoogleFonts.inter(
+                        color: _isMarkedAsRead ? Colors.white : Colors.grey[600],
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -753,6 +993,181 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                 fontWeight: FontWeight.w500,
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  /// Navigue vers le passage suivant
+  void _goToNextPassage() {
+    if (_readingSession.canGoToNext) {
+      setState(() {
+        _readingSession = _readingSession.goToNext();
+        _updateCurrentPassageText();
+      });
+      HapticFeedback.selectionClick();
+    }
+  }
+  
+  /// Navigue vers le passage précédent
+  void _goToPreviousPassage() {
+    if (_readingSession.canGoToPrevious) {
+      setState(() {
+        _readingSession = _readingSession.goToPrevious();
+        _updateCurrentPassageText();
+      });
+      HapticFeedback.selectionClick();
+    }
+  }
+  
+  /// Charge les versions de Bible disponibles
+  Future<void> _loadAvailableVersions() async {
+    try {
+      final stats = await BibleVersionManager.getDownloadStats();
+      final downloadedVersions = stats['versions'] as List<dynamic>? ?? [];
+      
+      setState(() {
+        _availableVersions = downloadedVersions.map((v) => {
+          'id': v['id'] as String,
+          'name': v['name'] as String,
+          'language': v['language'] as String,
+        }).toList();
+        
+        // Sélectionner la première version disponible ou LSG par défaut
+        if (_availableVersions.isNotEmpty) {
+          _selectedVersion = _availableVersions.first['id']!;
+        }
+      });
+    } catch (e) {
+      print('⚠️ Erreur chargement versions: $e');
+    }
+  }
+  
+  /// Change la version de Bible
+  Future<void> _changeVersion(String versionId) async {
+    if (versionId == _selectedVersion) return;
+    
+    setState(() {
+      _selectedVersion = versionId;
+      _isLoadingText = true;
+    });
+    
+    // Recharger le passage avec la nouvelle version
+    await _loadAllPassages();
+  }
+  
+  /// Affiche le sélecteur de version
+  void _showVersionSelector() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E293B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Choisir une version',
+              style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ..._availableVersions.map((version) => _buildVersionOption(version)),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'Fermer',
+                  style: GoogleFonts.inter(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  /// Construit une option de version
+  Widget _buildVersionOption(Map<String, String> version) {
+    final isSelected = version['id'] == _selectedVersion;
+    
+    return GestureDetector(
+      onTap: () {
+        _changeVersion(version['id']!);
+        Navigator.of(context).pop();
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? Colors.blue.withOpacity(0.2)
+              : Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected 
+                ? Colors.blue
+                : Colors.white.withOpacity(0.1),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+              color: isSelected ? Colors.blue : Colors.white70,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    version['name']!,
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    version['language']!.toUpperCase(),
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              Icon(
+                Icons.check_circle,
+                color: Colors.blue,
+                size: 20,
+              ),
           ],
         ),
       ),

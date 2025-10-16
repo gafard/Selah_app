@@ -206,11 +206,11 @@ class _SplashPageState extends State<SplashPage> {
                             ),
                             actions: [
                               TextButton(
-                                onPressed: () => Navigator.pop(ctx, false),
+                                onPressed: () => context.pop(false),
                                 child: const Text('Annuler'),
                               ),
                               TextButton(
-                                onPressed: () => Navigator.pop(ctx, true),
+                                onPressed: () => context.pop(true),
                                 style: TextButton.styleFrom(foregroundColor: Colors.red),
                                 child: const Text('TOUT SUPPRIMER'),
                               ),

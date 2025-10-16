@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../services/reading_memory_service.dart';
 
 /// Dialog "Retenu de ma lecture"
@@ -176,7 +177,7 @@ class ReadingRetentionDialog {
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context, false),
+                onPressed: () => context.pop(false),
                 child: const Text('Annuler'),
               ),
               ElevatedButton.icon(
@@ -192,11 +193,11 @@ class ReadingRetentionDialog {
                         content: const Text('Voulez-vous continuer sans enregistrer de rétention ?'),
                         actions: [
                           TextButton(
-                            onPressed: () => Navigator.pop(context, false),
+                            onPressed: () => context.pop(false),
                             child: const Text('Non, retour'),
                           ),
                           ElevatedButton(
-                            onPressed: () => Navigator.pop(context, true),
+                            onPressed: () => context.pop(true),
                             child: const Text('Oui, continuer'),
                           ),
                         ],
@@ -204,7 +205,7 @@ class ReadingRetentionDialog {
                     );
                     
                     if (confirm == true) {
-                      Navigator.pop(context, true);
+                      context.pop(true);
                     }
                     return;
                   }
@@ -218,7 +219,7 @@ class ReadingRetentionDialog {
                     addToWall: addToWall,
                   );
                   
-                  Navigator.pop(context, true);
+                  context.pop(true);
                   onSaved?.call();
                 },
                 icon: const Icon(Icons.check),
@@ -299,7 +300,7 @@ class PosterProposalWidget extends StatelessWidget {
                     TextButton(
                       onPressed: () {
                         // Repousser à plus tard
-                        Navigator.pop(context);
+                        context.pop();
                       },
                       child: const Text('Plus tard'),
                     ),
@@ -307,14 +308,10 @@ class PosterProposalWidget extends StatelessWidget {
                     ElevatedButton.icon(
                       onPressed: () {
                         // Naviguer vers page de création Poster
-                        Navigator.pop(context);
-                        Navigator.pushNamed(
-                          context,
-                          '/verse_poster',
-                          arguments: {
-                            'pendingItems': pending,
-                          },
-                        );
+                        context.pop();
+                        context.go('/verse_poster', extra: {
+                          'pendingItems': pending,
+                        });
                       },
                       icon: const Icon(Icons.auto_awesome),
                       label: const Text('Créer maintenant'),

@@ -1,0 +1,48 @@
+{
+  "Jean.3.16": {
+    "unitName": "Dialogue avec Nicodème",
+    "priority": "critical",
+    "theme": "Salut et nouvelle naissance",
+    "liturgicalContext": "Évangile du dimanche de la Trinité",
+    "emotionalTones": ["amour", "espoir", "révélation", "transcendance"],
+    "annotation": "Verset central de la théologie johannique, résumant l'essence du message évangélique"
+  },
+  "Matthieu.5.3": {
+    "unitName": "Les Béatitudes",
+    "priority": "high",
+    "theme": "Éthique du royaume",
+    "liturgicalContext": "Toussaint, fêtes des saints",
+    "emotionalTones": ["bénédiction", "renversement", "espérance", "consolation"],
+    "annotation": "Ouverture du Sermon sur la montagne, manifeste du royaume des cieux"
+  },
+  "Psaumes.23.1": {
+    "unitName": "Psaume du Berger",
+    "priority": "high",
+    "theme": "Confiance et providence",
+    "liturgicalContext": "Funérailles, temps de deuil",
+    "emotionalTones": ["confiance", "sérénité", "protection", "intimité"],
+    "annotation": "Psaume de confiance le plus populaire, métaphore pastorale de la relation divine"
+  },
+  "Genèse.1.1": {
+    "unitName": "Récit de la création",
+    "priority": "critical",
+    "theme": "Origines et souveraineté",
+    "liturgicalContext": "Vigile pascale, fête de la création",
+    "emotionalTones": ["majesté", "ordre", "intention", "fondement"],
+    "annotation": "Prologue de la révélation biblique, fondement de la foi monothéiste"
+  },
+  "Romains.8.28": {
+    "unitName": "Triomphe de l'amour de Dieu",
+    "priority": "high",
+    "theme": "Providence et souveraineté",
+    "liturgicalContext": "Temps ordinaire, consolation",
+    "emotionalTones": ["assurance", "providence", "amour", "victoire"],
+    "annotation": "Affirmation de la providence divine, réconfort dans l'épreuve"
+  }
+}
+
+
+
+
+
+

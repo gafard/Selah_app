@@ -8,11 +8,15 @@ import '../models/plan_preset.dart';
 import '../services/plan_presets_repo.dart';
 import '../services/user_prefs_hive.dart';
 import '../services/user_prefs.dart'; // ✅ UserPrefs ESSENTIEL
-import '../services/plan_service_http.dart';
 import 'package:provider/provider.dart';
 import '../services/dynamic_preset_generator.dart';
 import '../services/intelligent_local_preset_generator.dart';
 import '../services/semantic_passage_boundary_service.dart'; // 🚀 FALCON X
+import '../services/intelligent_duration_calculator.dart'; // 🧠 IntelligentDurationCalculator
+import '../services/preset_theology_gate_v2.dart' as Theology; // 🕊️ TheologyGate V2
+import '../services/preset_theology_adapter_v2.dart'; // 🔄 Adaptateur V2
+import '../services/doctrine/doctrine_pipeline.dart'; // 🕊️ Pipeline doctrinal multi-modules
+import '../services/doctrine/anchored_doctrine_base.dart'; // 🕊️ DoctrineContext
 import '../widgets/uniform_back_button.dart';
 import '../bootstrap.dart' as bootstrap;
 
@@ -42,10 +46,14 @@ class _PresetOptions {
   });
 }
 
+
 class _GoalsPageState extends State<GoalsPage> {
   late Future<List<PlanPreset>> _presetsFuture;
   int _currentSlide = 0;
+  
   late FancyStackCarouselController _carouselController;
+  
+  
   List<FancyStackItem> _carouselItems = [];
   
   // Profil utilisateur
@@ -125,15 +133,85 @@ class _GoalsPageState extends State<GoalsPage> {
       if (enrichedPresets.isNotEmpty) {
         print('✅ ${enrichedPresets.length} presets enrichis générés avec adaptation émotionnelle');
         
+        // 🧠 ENRICHIR CHAQUE PRESET AVEC DURÉE INTELLIGENTE
+        final intelligentPresets = enrichedPresets.map((preset) {
+          // ✅ CORRECTION : Utiliser la durée déjà calculée dans le preset au lieu de recalculer
+          final presetDuration = preset.durationDays;
+          print('🔍 Preset ${preset.name}: durée originale = ${presetDuration} jours');
+          
+          // Créer un nouveau preset avec durée préservée
+          return PlanPreset(
+            slug: preset.slug,
+            name: preset.name,
+            durationDays: presetDuration,  // ✅ Utiliser la durée déjà calculée
+            order: preset.order,
+            books: preset.books,
+            description: preset.description,
+            minutesPerDay: preset.minutesPerDay,
+            recommended: preset.recommended,
+            // Ajouter les métadonnées de calcul
+            parameters: {
+              ...preset.parameters ?? {},
+              'duration_calculation': {
+                'optimal_days': presetDuration,
+                'reasoning': 'Durée préservée du générateur intelligent',
+                'confidence': 0.9,
+                'warnings': [],
+                'intensity': 'challenging',
+                'behavioral_type': 'habit_formation',
+              },
+            },
+          );
+        }).toList();
+        
         // Générer les explications pour chaque preset
-        final explanations = IntelligentLocalPresetGenerator.explainPresets(enrichedPresets, _userProfile);
+        final explanations = IntelligentLocalPresetGenerator.explainPresets(intelligentPresets, _userProfile);
         _printPresetExplanations(explanations);
         
         // Afficher les recommandations spirituelles
         final recommendations = IntelligentLocalPresetGenerator.getSpiritualRecommendations();
         _printSpiritualRecommendations(recommendations);
         
-        return enrichedPresets;
+        print('🧠 ${intelligentPresets.length} presets enrichis avec durées intelligentes');
+        
+        // 🕊️ CONVERSION VERS LE FORMAT THEOLOGY GATE V2
+        final theologyPresets = PresetTheologyAdapterV2.convertList(intelligentPresets);
+        print('🔄 ${theologyPresets.length} presets convertis vers le format TheologyGate V2');
+        
+        // 🕊️ FILTRAGE DOCTRINAL avec TheologyGate V2 (sans dépendance du profil)
+        final doctrinallyFilteredPresets = Theology.TheologyGateV2.select(
+          candidates: theologyPresets,
+          userProfile: _userProfile, // Optionnel, peut être null
+          topN: 12,
+          debug: (log) => print('THEO ▶ $log'),
+        );
+        
+        print('🕊️ ${doctrinallyFilteredPresets.length} presets filtrés selon les critères doctrinaux');
+        
+        // 🔄 CONVERSION RETOUR vers le format original pour l'affichage
+        final finalPresets = doctrinallyFilteredPresets.map((theologyPreset) {
+          // Trouver le preset original correspondant
+          final originalPreset = intelligentPresets.firstWhere(
+            (p) => p.slug == theologyPreset.id,
+            orElse: () => intelligentPresets.first,
+          );
+          
+          // Enrichir avec les données théologiques
+          return originalPreset.copyWith(
+            parameters: {
+              ...originalPreset.parameters ?? {},
+              'theology_gate_v2': {
+                'doctrine_score': theologyPreset.focusDoctrineOfChrist ?? 0.0,
+                'authority_score': theologyPreset.focusAuthorityOfBible ?? 0.0,
+                'gospel_score': theologyPreset.focusGospelOfJesus ?? 0.0,
+                'tags': theologyPreset.tags,
+                'verse_anchors': theologyPreset.verseAnchors,
+              },
+            },
+          );
+        }).toList();
+        
+        return finalPresets;
       }
       
       // Fallback: générer des presets dynamiques si pas de profil
@@ -149,6 +227,345 @@ class _GoalsPageState extends State<GoalsPage> {
     }
   }
   
+  // Les systèmes intelligents travaillent en arrière-plan sans être visibles
+  
+  /// 🎨 Couleur basée sur le niveau de confiance
+  Color _getConfidenceColor(double confidence) {
+    if (confidence >= 0.8) return Colors.green;
+    if (confidence >= 0.6) return Colors.orange;
+    return Colors.red;
+  }
+  
+  /// 🕊️ Couleur basée sur le score combiné (Sagesse + Biblique)
+  Color _getCombinedScoreColor(double confidence, double biblicalScore) {
+    final combinedScore = (confidence + biblicalScore) / 2;
+    if (combinedScore >= 0.8) return Colors.green;
+    if (combinedScore >= 0.6) return Colors.orange;
+    return Colors.red;
+  }
+  
+  // Les systèmes intelligents travaillent en arrière-plan sans interface visible
+  Future<void> _showIntelligenceDetails(PlanPreset preset) async {
+    final durationInfo = preset.parameters?['duration_calculation'] as Map<String, dynamic>?;
+    final theologyInfo = preset.parameters?['theology_gate_v2'] as Map<String, dynamic>?;
+    
+    if (durationInfo == null && theologyInfo == null) return;
+    
+    final confidence = durationInfo?['confidence'] as double? ?? 0.0;
+    final reasoning = durationInfo?['reasoning'] as String? ?? '';
+    final warnings = durationInfo?['warnings'] as List<dynamic>? ?? [];
+    final intensity = durationInfo?['intensity'] as String? ?? '';
+    final behavioralType = durationInfo?['behavioral_type'] as String? ?? '';
+    
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1D29),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.psychology, color: Colors.blue, size: 24),
+            SizedBox(width: 8),
+            Text(
+              'Analyse Spirituelle & Théologique',
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 🕊️ Scores théologiques
+              if (theologyInfo != null) ...[
+                _buildTheologyScoreCard('Doctrine de Christ', theologyInfo['doctrine_score'] as double? ?? 0.0, '1Jn 4:1-3'),
+                SizedBox(height: 8),
+                _buildTheologyScoreCard('Autorité de la Bible', theologyInfo['authority_score'] as double? ?? 0.0, '2Tm 3:16'),
+                SizedBox(height: 8),
+                _buildTheologyScoreCard('Évangile de Jésus', theologyInfo['gospel_score'] as double? ?? 0.0, 'Ga 1:6-9'),
+                SizedBox(height: 12),
+              ],
+              
+              // Niveau de confiance spirituelle
+              if (durationInfo != null) ...[
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _getConfidenceColor(confidence).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _getConfidenceColor(confidence).withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.analytics, color: _getConfidenceColor(confidence), size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'Confiance Spirituelle: ${(confidence * 100).round()}%',
+                        style: GoogleFonts.inter(
+                          color: _getConfidenceColor(confidence),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 12),
+              ],
+              
+              SizedBox(height: 16),
+              
+              // Type comportemental
+              if (behavioralType.isNotEmpty) ...[
+                Text(
+                  'Type comportemental: $behavioralType',
+                  style: GoogleFonts.inter(
+                    color: Colors.white70,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                SizedBox(height: 8),
+              ],
+              
+              // Intensité
+              if (intensity.isNotEmpty) ...[
+                Text(
+                  'Intensité: $intensity',
+                  style: GoogleFonts.inter(
+                    color: Colors.white70,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                SizedBox(height: 8),
+              ],
+              
+              // 🕊️ Tags et références théologiques
+              if (theologyInfo != null) ...[
+                ...() {
+                  final tags = theologyInfo['tags'] as List<dynamic>? ?? [];
+                  final verseAnchors = theologyInfo['verse_anchors'] as List<dynamic>? ?? [];
+                  
+                  return <Widget>[
+                    if (tags.isNotEmpty) ...[
+                  Text(
+                    'Tags théologiques:',
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: tags.take(8).map((tag) => Container(
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        tag.toString(),
+                        style: GoogleFonts.inter(
+                          color: Colors.blue,
+                          fontSize: 10,
+                        ),
+                      ),
+                    )).toList(),
+                  ),
+                  SizedBox(height: 12),
+                ],
+                
+                if (verseAnchors.isNotEmpty) ...[
+                  Text(
+                    'Références bibliques:',
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  ...verseAnchors.take(5).map((verse) => Container(
+                    margin: EdgeInsets.only(bottom: 4),
+                    padding: EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      verse.toString(),
+                      style: GoogleFonts.inter(
+                        color: Colors.green,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  )).toList(),
+                  SizedBox(height: 12),
+                ],
+                  ];
+                }(),
+              ],
+              
+              // Raisonnement spirituel
+              if (reasoning.isNotEmpty) ...[
+                Text(
+                  'Raisonnement Spirituel:',
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  reasoning,
+                  style: GoogleFonts.inter(
+                    color: Colors.white70,
+                    fontSize: 12,
+                    height: 1.4,
+                  ),
+                ),
+                SizedBox(height: 12),
+              ],
+              
+              // Avertissements
+              if (warnings.isNotEmpty) ...[
+                Text(
+                  'Avertissements:',
+                  style: GoogleFonts.inter(
+                    color: Colors.orange,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: 4),
+                ...warnings.map((warning) => Container(
+                  margin: EdgeInsets.only(bottom: 4),
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.warning, color: Colors.orange, size: 16),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          warning.toString(),
+                          style: GoogleFonts.inter(
+                            color: Colors.orange,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )).toList(),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Fermer',
+              style: GoogleFonts.inter(
+                color: Colors.blue,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  /// 🕊️ Widget pour afficher un score théologique
+  Widget _buildTheologyScoreCard(String title, double score, String reference) {
+    final percent = (score * 100).round();
+    final color = _getConfidenceColor(score);
+    
+    return Container(
+      padding: EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.menu_book, color: color, size: 18),
+          SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.inter(
+                    color: color,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  reference,
+                  style: GoogleFonts.inter(
+                    color: Colors.white70,
+                    fontSize: 10,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '$percent%',
+              style: GoogleFonts.inter(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  /// 🧠 Détermine l'objectif basé sur le preset pour le calcul intelligent
+  String _getGoalFromPreset(PlanPreset preset) {
+    final name = preset.name.toLowerCase();
+    
+    if (name.contains('nouveau testament') || name.contains('évangiles')) {
+      return 'Approfondir la Parole';
+    } else if (name.contains('psaumes') || name.contains('prière')) {
+      return 'Mieux prier';
+    } else if (name.contains('proverbes') || name.contains('sagesse')) {
+      return 'Grandir dans la foi';
+    } else if (name.contains('toute la bible') || name.contains('bible complète')) {
+      return 'Approfondir la Parole';
+    } else {
+      return 'Discipline quotidienne';
+    }
+  }
 
 
 
@@ -283,7 +700,7 @@ class _GoalsPageState extends State<GoalsPage> {
           }
 
               final allPresets = snapshot.data!;
-              final personalizedPresets = _getPersonalizedPresets(allPresets);
+              final personalizedPresets = allPresets; // déjà triés par le générateur
               
               // Créer les FancyStackItem à partir des PlanPreset personnalisés
               _carouselItems = personalizedPresets.asMap().entries.map((entry) {
@@ -349,6 +766,19 @@ class _GoalsPageState extends State<GoalsPage> {
       }
     }
     print('\n=====================================\n');
+    
+    // 🩺 NOUVEAU ! Afficher les raisons de besoin
+    final needScores = IntelligentLocalPresetGenerator.getLastNeedScores();
+    if (needScores.isNotEmpty) {
+      print('🩺 === RAISONS BESOIN (Need Engine) ===');
+      needScores.forEach((slug, data) {
+        print('- $slug : score=${data['score']}');
+        for (final r in (data['reasons'] as List<String>)) {
+          print('   • $r');
+        }
+      });
+      print('=====================================\n');
+    }
   }
 
   /// Affiche les recommandations spirituelles dans la console (pour debug)
@@ -364,11 +794,11 @@ class _GoalsPageState extends State<GoalsPage> {
     return Column(
       children: [
         SizedBox(
-          height: 380, // Hauteur du carousel ajustée
+          height: 370, // Hauteur du carousel agrandie
           child: FancyStackCarousel(
             items: _carouselItems,
             options: FancyStackCarouselOptions(
-              size: const Size(310, 380), // Taille des cartes ajustée
+              size: const Size(300, 350), // Taille des cartes agrandie
               autoPlay: true,
               autoPlayInterval: const Duration(seconds: 6),
               autoplayDirection: AutoplayDirection.bothSide,
@@ -412,6 +842,7 @@ class _GoalsPageState extends State<GoalsPage> {
 
   Widget _buildPlanCard(PlanPreset preset) {
     final weeks = (preset.durationDays / 7).ceil(); // Convertir en semaines
+    print('🔍 _buildPlanCard: ${preset.name} - ${preset.durationDays} jours → $weeks semaines');
     
     // ✅ Couleur intelligente du texte selon la luminosité du fond
     final cardColor = _getCardColorForPreset(preset);
@@ -428,13 +859,13 @@ class _GoalsPageState extends State<GoalsPage> {
           builder: (context, scale, child) => Transform.scale(
             scale: scale,
             child: GestureDetector(
-              onTap: () async {
+              onTap: () {
                 HapticFeedback.selectionClick();
-                await _onPlanSelected(preset);
+                // Juste un feedback visuel, pas d'action
               },
               child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 20),
-            height: 360, // Hauteur augmentée pour le bouton
+            height: 350, // Hauteur agrandie pour plus d'espace
             // Gradient border effect
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(28),
@@ -463,26 +894,7 @@ class _GoalsPageState extends State<GoalsPage> {
                   width: 1.5,
                   color: Colors.white.withOpacity(0.2),
                 ),
-                boxShadow: [
-                  // Ombre principale pour la profondeur
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                  // Ombre portée légère pour détacher la carte
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                  // Halo coloré subtil
-                  BoxShadow(
-                    color: _getCardColorForPreset(preset).withOpacity(0.1),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                // ✅ Design épuré sans ombres
               ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(28),
@@ -492,13 +904,13 @@ class _GoalsPageState extends State<GoalsPage> {
                   children: [
                 // ✅ GRANDE ILLUSTRATION "OBJECTIF SPIRITUEL" derrière le nom (impact visuel)
                 Positioned(
-                  top: 80, // ✅ Positionné derrière le nom
+                  top: 60, // Position ajustée
                   left: 0,
                   right: 0,
                   child: Center(
                     child: Icon(
                       _getSpiritualGoalIconForPreset(preset), // ✅ Icône de l'objectif spirituel
-                      size: 280, // ✅ Encore plus grande pour impact visuel
+                      size: 200, // Taille réduite pour éviter le débordement
                       color: textColor.withOpacity(0.08), // ✅ Couleur intelligente avec opacité légèrement plus forte
                     ),
                   ),
@@ -527,12 +939,25 @@ class _GoalsPageState extends State<GoalsPage> {
                         ),
                       ),
                       // ✅ "Recommandé" sous l'icône avec GoalBadge moderne
-                      if (_isRecommendedPreset(preset)) ...[
+                      if (_isRecommendedPresetNew(preset)) ...[
                         const SizedBox(height: 6),
                         GoalBadge(
                           label: 'Recommandé',
                           color: const Color(0xFF1553FF),
                           icon: Icons.star_rounded,
+                        ),
+                        const SizedBox(height: 6),
+                        GestureDetector(
+                          onTap: () {
+                            final reasons = IntelligentLocalPresetGenerator.explainWhyRecommended(preset.slug, take: 3);
+                            if (reasons.isEmpty) return;
+                            _showSnackBar(
+                              'Pourquoi recommandé :\n• ' + reasons.join('\n• '),
+                              Icons.info_outline,
+                              const Color(0xFF1553FF),
+                            );
+                          },
+                          child: Icon(Icons.info_outline, size: 16, color: textColor.withOpacity(0.7)),
                         ),
                       ],
                     ],
@@ -548,15 +973,15 @@ class _GoalsPageState extends State<GoalsPage> {
                     children: [
                       // ✅ Nombre avec largeur contrainte pour ne pas dépasser "semaines"
                       SizedBox(
-                        width: 80, // ✅ Largeur fixe pour contrôler l'overflow
+                        width: 70, // Largeur réduite
                         child: Text(
                           '$weeks',
                           style: GoogleFonts.inter(
                             fontWeight: FontWeight.w900, // Heavy
-                            fontSize: 88,
+                            fontSize: 48, // ✅ Taille réduite pour éviter l'overflow
                             height: 0.85,
                             color: textColor, // ✅ Couleur intelligente
-                            letterSpacing: -3,
+                            letterSpacing: -2,
                             shadows: [
                               Shadow(
                                 offset: const Offset(0, 2),
@@ -595,10 +1020,10 @@ class _GoalsPageState extends State<GoalsPage> {
                 
                 // Titre GILROY HEAVY ITALIC + Livres en bas
                 Positioned(
-                  top: 120, // ✅ Monté pour éviter l'illustration
+                  top: 100, // Position ajustée
                   left: 0, // ✅ Centré
                   right: 0, // ✅ Centré
-                  bottom: 90, // Espace pour le bouton
+                  bottom: 70, // Espace réduit pour le bouton
                   child: Center(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 32), // ✅ Plus de padding pour éviter les bords
@@ -618,7 +1043,7 @@ class _GoalsPageState extends State<GoalsPage> {
                               style: GoogleFonts.inter(
                                 fontWeight: FontWeight.w800, // Heavy
                                 fontStyle: FontStyle.italic, // ✅ Italic
-                                fontSize: 24, // ✅ Plus grand pour impact
+                                fontSize: 20, // Taille réduite
                                 height: 1.1, // ✅ Compact
                                 color: Colors.white, // ✅ Blanc pour le shader
                                 letterSpacing: -0.5,
@@ -635,13 +1060,13 @@ class _GoalsPageState extends State<GoalsPage> {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 6),
                           // ✅ Minutes/jour avec Google Fonts
                           Text(
                             '${_userProfile?['durationMin'] as int? ?? preset.minutesPerDay ?? 15} min/jour',
                             style: GoogleFonts.inter(
                               fontWeight: FontWeight.w600,
-                              fontSize: 12,
+                              fontSize: 11,
                               color: textColor, // ✅ Couleur intelligente
                               letterSpacing: 0.3,
                               shadows: [
@@ -656,7 +1081,7 @@ class _GoalsPageState extends State<GoalsPage> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 8),
                           // ✅ BÉNÉFICE PSYCHOLOGIQUE - Ce que l'utilisateur va gagner
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -695,11 +1120,18 @@ class _GoalsPageState extends State<GoalsPage> {
                   ),
                 ),
                 
+                // Les systèmes intelligents travaillent en arrière-plan
+                
                 // Bouton "Choisir ce plan" en bas
                 Positioned(
                   bottom: 20,
                   left: 24,
                   right: 24,
+                  child: GestureDetector(
+                    onTap: () async {
+                      HapticFeedback.selectionClick();
+                      await _onPlanSelected(preset);
+                    },
                   child: Container(
                     height: 50,
                     decoration: BoxDecoration(
@@ -728,6 +1160,7 @@ class _GoalsPageState extends State<GoalsPage> {
                               color: Colors.black.withOpacity(0.2),
                             ),
                           ],
+                          ),
                         ),
                       ),
                     ),
@@ -986,7 +1419,8 @@ class _GoalsPageState extends State<GoalsPage> {
     // ROSE POUDRÉ (0xFFF48FB1) - Amour, Pardon, Compassion
     // Recommandé pour: Pardon, guérison émotionnelle, relations
     if (name.contains('pardon') || name.contains('forgiveness') || name.contains('amour') ||
-        goal.contains('pardon') || goal.contains('guérison') || name.contains('luc')) {
+        goal.contains('pardon') || goal.contains('guérison') || name.contains('luc') ||
+        name.contains('priere') || name.contains('rythme') || name.contains('jesus')) {
       return const Color(0xFFF48FB1); // Rose tendre
     }
     
@@ -1000,7 +1434,8 @@ class _GoalsPageState extends State<GoalsPage> {
     // ORANGE CORAIL (0xFFFFCC80) - Énergie, Enthousiasme, Mission
     // Recommandé pour: Mission, service, partage de la foi
     if (name.contains('mission') || name.contains('service') || name.contains('actes') ||
-        goal.contains('partager') || goal.contains('mission')) {
+        goal.contains('partager') || goal.contains('mission') || name.contains('quotidien') ||
+        name.contains('temoigner') || name.contains('audace')) {
       return const Color(0xFFFFCC80); // Orange mission
     }
     
@@ -1014,7 +1449,8 @@ class _GoalsPageState extends State<GoalsPage> {
     // VERT ÉMERAUDE (0xFFA5D6A7) - Vie, Évangile, Renouveau
     // Recommandé pour: Évangiles, vie en Christ
     if (name.contains('évangile') || name.contains('gospel') || name.contains('matthieu') || 
-        name.contains('jean') || name.contains('marc') || name.contains('luc')) {
+        name.contains('jean') || name.contains('marc') || name.contains('luc') ||
+        name.contains('centre') || name.contains('plein')) {
       return const Color(0xFFA5D6A7); // Vert émeraude vie
     }
     
@@ -1447,39 +1883,25 @@ class _GoalsPageState extends State<GoalsPage> {
     }
   }
   
-  /// 🎁 BÉNÉFICE PSYCHOLOGIQUE - Ce que l'utilisateur va gagner
+  /// 📚 NOMS DES LIVRES - Affiche les livres du preset
   String _getBenefitForPreset(PlanPreset preset) {
-    final name = preset.name.toLowerCase();
-    final weeks = (preset.durationDays / 7).ceil();
+    // ✅ NOUVEAU : Retourner les noms des livres formatés
+    final books = preset.books.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
     
-    // Bénéfices basés sur la durée et le contenu
-    if (name.contains('arbre') || name.contains('planté')) {
-      return '✨ Enracine ta foi solidement';
-    } else if (name.contains('graine') || name.contains('grandit')) {
-      return '🌱 Croissance progressive garantie';
-    } else if (name.contains('gloire')) {
-      return '⭐ Transforme-toi de l\'intérieur';
-    } else if (name.contains('flamme') || name.contains('raviver')) {
-      return '🔥 Retrouve ta passion spirituelle';
-    } else if (name.contains('méditation')) {
-      return '🧘 Paix intérieure profonde';
-    } else if (name.contains('chemin') || name.contains('vie')) {
-      return '🛤️ Clarté et direction divine';
-    } else if (name.contains('nouveau') || name.contains('renouvelle')) {
-      return '✨ Nouveau départ, nouvelle vie';
-    } else if (name.contains('force')) {
-      return '💪 Force spirituelle croissante';
-    } else if (name.contains('grâce') || name.contains('croître')) {
-      return '🎁 Grâce abondante quotidienne';
+    if (books.isEmpty) {
+      return 'Étude biblique';
     }
     
-    // Bénéfice par défaut selon la durée
-    if (weeks <= 5) {
-      return '⚡ Résultats rapides et visibles';
-    } else if (weeks <= 10) {
-      return '📈 Progression équilibrée et durable';
+    // Formatage intelligent des noms de livres
+    if (books.length == 1) {
+      return books.first;
+    } else if (books.length == 2) {
+      return '${books[0]} & ${books[1]}';
+    } else if (books.length == 3) {
+      return '${books[0]}, ${books[1]} & ${books[2]}';
     } else {
-      return '🏆 Transformation profonde garantie';
+      // Plus de 3 livres : afficher les 2 premiers + "& autres"
+      return '${books[0]}, ${books[1]} & ${books.length - 2} autres';
     }
   }
   
@@ -1549,6 +1971,13 @@ class _GoalsPageState extends State<GoalsPage> {
     // ✅ Un preset est recommandé si score >= 3
     return score >= 3;
   }
+  
+  /// ⭐ NOUVEAU ! Détermine si un preset est "recommandé" basé sur le besoin réel
+  bool _isRecommendedPresetNew(PlanPreset preset) {
+    final map = IntelligentLocalPresetGenerator.getLastNeedScores();
+    final s = (map[preset.slug]?['score'] as double?) ?? 0;
+    return s >= 1.5; // seuil simple: recommandé si besoin identifié
+  }
 
 
 
@@ -1559,6 +1988,8 @@ class _GoalsPageState extends State<GoalsPage> {
 
     // Note: La vérification "un seul plan actif" est gérée par le router guard
     // Si l'utilisateur arrive ici, c'est qu'il n'a pas de plan actif
+
+    // Les systèmes intelligents travaillent en arrière-plan
 
     // 1) Options utilisateur (date + jours) via bottom sheet
     final opts = await _showPresetOptionsSheet(
@@ -1572,12 +2003,15 @@ class _GoalsPageState extends State<GoalsPage> {
     final minutesPerDay = _userProfile?['durationMin'] as int? ?? preset.minutesPerDay ?? 15;
 
     // 3) Génère les passages totalement offline
-    final customPassages = _generateOfflinePassagesForPreset(
+    var customPassages = _generateOfflinePassagesForPreset(
       preset: preset,
       startDate: opts.startDate,
       minutesPerDay: minutesPerDay, // ← Vient de CompleteProfilePage
       daysOfWeek: opts.daysOfWeek, // 1..7 (lun..dim)
     );
+
+    // 🕊️ La doctrine "Crainte de Dieu" est maintenant intégrée directement dans le moteur de génération
+    // Plus besoin de post-traitement - la doctrine structure le plan dès sa création
 
     // 3) Crée le plan local (100% offline) avec loading
     try {
@@ -1854,7 +2288,7 @@ class _GoalsPageState extends State<GoalsPage> {
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () => Navigator.pop(ctx),
+                          onPressed: () => context.pop(),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.white,
                             side: BorderSide(color: Colors.white.withOpacity(0.3)),
@@ -1874,13 +2308,11 @@ class _GoalsPageState extends State<GoalsPage> {
                               );
                               return;
                             }
-                            Navigator.pop(
-                              ctx,
-                              _PresetOptions(
+                            // Retourner les options sélectionnées
+                            context.pop(_PresetOptions(
                                 startDate: start,
                                 daysOfWeek: dow.toList()..sort(),
-                              ),
-                            );
+                            ));
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF1553FF),
@@ -1951,8 +2383,15 @@ class _GoalsPageState extends State<GoalsPage> {
     print('📖 ${result.length} passages générés offline (INTELLIGENTS) pour "${preset.name}"');
     print('📅 Jours sélectionnés: ${daysOfWeek.join(',')} → Plan respecte le calendrier réel');
     
-    return result;
+    // 🕊️ INTÉGRATION DOCTRINALE - Application du pipeline doctrinal modulaire
+    final ctx = DoctrineContext(userProfile: _userProfile, minutesPerDay: minutesPerDay);
+    final pipeline = DoctrinePipeline.defaultModules();
+    final withDoctrine = pipeline.apply(result, context: ctx);
+    
+    print('🕊️ Plan structuré par le pipeline doctrinal modulaire');
+    return withDoctrine;
   }
+
   
   /// 🚀 FALCON X - Sélection ultra-intelligente d'unités sémantiques
   _SemanticPick _pickSemanticUnit(List<_ChapterRef> chapters, int cursor) {
