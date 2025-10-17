@@ -8,9 +8,14 @@ import '../services/reader_settings_service.dart';
 import '../services/bible_text_service.dart';
 import '../widgets/highlightable_text.dart';
 import '../widgets/uniform_back_button.dart';
+import '../widgets/reader_prompts_bar.dart';
+import '../widgets/mini_journal_sheet.dart';
+import '../services/journal_service.dart';
+import '../services/intentions_service.dart';
 import '../models/reading_passage.dart';
 import '../services/bible_version_manager.dart';
 import '../services/user_prefs.dart';
+import '../bootstrap.dart' as bootstrap;
 import 'advanced_bible_study_page.dart';
 
 class ReaderPageModern extends StatefulWidget {
@@ -19,6 +24,8 @@ class ReaderPageModern extends StatefulWidget {
   final String? dayTitle;
   final List<String>? passageRefs; // Support pour passages multiples
   final ReadingSession? readingSession; // Session complète
+  final String? planId;
+  final int? dayNumber;
   
   const ReaderPageModern({
     super.key,
@@ -27,6 +34,8 @@ class ReaderPageModern extends StatefulWidget {
     this.dayTitle,
     this.passageRefs,
     this.readingSession,
+    this.planId,
+    this.dayNumber,
   });
 
   @override
@@ -68,11 +77,30 @@ class _ReaderPageModernState extends State<ReaderPageModern>
     _init();
   }
 
+  bool _hasInitialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // ✅ Recharger le passage quand on revient des paramètres (une seule fois après l'init)
+    if (_hasInitialized) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_readingSession?.currentPassage?.reference != null && 
+            _readingSession!.currentPassage!.reference != 'Jean 14:1-19') {
+          _reloadCurrentPassage();
+        }
+      });
+    }
+  }
+
   Future<void> _init() async {
     await _loadUserBibleVersion();   // ✅ d'abord version
     await _loadAvailableVersions();  // remplit la liste et (si besoin) aligne _selectedVersion
     await _loadAllPassages();        // ✅ puis charge les textes
+    _hasInitialized = true; // Marquer comme initialisé
   }
+  
+  
   
   /// ✅ Charge la version de Bible de l'utilisateur
   Future<void> _loadUserBibleVersion() async {
@@ -247,12 +275,64 @@ class _ReaderPageModernState extends State<ReaderPageModern>
       });
     }
   }
+
+  /// Recharge le passage actuel (utile quand on revient des paramètres)
+  Future<void> _reloadCurrentPassage() async {
+    if (_readingSession?.currentPassage?.reference == null) return;
+    
+    final currentRef = _readingSession!.currentPassage!.reference;
+    if (currentRef == 'Jean 14:1-19') return; // Ne pas recharger le fallback
+    
+    print('🔄 Rechargement du passage actuel: $currentRef');
+    
+    try {
+      setState(() {
+        _isLoadingText = true;
+      });
+
+      // S'assurer que la version est disponible
+      await BibleTextService.ensureVersionAvailable(_selectedVersion);
+      
+      // Récupérer le texte
+      final text = await BibleTextService.getPassageText(
+        currentRef,
+        version: _selectedVersion,
+      );
+
+      if (text != null && text.trim().isNotEmpty) {
+        if (!mounted) return;
+        setState(() {
+          _passageText = text;
+          _isLoadingText = false;
+        });
+        print('✅ Passage rechargé: ${text.length} caractères');
+      } else {
+        // Utiliser le fallback si le texte n'est pas trouvé
+        final fallbackText = await _getFallbackText(currentRef);
+        if (!mounted) return;
+        setState(() {
+          _passageText = fallbackText;
+          _isLoadingText = false;
+        });
+        print('⚠️ Passage non trouvé, utilisation du fallback');
+      }
+    } catch (e) {
+      print('⚠️ Erreur rechargement passage: $e');
+      final fallbackText = await _getFallbackText(currentRef);
+      if (!mounted) return;
+      setState(() {
+        _passageText = fallbackText;
+        _isLoadingText = false;
+      });
+    }
+  }
   
   /// Charge le texte biblique depuis la base de données (rétrocompatibilité)
   Future<void> _loadBibleText() async {
     try {
       await BibleTextService.init();
 
+      // ✅ Priorité 1: Texte fourni en paramètre
       if (widget.passageText != null && widget.passageText!.isNotEmpty) {
         if (!mounted) return;
         setState(() {
@@ -262,14 +342,29 @@ class _ReaderPageModernState extends State<ReaderPageModern>
         return;
       }
 
-      final text = await BibleTextService.getPassageText(
-        _readingSession?.currentPassage?.reference ?? 'Jean 14:1-19',
-        version: _selectedVersion,
-      );
+      // ✅ Priorité 2: Passage de la session de lecture
+      final currentReference = _readingSession?.currentPassage?.reference;
+      if (currentReference != null && currentReference != 'Jean 14:1-19') {
+        print('🔎 Chargement texte pour passage du jour: $currentReference');
+        
+        final text = await BibleTextService.getPassageText(
+          currentReference,
+          version: _selectedVersion,
+        );
 
-      final resolved = text ?? await _getFallbackText(
-        _readingSession?.currentPassage?.reference,
-      );
+        if (text != null && text.trim().isNotEmpty) {
+          if (!mounted) return;
+          setState(() {
+            _passageText = text;
+            _isLoadingText = false;
+          });
+          print('✅ Texte du jour chargé: ${text.length} caractères');
+          return;
+        }
+      }
+
+      // ✅ Priorité 3: Fallback seulement si nécessaire
+      final resolved = await _getFallbackText(currentReference);
 
       if (!mounted) return;
       setState(() {
@@ -277,8 +372,8 @@ class _ReaderPageModernState extends State<ReaderPageModern>
         _isLoadingText = false;
       });
 
-      if (text == null) {
-        print('⚠️ Texte non trouvé pour: ${_readingSession?.currentPassage?.reference}');
+      if (currentReference != null) {
+        print('⚠️ Texte non trouvé pour: $currentReference, utilisation du fallback');
       }
     } catch (e) {
       print('⚠️ Erreur chargement texte biblique: $e');
@@ -353,21 +448,42 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
 
 
 
-  void _markAsRead() {
+  void _markAsRead() async {
     setState(() {
       _isMarkedAsRead = !_isMarkedAsRead;
     });
     HapticFeedback.mediumImpact();
+
+    // ✅ Marquer côté PlanService si contexte connu
+    final planId = widget.planId;
+    final day = widget.dayNumber;
+    if (planId != null && day != null) {
+      try {
+        await bootstrap.planService.markDayCompleted(planId, day, _isMarkedAsRead);
+        // Optionnel: feedback
+        _showSnackBar(
+          _isMarkedAsRead ? 'Jour marqué comme lu' : 'Marqué comme non lu',
+          _isMarkedAsRead ? Icons.check_circle : Icons.radio_button_unchecked,
+          _isMarkedAsRead ? Colors.green : Colors.grey,
+        );
+      } catch (e) {
+        // rollback UI si erreur critique
+        setState(() => _isMarkedAsRead = !_isMarkedAsRead);
+        _showSnackBar('Impossible de mettre à jour l\'état du jour', Icons.error_outline, Colors.red);
+        print('❌ markDayCompleted: $e');
+      }
+    } else {
+      // Pas de contexte de plan (lecture libre)
+      _showSnackBar(
+        _isMarkedAsRead ? 'Lu (mode libre)' : 'Non lu (mode libre)',
+        _isMarkedAsRead ? Icons.check_circle : Icons.radio_button_unchecked,
+        _isMarkedAsRead ? Colors.green : Colors.grey,
+      );
+    }
     
     if (_isMarkedAsRead) {
       // Afficher le bottom sheet pour noter le verset marquant
       _showVerseNoteBottomSheet();
-    } else {
-      _showSnackBar(
-        'Marqué comme non lu',
-        Icons.radio_button_unchecked,
-        Colors.grey,
-      );
     }
   }
 
@@ -383,11 +499,175 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
     }
     
     HapticFeedback.mediumImpact();
-    context.go('/meditation/chooser', extra: {
-      'passageRef': _readingSession?.currentPassage?.reference ?? 'Jean 14:1-19',
-      'passageText': _passageText,
-      'memoryVerse': _notedVerse, // Verset noté par l'utilisateur
-    }); // page avec 2 options
+    _showMeditationOptions();
+  }
+
+  /// Affiche les options de méditation avec mini-journal
+  void _showMeditationOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF1F1B3B),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Que veux-tu faire ?',
+                style: GoogleFonts.inter(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // Option 1: Méditation guidée
+              _buildOptionButton(
+                icon: Icons.auto_awesome,
+                title: 'Méditation guidée',
+                subtitle: 'Réflexion structurée avec questions',
+                onTap: () {
+                  Navigator.pop(context);
+                  context.go('/meditation/chooser', extra: {
+                    'passageRef': _readingSession?.currentPassage?.reference ?? 'Jean 14:1-19',
+                    'passageText': _passageText,
+                    'memoryVerse': _notedVerse,
+                  });
+                },
+              ),
+              
+              const SizedBox(height: 12),
+              
+              // Option 2: Terminer & Appliquer
+              _buildOptionButton(
+                icon: Icons.check_circle,
+                title: 'Terminer & Appliquer',
+                subtitle: 'Note 3 actions concrètes pour aujourd\'hui',
+                onTap: () async {
+                  Navigator.pop(context);
+                  await _showMiniJournal();
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Affiche le mini-journal et sauvegarde les réponses
+  Future<void> _showMiniJournal() async {
+    try {
+      final responses = await showMiniJournalSheet(context);
+      
+      if (responses != null && responses.isNotEmpty) {
+        // Sauvegarder dans le journal
+        await JournalService.saveJournalEntry(
+          date: DateTime.now().toIso8601String().split('T')[0], // YYYY-MM-DD
+          bullets: responses,
+          passageRef: _readingSession?.currentPassage?.reference ?? 'Jean 14:1-19',
+          notes: _notedVerse.isNotEmpty ? 'Verset marquant: $_notedVerse' : null,
+        );
+        
+        _showSnackBar(
+          'Applications sauvegardées !',
+          Icons.check_circle,
+          Colors.green,
+        );
+        
+        // Optionnel: naviguer vers la page d'accueil
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) {
+            context.go('/home');
+          }
+        });
+      }
+    } catch (e) {
+      print('❌ Erreur mini-journal: $e');
+      _showSnackBar(
+        'Erreur lors de la sauvegarde',
+        Icons.error,
+        Colors.red,
+      );
+    }
+  }
+
+  /// Construit un bouton d'option
+  Widget _buildOptionButton({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.2),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                icon,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.white.withOpacity(0.5),
+              size: 16,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showSnackBar(String message, IconData icon, Color color) {
@@ -685,7 +965,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => context.pop(),
+            onTap: () => context.go('/home'), // Retour direct à la page d'accueil
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
@@ -696,7 +976,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                 ),
               ),
               child: Icon(
-                Icons.arrow_back_ios_new_rounded,
+                Icons.home_rounded, // Icône maison au lieu de flèche retour
                 color: isDark ? Colors.white : Colors.black,
                 size: 20,
               ),
@@ -789,6 +1069,66 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
             children: [
               // En-tête avec navigation si plusieurs passages
               _buildPassageHeader(isDark),
+              const SizedBox(height: 8),
+              
+              // Barre de prompts de réflexion
+              ReaderPromptsBar(
+                onTapPrompt: (prompt) {
+                  _showNoteSheet(seedText: prompt);
+                },
+              ),
+              const SizedBox(height: 8),
+              
+              // Affichage de l'intention du jour
+              FutureBuilder(
+                future: Future.wait([
+                  IntentionsService.isEnabled(),
+                  IntentionsService.getIntention()
+                ]),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) return const SizedBox.shrink();
+                  
+                  final enabled = snapshot.data![0] as bool;
+                  final intention = snapshot.data![1] as String?;
+                  
+                  if (!enabled || intention == null || intention.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.07),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.15),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.flag,
+                          color: Colors.white.withOpacity(0.8),
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Intention: $intention',
+                            style: GoogleFonts.inter(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
               const SizedBox(height: 16),
               
               // Contenu du passage
@@ -1452,6 +1792,128 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                 size: 20,
               ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// Affiche un bottom sheet pour prendre des notes avec un prompt optionnel
+  void _showNoteSheet({String? seedText}) {
+    final controller = TextEditingController(text: seedText ?? '');
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        decoration: const BoxDecoration(
+          color: Color(0xFF1F1B3B),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.edit_note,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Note personnelle',
+                    style: GoogleFonts.inter(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+                child: TextField(
+                  controller: controller,
+                  style: GoogleFonts.inter(color: Colors.white),
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    hintText: 'Écris tes réflexions, questions ou applications...',
+                    hintStyle: GoogleFonts.inter(color: Colors.white54),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.all(16),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final note = controller.text.trim();
+                    if (note.isNotEmpty) {
+                      // Ici on pourrait sauvegarder la note
+                      Navigator.pop(context);
+                      _showSnackBar(
+                        'Note sauvegardée',
+                        Icons.check_circle,
+                        Colors.green,
+                      );
+                    } else {
+                      Navigator.pop(context);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'Sauvegarder',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

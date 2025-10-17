@@ -8,6 +8,7 @@ import '../services/plan_service.dart';
 import '../services/telemetry_console.dart';
 import '../services/supabase_auth.dart';
 import '../services/local_storage_service.dart';
+import '../services/intentions_service.dart';
 import '../widgets/bible_version_selector.dart';
 
 /// Page épurée des paramètres selon la spécification
@@ -30,6 +31,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
 
   // Contrôleurs
   final _nameController = TextEditingController();
+  final _intentionController = TextEditingController();
 
   // Profil
   bool _biometricsEnabled = false;
@@ -58,6 +60,9 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
   bool _autoJournal = true;
   bool _keepFavorites = true;
 
+  // Intentions
+  bool _intentionsEnabled = false;
+
   // Listes
   final _languages = const ['Français', 'English', 'Español', 'Português', 'العربية'];
 
@@ -74,6 +79,10 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
     try {
       final profile = prefs.profile;
       
+      // Charger les intentions
+      final intentionsEnabled = await IntentionsService.isEnabled();
+      final intentionText = await IntentionsService.getIntention();
+      
       setState(() {
         _profile = profile;
         _nameController.text = profile['displayName'] ?? '';
@@ -81,6 +90,8 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
         _time = profile['preferredTime'] ?? '08:00';
         _minutes = profile['dailyMinutes'] ?? 15;
         _notifications = true; // TODO: récupérer depuis le profil
+        _intentionsEnabled = intentionsEnabled;
+        _intentionController.text = intentionText ?? '';
         _loading = false;
       });
     } catch (e) {
@@ -156,6 +167,15 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  void _showSuccess(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
       ),
     );
   }
@@ -471,6 +491,10 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
 
                             // Section Journal & favoris
                             _buildJournalSection(),
+                            const SizedBox(height: 20),
+
+                            // Section Intentions
+                            _buildIntentionsSection(),
                             const SizedBox(height: 20),
 
                             // Section Actions de plan
@@ -949,6 +973,85 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
             ],
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildIntentionsSection() {
+    return _buildSectionCard(
+      title: '🎯 Intentions quotidiennes',
+      icon: Icons.flag_outlined,
+      children: [
+        _buildField(
+          label: 'Activer les intentions',
+          icon: Icons.toggle_on,
+          child: Switch(
+            value: _intentionsEnabled,
+            onChanged: (value) async {
+              setState(() {
+                _intentionsEnabled = value;
+              });
+              await IntentionsService.setEnabled(value);
+              if (!value) {
+                await IntentionsService.clearIntention();
+                _intentionController.clear();
+              }
+            },
+            activeColor: const Color(0xFF3B82F6),
+          ),
+        ),
+        if (_intentionsEnabled) ...[
+          const SizedBox(height: 16),
+          _buildField(
+            label: 'Intention du jour',
+            icon: Icons.edit_note,
+            child: TextField(
+              controller: _intentionController,
+              style: const TextStyle(color: Colors.white),
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText: 'Écris ton intention pour aujourd\'hui...',
+                hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF3B82F6)),
+                ),
+                contentPadding: const EdgeInsets.all(12),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () async {
+                if (_intentionController.text.trim().isNotEmpty) {
+                  await IntentionsService.saveTodayIntention(_intentionController.text.trim());
+                  _showSuccess('Intention sauvegardée !');
+                } else {
+                  _showError('Veuillez saisir une intention');
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF3B82F6),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Enregistrer l\'intention'),
+            ),
+          ),
+        ],
       ],
     );
   }

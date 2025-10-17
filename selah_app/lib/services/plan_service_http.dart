@@ -459,6 +459,12 @@ class PlanServiceHttp implements PlanService {
     });
   }
 
+  @override
+  Future<void> markDayCompleted(String planId, int dayIndex, bool completed) async {
+    // Alias pour compatibilité - délègue à setDayCompleted
+    return setDayCompleted(planId, dayIndex, completed);
+  }
+
   // —— progress stream (à partir du cache) ————————————————
   /// Crée un plan localement sans connexion Internet
   @override

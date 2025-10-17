@@ -5,7 +5,7 @@ import 'bible_asset_importer.dart';
 class BibleTextService {
   static Database? _database;
   static String? _preloadedVersion;
-
+  
   static Future<void> init() async {
     if (_database != null) return;
     final dbPath = await getDatabasesPath();
@@ -140,7 +140,7 @@ class BibleTextService {
       return null;
     }
   }
-
+  
   static Future<int?> _maxVerse(String version, String book, int chapter) async {
     final r = await _database!.rawQuery(
       'SELECT MAX(verse) m FROM verses WHERE version=? AND book=? AND chapter=?',
@@ -182,7 +182,7 @@ class BibleTextService {
       return false;
     }
   }
-
+  
   /// Méthode de compatibilité
   static Future<void> populateFromAssets() async {
     print('✅ BibleTextService: Import des fichiers JSON bibliques avec json5 vers SQLite');

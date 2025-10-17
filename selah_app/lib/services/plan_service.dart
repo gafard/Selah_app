@@ -9,6 +9,7 @@ abstract class PlanService {
   Future<List<PlanDay>> getPlanDays(String planId, {int? fromDay, int? toDay});
   Future<void> setActivePlan(String planId);
   Future<void> setDayCompleted(String planId, int dayIndex, bool completed);
+  Future<void> markDayCompleted(String planId, int dayIndex, bool completed); // Alias pour compatibilité
   Stream<PlanProgress> watchProgress(String planId);
   Future<void> archivePlan(String planId);
   Future<void> restartPlanFromDay1(String planId);

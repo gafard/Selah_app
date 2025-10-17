@@ -14,6 +14,7 @@ import '../models/plan_models.dart';
 import '../widgets/uniform_back_button.dart';
 import '../services/doctrine/doctrine_pipeline.dart'; // 🕊️ Pipeline doctrinal modulaire
 import '../services/doctrine/anchored_doctrine_base.dart'; // 🕊️ DoctrineContext
+import '../models/plan_templates.dart'; // 📋 Templates de plans standards
 
 class CustomPlanGeneratorPage extends StatefulWidget {
   const CustomPlanGeneratorPage({super.key});
@@ -243,6 +244,9 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                            // Plans suggérés
+                            _buildSuggestedPlansSection(),
+                            
                             // Nom du plan
                             _buildSection(
                               title: 'Nom du plan',
@@ -380,6 +384,164 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
         child,
         const SizedBox(height: 24),
       ],
+    );
+  }
+
+  Widget _buildSuggestedPlansSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Plans suggérés',
+          style: GoogleFonts.inter(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 200,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: kPlanTemplates.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final template = kPlanTemplates[index];
+              return _buildTemplateCard(template);
+            },
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  Widget _buildTemplateCard(PlanTemplate template) {
+    return GestureDetector(
+      onTap: () => _applyTemplate(template),
+      child: Container(
+        width: 180,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.white.withOpacity(0.1),
+              Colors.white.withOpacity(0.05),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.2),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '${template.days}j',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                Icon(
+                  Icons.auto_awesome,
+                  color: Colors.white.withOpacity(0.7),
+                  size: 16,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              template.title,
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              template.description,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: Colors.white70,
+                height: 1.3,
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const Spacer(),
+            Row(
+              children: [
+                Icon(
+                  Icons.touch_app,
+                  color: Colors.white.withOpacity(0.6),
+                  size: 14,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'Appliquer',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: Colors.white.withOpacity(0.8),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _applyTemplate(PlanTemplate template) {
+    setState(() {
+      _nameController.text = template.title;
+      _totalDays = template.days;
+      
+      // Mapper les livres du template vers les options disponibles
+      if (template.books.length == 27 && template.books.contains('Matthieu') && template.books.contains('Apocalypse')) {
+        _books = 'NT';
+      } else if (template.books.length == 66) {
+        _books = 'OT,NT';
+      } else if (template.books.contains('Psaumes') && template.books.contains('Proverbes')) {
+        _books = 'Psalms,Proverbs';
+      } else if (template.books.contains('Matthieu') && template.books.contains('Jean') && template.books.length == 4) {
+        _books = 'Gospels';
+      } else if (template.books.contains('Romains') && template.books.contains('Jude')) {
+        _books = 'NT'; // Épîtres font partie du NT
+      }
+    });
+    
+    HapticFeedback.lightImpact();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Template "${template.title}" appliqué !'),
+        backgroundColor: Colors.green.shade600,
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ),
     );
   }
 

@@ -15,7 +15,7 @@ import 'package:selah_app/views/reader_page_modern.dart';
 import 'package:selah_app/views/reader_settings_page.dart';
 import 'package:selah_app/models/reading_passage.dart';
 import 'package:selah_app/views/meditation_chooser_page.dart';
-import 'package:selah_app/views/meditation_free_page.dart';
+import 'package:selah_app/views/meditation_free_v2_page.dart';
 import 'package:selah_app/views/meditation_qcm_page.dart';
 import 'package:selah_app/views/meditation_auto_qcm_page.dart';
 import 'package:selah_app/views/prayer_subjects_page.dart';
@@ -208,12 +208,16 @@ class AppRouter {
         builder: (context, state) {
           // Extraire les paramètres de state.extra
           final extra = state.extra as Map<String, dynamic>?;
+          final planId = extra?['planId'] as String?;
+          final dayNumber = extra?['dayNumber'] as int?;
           return ReaderPageModern(
             passageRef: extra?['passageRef'] as String?,
             passageText: extra?['passageText'] as String?,
             dayTitle: extra?['dayTitle'] as String?,
             passageRefs: extra?['passageRefs'] as List<String>?,
             readingSession: extra?['readingSession'] as ReadingSession?,
+            planId: planId,
+            dayNumber: dayNumber,
           );
         },
       ),
@@ -261,7 +265,7 @@ class AppRouter {
         name: 'meditation_free',
         builder: (context, state) {
           final args = state.extra as Map<String, dynamic>?;
-          return MeditationFreePage(
+          return MeditationFreeV2Page(
             passageRef: args?['passageRef'] as String?,
             passageText: args?['passageText'] as String?,
           );

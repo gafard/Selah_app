@@ -1,11 +1,9 @@
-// my_plan_page_modern.dart
-// Page "Mon Plan" — version moderne : header glass, stats, actions, grille 42 jours
-// - SliverAppBar translucide avec blur
-// - Carte récap (titre plan, progression, jours restants)
-// - CTA "Reprendre la lecture d'aujourd'hui"
-// - Grille 6x7 modernisée (états: aujourd'hui, sélection, dans plan, terminé)
-// - Scroll to today, haptics, petites animations
-// - Conserve la logique existante: planService, showPlanDaySheet, GoRouter '/reader'
+// MyPlanPageModern — style Selah (glass + accent bleu), inspiré du calendrier Android
+// - SliverAppBar translucide (blur)
+// - Carte récap empilée (stack) + bouton "Aujourd'hui"
+// - Grille 6x7 modernisée (états: hors mois, dans plan, aujourd'hui, terminé, sélectionné)
+// - Scroll to today, haptics, micro-animations
+// - Conserve la logique: planService, show dialog day, GoRouter '/reader'
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -13,112 +11,162 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../bootstrap.dart' as bootstrap;
 import '../models/plan_models.dart';
-// import '../widgets/reading_plan_sheet.dart'; // TODO: Créer ce widget
 
 class MyPlanPageModern extends StatefulWidget {
   const MyPlanPageModern({super.key});
-
   @override
   State<MyPlanPageModern> createState() => _MyPlanPageModernState();
 }
 
 class _MyPlanPageModernState extends State<MyPlanPageModern> {
+  // ─── State ───────────────────────────────────────────────────────────────────
   DateTime _monthAnchor = DateTime(DateTime.now().year, DateTime.now().month);
-  DateTime? _selected; // jour tapé
+  late List<DateTime> _visible42; // cache de la grille (6 semaines)
+  DateTime? _selected;
   Plan? _plan;
-  double _progress = 0; // 0..1
+
+  // Stats
+  double _progress = 0;
   int _daysDone = 0;
   int _daysTotal = 0;
+
+  // Cache pour optimiser les performances
+  List<PlanDay> _planDays = const [];
+  Map<int, PlanDay> _byIndex = {}; // dayIndex -> PlanDay
+  bool _refreshing = false;
+
   final ScrollController _scroll = ScrollController();
 
+  // ─── Lifecycle ───────────────────────────────────────────────────────────────
   @override
   void initState() {
     super.initState();
-    _loadActivePlan();
+    _visible42 = _compute42Days(_monthAnchor);
+    _loadAll();
+  }
+
+  Future<void> _loadAll() async {
+    await _loadActivePlan();
+    await _refreshDaysAndStats();
   }
 
   Future<void> _loadActivePlan() async {
     try {
       final plan = await bootstrap.planService.getActivePlan();
-      if (!mounted || plan == null) return;
-      int total = plan.totalDays;
-      final start = DateTime(plan.startDate.year, plan.startDate.month, plan.startDate.day);
-      final today = DateTime.now();
-      final elapsed = today.isBefore(start)
-          ? 0
-          : today.difference(start).inDays + 1; // index du jour courant
-      final clampedElapsed = elapsed.clamp(0, total);
+      if (!mounted) return;
+      if (plan == null) {
+        setState(() {
+          _plan = null;
+          _progress = 0;
+          _daysDone = 0;
+          _daysTotal = 0;
+        });
+        return;
+      }
 
       setState(() {
         _plan = plan;
-        _daysTotal = total;
-        _daysDone = clampedElapsed; // approximation; remplacable par un vrai compteur "completed"
-        _progress = total == 0 ? 0 : _daysDone / total;
+        _daysTotal = plan.totalDays;
+        _selected ??= DateTime.now();
       });
     } catch (e) {
       debugPrint('❌ loadActivePlan: $e');
     }
   }
 
+  Future<void> _refreshDaysAndStats() async {
+    final p = _plan;
+    if (p == null) return;
+    if (_refreshing) return;
+    setState(() => _refreshing = true);
+
+    try {
+      // 1) Charger tous les jours du plan (depuis planService)
+      final days = await bootstrap.planService.getPlanDays(p.id);
+
+      // 2) Index rapide pour accès O(1) depuis la grille
+      final byIdx = <int, PlanDay>{ for (final d in days) d.dayIndex : d };
+
+      // 3) Compter les "vrais" jours complétés
+      final completed = days.where((d) => d.completed == true).length;
+
+      // 4) Mettre à jour les stats
+      setState(() {
+        _planDays = days;
+        _byIndex = byIdx;
+        _daysDone = completed;
+        _progress = (_daysTotal == 0) ? 0 : (_daysDone / _daysTotal);
+      });
+    } catch (e) {
+      debugPrint('❌ refreshDaysAndStats: $e');
+    } finally {
+      if (mounted) setState(() => _refreshing = false);
+    }
+  }
+
+  // ─── Build ───────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    final title = _plan?.name ?? 'Mon plan';
+    final String title = _plan?.name ?? 'Mon plan';
+    final bool hasPlan = _plan != null;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
-      body: CustomScrollView(
-        controller: _scroll,
-        physics: const BouncingScrollPhysics(),
-        slivers: [
+      backgroundColor: const Color(0xFF0B1025), // fond Selah
+      body: RefreshIndicator(
+        color: const Color(0xFF10B981),
+        onRefresh: _refreshDaysAndStats,
+        child: CustomScrollView(
+          controller: _scroll,
+          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          slivers: [
           _GlassAppBar(title: title, onClose: () => context.pop()),
           SliverToBoxAdapter(child: const SizedBox(height: 8)),
-          SliverToBoxAdapter(child: _HeaderStrip(
-            month: _monthAnchor,
-            onPrev: () => setState(() {
-              _monthAnchor = DateTime(_monthAnchor.year, _monthAnchor.month - 1);
-            }),
-            onNext: () => setState(() {
-              _monthAnchor = DateTime(_monthAnchor.year, _monthAnchor.month + 1);
-            }),
-          )),
+
+          // Header mois + flèches
+          SliverToBoxAdapter(
+            child: _HeaderStrip(
+              month: _monthAnchor,
+              onPrev: () => _changeMonth(-1),
+              onNext: () => _changeMonth(1),
+            ),
+          ),
           SliverToBoxAdapter(child: const SizedBox(height: 8)),
-          SliverToBoxAdapter(child: _StatsCard(
-            progress: _progress,
-            daysDone: _daysDone,
-            daysTotal: _daysTotal,
-            onResumeToday: _plan == null ? null : () async {
-              final today = DateTime.now();
-              final planDay = await _getPlanDayForDate(today);
-              if (!mounted) return;
-              _openDaySheet(today, planDay);
-            },
-          )),
-          SliverToBoxAdapter(child: const SizedBox(height: 12)),
-          SliverToBoxAdapter(child: _WeekdayStrip()),
+
+          // Carte stats empilée + CTA aujourd'hui
+          SliverToBoxAdapter(
+            child: _StatsStackCard(
+              progress: _progress,
+              daysDone: _daysDone,
+              daysTotal: _daysTotal,
+              hasPlan: hasPlan,
+              onResumeToday: hasPlan ? _resumeToday : null,
+            ),
+          ),
+
+          SliverToBoxAdapter(child: const SizedBox(height: 16)),
+          const SliverToBoxAdapter(child: _WeekdayStrip()),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
             sliver: SliverGrid(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 7,
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 8,
+                crossAxisCount: 7, crossAxisSpacing: 8, mainAxisSpacing: 8,
               ),
               delegate: SliverChildBuilderDelegate(
                 (context, i) {
-                  final days = _compute42Days(_monthAnchor);
-                  final d = days[i];
+                  final d = _visible42[i];
+                  final isInMonth = d.month == _monthAnchor.month;
                   final isToday = _sameDay(d, DateTime.now());
                   final isSelected = _selected != null && _sameDay(d, _selected!);
-                  final isInMonth = d.month == _monthAnchor.month;
                   final inPlan = _isInActivePlan(d);
 
                   return _DayCell(
                     date: d,
+                    dimmed: !isInMonth,
                     isToday: isToday,
                     isSelected: isSelected,
-                    dimmed: !isInMonth,
                     inPlan: inPlan,
-                    completedFuture: _isCompleted(d),
+                    // on-demand check (évite N requêtes si hors plan)
+                    completedFuture: inPlan ? _isCompleted(d) : Future.value(false),
                     onTap: () async {
                       HapticFeedback.selectionClick();
                       setState(() => _selected = d);
@@ -132,24 +180,46 @@ class _MyPlanPageModernState extends State<MyPlanPageModern> {
               ),
             ),
           ),
-        ],
+          ],
+        ),
       ),
       floatingActionButton: _JumpTodayButton(onTap: _jumpToToday),
     );
   }
 
+  // ─── Actions ─────────────────────────────────────────────────────────────────
+  void _changeMonth(int delta) {
+    setState(() {
+      _monthAnchor = DateTime(_monthAnchor.year, _monthAnchor.month + delta);
+      _visible42 = _compute42Days(_monthAnchor);
+      // si le mois affiché contient aujourd'hui, placer la sélection dessus pour le feedback
+      final today = DateTime.now();
+      if (_monthAnchor.year == today.year && _monthAnchor.month == today.month) {
+        _selected = today;
+      }
+    });
+  }
+
   Future<void> _jumpToToday() async {
     setState(() {
       _monthAnchor = DateTime(DateTime.now().year, DateTime.now().month);
+      _visible42 = _compute42Days(_monthAnchor);
       _selected = DateTime.now();
     });
-    await Future.delayed(const Duration(milliseconds: 200));
+    await Future.delayed(const Duration(milliseconds: 160));
     if (_scroll.hasClients) {
-      _scroll.animateTo(0, duration: const Duration(milliseconds: 350), curve: Curves.easeOut);
+      _scroll.animateTo(0, duration: const Duration(milliseconds: 320), curve: Curves.easeOut);
     }
   }
 
-  // ===== Logic =====
+  Future<void> _resumeToday() async {
+    final today = DateTime.now();
+    final planDay = await _getPlanDayForDate(today);
+    if (!mounted) return;
+    _openDaySheet(today, planDay);
+  }
+
+  // ─── Logic ───────────────────────────────────────────────────────────────────
   List<DateTime> _compute42Days(DateTime anchor) {
     final first = DateTime(anchor.year, anchor.month, 1);
     final startOffset = (first.weekday + 6) % 7; // lundi=0
@@ -157,7 +227,8 @@ class _MyPlanPageModernState extends State<MyPlanPageModern> {
     return List.generate(42, (i) => DateTime(start.year, start.month, start.day + i));
   }
 
-  bool _sameDay(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
+  bool _sameDay(DateTime a, DateTime b)
+    => a.year == b.year && a.month == b.month && a.day == b.day;
 
   bool _isInActivePlan(DateTime date) {
     final p = _plan; if (p == null) return false;
@@ -178,74 +249,141 @@ class _MyPlanPageModernState extends State<MyPlanPageModern> {
 
   Future<PlanDay?> _getPlanDayForDate(DateTime date) async {
     final p = _plan; if (p == null) return null;
-    final idx = date.difference(DateTime(p.startDate.year, p.startDate.month, p.startDate.day)).inDays + 1;
+    final start = DateTime(p.startDate.year, p.startDate.month, p.startDate.day);
+    final idx = date.difference(start).inDays + 1;
     if (idx < 1 || idx > p.totalDays) return null;
+
+    // ⚡ d'abord en mémoire
+    final cached = _byIndex[idx];
+    if (cached != null) return cached;
+
+    // 🔁 fallback : charger (utile si _refreshDaysAndStats pas encore passé)
     try {
       final planDays = await bootstrap.planService.getPlanDays(p.id);
-      final dayData = planDays.firstWhere(
-        (day) => day.dayIndex == idx,
-        orElse: () => PlanDay(
-          id: '${p.id}_$idx', planId: p.id, dayIndex: idx, date: date, completed: false, readings: [],
-        ),
-      );
-      return dayData;
+      final byIdx = <int, PlanDay>{ for (final d in planDays) d.dayIndex : d };
+      setState(() {
+        _planDays = planDays;
+        _byIndex = byIdx;
+        _daysDone = planDays.where((d) => d.completed).length;
+        _progress = (_daysTotal == 0) ? 0 : (_daysDone / _daysTotal);
+      });
+      return byIdx[idx];
     } catch (e) {
       debugPrint('⚠️ getPlanDayForDate($idx): $e');
       return PlanDay(
-        id: '${p.id}_$idx', planId: p.id, dayIndex: idx, date: date, completed: false, readings: [],
+        id: '${p.id}_$idx',
+        planId: p.id,
+        dayIndex: idx,
+        date: date,
+        completed: false,
+        readings: const [],
       );
     }
   }
 
   void _openDaySheet(DateTime date, PlanDay? planDay) {
-    // TODO: Implémenter showPlanDaySheet ou créer un dialog temporaire
+    // Dialog provisoire (tu pourras brancher ton vrai bottom sheet)
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Jour ${planDay?.dayIndex ?? '?'}'),
-        content: Text('Date: ${date.day}/${date.month}/${date.year}'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Fermer'),
-          ),
-          if (planDay != null)
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                context.go('/reader', extra: {
-                  'dayTitle': 'Jour ${planDay.dayIndex}',
-                });
-              },
-              child: const Text('Lire'),
+      builder: (context) {
+        final idx = planDay?.dayIndex;
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(16),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF121737).withOpacity(0.85),
+                  border: Border.all(color: Colors.white.withOpacity(0.12)),
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      idx != null ? 'Jour $idx' : 'Hors plan',
+                      style: const TextStyle(
+                        fontFamily: 'Gilroy', fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Date: ${date.day}/${date.month}/${date.year}',
+                      style: TextStyle(
+                        fontFamily: 'Gilroy', fontSize: 14, color: Colors.white.withOpacity(0.8),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: BorderSide(color: Colors.white.withOpacity(0.25)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            child: const Text('Fermer', style: TextStyle(fontFamily: 'Gilroy', fontWeight: FontWeight.w700)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        if (planDay != null)
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                context.go('/reader', extra: {
+                                  'dayTitle': 'Jour ${planDay.dayIndex}',
+                                  'planId': _plan!.id,
+                                  'dayNumber': planDay.dayIndex,
+                                });
+                              },
+                              icon: const Icon(Icons.menu_book_rounded),
+                              label: const Text('Lire'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF1553FF),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
-        ],
-      ),
+          ),
+        );
+      },
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Widgets
+// Widgets (adaptés au design Selah)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _GlassAppBar extends StatelessWidget {
-  final String title;
-  final VoidCallback onClose;
+  final String title; final VoidCallback onClose;
   const _GlassAppBar({required this.title, required this.onClose});
 
   @override
   Widget build(BuildContext context) {
     return SliverAppBar(
-      pinned: true,
-      backgroundColor: Colors.transparent,
-      elevation: 0,
+      pinned: true, elevation: 0, backgroundColor: Colors.transparent,
       flexibleSpace: ClipRect(
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-          child: Container(
-            color: const Color(0xFF0F172A).withOpacity(0.65),
-          ),
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(color: const Color(0xFF0B1025).withOpacity(0.7)),
         ),
       ),
       title: Text(
@@ -258,6 +396,9 @@ class _GlassAppBar extends StatelessWidget {
         onPressed: onClose,
         icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
       ),
+      actions: const [
+        SizedBox(width: 8),
+      ],
     );
   }
 }
@@ -295,8 +436,7 @@ class _RoundIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkResponse(
-      onTap: onTap,
-      radius: 24,
+      onTap: onTap, radius: 24,
       child: Container(
         width: 36, height: 36,
         decoration: BoxDecoration(
@@ -311,6 +451,7 @@ class _RoundIcon extends StatelessWidget {
 }
 
 class _WeekdayStrip extends StatelessWidget {
+  const _WeekdayStrip();
   @override
   Widget build(BuildContext context) {
     const labels = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
@@ -320,7 +461,7 @@ class _WeekdayStrip extends StatelessWidget {
         children: labels.map((t) => Expanded(
           child: Center(
             child: Text(t, style: const TextStyle(
-              fontFamily: 'Gilroy', fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white60,
+              fontFamily: 'Gilroy', fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white60,
             )),
           ),
         )).toList(),
@@ -329,9 +470,9 @@ class _WeekdayStrip extends StatelessWidget {
   }
 }
 
-class _StatsCard extends StatelessWidget {
-  final double progress; final int daysDone; final int daysTotal; final VoidCallback? onResumeToday;
-  const _StatsCard({required this.progress, required this.daysDone, required this.daysTotal, this.onResumeToday});
+class _StatsStackCard extends StatelessWidget {
+  final double progress; final int daysDone; final int daysTotal; final VoidCallback? onResumeToday; final bool hasPlan;
+  const _StatsStackCard({required this.progress, required this.daysDone, required this.daysTotal, required this.hasPlan, this.onResumeToday});
 
   @override
   Widget build(BuildContext context) {
@@ -340,72 +481,95 @@ class _StatsCard extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [Color(0xFF1F2A61), Color(0xFF4C1D95)]),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(color: const Color(0xFF4C1D95).withOpacity(0.25), blurRadius: 24, offset: const Offset(0, 12)),
-          ],
-          border: Border.all(color: Colors.white.withOpacity(0.10)),
-        ),
-        child: Row(
-          children: [
-            // Gauge simple
-            Stack(
-              alignment: Alignment.center,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // Ombres empilées façon "cartes"
+          Positioned(
+            left: 12, right: 12, bottom: -10,
+            child: _shadowBar(opacity: .30),
+          ),
+          Positioned(
+            left: 24, right: 24, bottom: -18,
+            child: _shadowBar(opacity: .18, height: 10),
+          ),
+
+          // Carte principale
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: Colors.white.withOpacity(0.12)),
+            ),
+            child: Row(
               children: [
-                SizedBox(
-                  width: 64, height: 64,
-                  child: CircularProgressIndicator(
-                    value: progress.isNaN ? 0 : progress,
-                    strokeWidth: 6,
-                    backgroundColor: Colors.white.withOpacity(0.15),
-                    valueColor: const AlwaysStoppedAnimation(Color(0xFF10B981)),
+                // Gauge
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SizedBox(
+                      width: 64, height: 64,
+                      child: CircularProgressIndicator(
+                        value: progress.isNaN ? 0 : progress,
+                        strokeWidth: 6,
+                        backgroundColor: Colors.white.withOpacity(0.18),
+                        valueColor: const AlwaysStoppedAnimation(Color(0xFF49C98D)),
+                      ),
+                    ),
+                    Text('$percent%', style: const TextStyle(
+                      fontFamily: 'Gilroy', fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white,
+                    )),
+                  ],
+                ),
+                const SizedBox(width: 16),
+                // Texte
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Progression du plan', style: TextStyle(
+                        fontFamily: 'Gilroy', fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white70,
+                      )),
+                      const SizedBox(height: 6),
+                      Text('$daysDone / $daysTotal jours', style: const TextStyle(
+                        fontFamily: 'Gilroy', fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white,
+                      )),
+                      const SizedBox(height: 2),
+                      Text('$remaining jours restants', style: const TextStyle(
+                        fontFamily: 'Gilroy', fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white60,
+                      )),
+                    ],
                   ),
                 ),
-                Text('$percent%', style: const TextStyle(
-                  fontFamily: 'Gilroy', fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white,
-                )),
+                const SizedBox(width: 8),
+                ElevatedButton.icon(
+                  onPressed: hasPlan ? onResumeToday : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1553FF),
+                    disabledBackgroundColor: const Color(0xFF1553FF).withOpacity(0.35),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  ),
+                  icon: const Icon(Icons.play_arrow_rounded),
+                  label: const Text('Aujourd\'hui', style: TextStyle(fontFamily: 'Gilroy', fontWeight: FontWeight.w800)),
+                ),
               ],
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Progression du plan', style: TextStyle(
-                    fontFamily: 'Gilroy', fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white70,
-                  )),
-                  const SizedBox(height: 6),
-                  Text('$daysDone / $daysTotal jours', style: const TextStyle(
-                    fontFamily: 'Gilroy', fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white,
-                  )),
-                  const SizedBox(height: 2),
-                  Text('$remaining jours restants', style: const TextStyle(
-                    fontFamily: 'Gilroy', fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white60,
-                  )),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            ElevatedButton.icon(
-              onPressed: onResumeToday,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF10B981),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              ),
-              icon: const Icon(Icons.play_arrow_rounded),
-              label: const Text('Aujourd\'hui'),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
+
+  Widget _shadowBar({double opacity = .25, double height = 12}) => Container(
+    height: height,
+    decoration: BoxDecoration(
+      color: Colors.white.withOpacity(opacity),
+      borderRadius: BorderRadius.circular(12),
+    ),
+  );
 }
 
 class _DayCell extends StatelessWidget {
@@ -416,6 +580,7 @@ class _DayCell extends StatelessWidget {
   final bool inPlan;
   final Future<bool> completedFuture;
   final VoidCallback onTap;
+
   const _DayCell({
     required this.date,
     required this.isToday,
@@ -428,31 +593,27 @@ class _DayCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseBorder = isToday ? Colors.white.withOpacity(0.35) : Colors.white.withOpacity(0.10);
-    final selectedColor = const Color(0xFF1553FF);
+    final Color sel = const Color(0xFF1553FF);
+    final Color baseBorder = isToday ? Colors.white.withOpacity(0.35) : Colors.white.withOpacity(0.12);
 
     final bg = isSelected
-        ? selectedColor
+        ? sel
         : isToday
             ? Colors.white.withOpacity(0.10)
             : inPlan
                 ? Colors.white.withOpacity(0.04)
                 : Colors.transparent;
 
-    final textColor = isSelected
-        ? Colors.white
-        : dimmed
-            ? Colors.white30
-            : Colors.white;
+    final textColor = isSelected ? Colors.white : (dimmed ? Colors.white30 : Colors.white);
 
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
+        duration: const Duration(milliseconds: 140),
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isSelected ? selectedColor : baseBorder, width: 1),
+          border: Border.all(color: isSelected ? sel : baseBorder, width: 1),
         ),
         child: FutureBuilder<bool>(
           future: completedFuture,
@@ -462,18 +623,22 @@ class _DayCell extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('${date.day}', style: TextStyle(
-                    fontFamily: 'Gilroy', fontSize: 16,
-                    fontWeight: isToday || isSelected ? FontWeight.w800 : FontWeight.w600,
-                    color: textColor,
-                  )),
+                  Text(
+                    '${date.day}',
+                    style: TextStyle(
+                      fontFamily: 'Gilroy',
+                      fontSize: 16,
+                      fontWeight: isToday || isSelected ? FontWeight.w800 : FontWeight.w600,
+                      color: textColor,
+                    ),
+                  ),
                   if (inPlan)
                     Padding(
                       padding: const EdgeInsets.only(top: 2),
                       child: Icon(
                         completed ? Icons.check_circle : Icons.radio_button_unchecked,
                         size: 12,
-                        color: completed ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                        color: completed ? const Color(0xFF49C98D) : const Color(0xFFF59E0B),
                       ),
                     ),
                 ],
@@ -496,7 +661,7 @@ class _JumpTodayButton extends StatelessWidget {
       backgroundColor: const Color(0xFF6366F1),
       foregroundColor: Colors.white,
       icon: const Icon(Icons.today_rounded),
-      label: const Text('Aujourd\'hui'),
+      label: const Text('Aujourd\'hui', style: TextStyle(fontFamily: 'Gilroy', fontWeight: FontWeight.w800)),
     );
   }
 }

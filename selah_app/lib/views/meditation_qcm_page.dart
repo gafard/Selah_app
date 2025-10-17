@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import '../models/passage_qcm_builder.dart';
@@ -24,6 +25,13 @@ class _MeditationQcmPageState extends State<MeditationQcmPage> {
   // Les 8 questions fixes avec leurs options générées intelligemment
   late List<Map<String, dynamic>> _questions;
 
+  // Fonction utilitaire pour récupérer les arguments GoRouter
+  Map _readArgs(BuildContext context) {
+    final goExtra = (GoRouterState.of(context).extra as Map?) ?? {};
+    final modal = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};
+    return {...modal, ...goExtra}; // go_router prioritaire
+  }
+
   static const _fallbackDemo = '''
 Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l'eau vive".
   ''';
@@ -41,6 +49,13 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
       _freeByQuestion[q['id']] = TextEditingController();
       _selectedTagsByField[q['id']] = <String>{};
     }
+  }
+
+  // Validation pour permettre de continuer
+  bool get _canContinue {
+    final hasTags = _selectedTagsByField.values.any((s) => s.isNotEmpty);
+    final hasFree = _freeByQuestion.values.any((c) => c.text.trim().isNotEmpty);
+    return hasTags || hasFree;
   }
 
   List<Map<String, dynamic>> _generateIntelligentQuestions(String passage) {
@@ -339,14 +354,27 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
   }
 
   void _finish() {
+    // Validation avant de continuer
+    if (!_canContinue) {
+      HapticFeedback.mediumImpact();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Choisis au moins une réponse ou écris quelque chose.')),
+      );
+      return;
+    }
+
     // Collecter les réponses cochées pour chaque champ
     final selectedAnswersByField = <String, Set<String>>{};
     final freeTextResponses = <String, String>{};
     
+    // Collecter le texte libre
+    _freeByQuestion.forEach((field, controller) {
+      freeTextResponses[field] = controller.text.trim();
+    });
+    
     // Initialiser les maps pour tous les champs
     for (final field in _selectedTagsByField.keys) {
       selectedAnswersByField[field] = <String>{};
-      freeTextResponses[field] = '';
     }
     
     // Collecter les réponses cochées depuis les QCM
@@ -394,15 +422,15 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
       print('🔍 Item $i: ${items[i].theme} - ${items[i].subject}');
     }
 
-            context.go('/payerpage', extra: {
-              'items': items,
-              'memoryVerse': '', // Sera rempli par le bottom sheet
-              'passageRef': widget.passageRef,
-              'passageText': widget.passageText,
-              'selectedTagsByField': _selectedTagsByField,
-              'selectedAnswersByField': selectedAnswersByField,
-              'freeTextResponses': freeTextResponses,
-            });
+    context.go('/prayer', extra: {
+      'items': items,
+      'memoryVerse': '', // sera fixé plus tard si besoin
+      'passageRef': widget.passageRef,
+      'passageText': widget.passageText,
+      'selectedTagsByField': _selectedTagsByField,
+      'selectedAnswersByField': selectedAnswersByField,
+      'freeTextResponses': freeTextResponses,
+    });
   }
 
   @override
@@ -444,13 +472,42 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
   }
 
   Widget _buildHeader() {
-    return UniformHeader(
-      title: 'Méditation Guidée',
-      subtitle: widget.passageRef,
-      onBackPressed: () => context.pop(),
-      textColor: Colors.white,
-      iconColor: Colors.white,
-      titleAlignment: CrossAxisAlignment.center,
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => context.pop(),
+            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          ),
+          Expanded(
+            child: Column(
+              children: [
+                Text(
+                  'Méditation Guidée',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+                if (widget.passageRef != null && widget.passageRef!.isNotEmpty)
+                  Text(
+                    widget.passageRef!,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white.withOpacity(0.7),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 48), // Pour centrer le titre
+        ],
+      ),
     );
   }
 
@@ -459,12 +516,12 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
+          colors: [Color(0xFF06B6D4), Color(0xFF3B82F6)],
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF4F46E5).withOpacity(0.3),
+            color: const Color(0xFF06B6D4).withOpacity(0.3),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -502,7 +559,8 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
           ),
           const SizedBox(height: 12),
           Text(
-            'Sélectionne les options qui correspondent le mieux à ta compréhension du passage.',
+            'Lis lentement. Coche ce qui te parle, ou écris ta propre réponse.\n'
+            'L\'Esprit t\'éclaire pendant que tu médites. 🙏',
             style: GoogleFonts.inter(
               fontSize: 14,
               color: Colors.white.withOpacity(0.9),
@@ -525,10 +583,10 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withOpacity(0.08),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Colors.white.withOpacity(0.18),
           width: 1,
         ),
       ),
@@ -569,13 +627,13 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: isSelected 
-              ? Colors.white.withOpacity(0.2)
+              ? Colors.white.withOpacity(0.15)
               : Colors.white.withOpacity(0.05),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isSelected 
-                ? Colors.white.withOpacity(0.4)
-                : Colors.white.withOpacity(0.2),
+                ? Colors.white.withOpacity(0.3)
+                : Colors.white.withOpacity(0.15),
               width: 1,
             ),
           ),
@@ -623,10 +681,10 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
     
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withOpacity(0.08),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Colors.white.withOpacity(0.18),
           width: 1,
         ),
       ),
@@ -993,9 +1051,9 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
 
   Widget _buildFloatingButton() {
     return FloatingActionButton.extended(
-      onPressed: _finish,
-      backgroundColor: Colors.white,
-      foregroundColor: const Color(0xFF1C1740),
+      onPressed: _canContinue ? _finish : null,
+      backgroundColor: _canContinue ? Colors.white : Colors.white.withOpacity(0.3),
+      foregroundColor: _canContinue ? const Color(0xFF1C1740) : Colors.white.withOpacity(0.5),
       icon: const Icon(Icons.arrow_forward_rounded),
       label: Text(
         'Continuer vers la prière',

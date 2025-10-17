@@ -26,6 +26,13 @@ class _PrayerCarouselPageState extends State<PrayerCarouselPage> {
   Duration _pos = Duration.zero;
   Duration _dur = Duration.zero;
 
+  // Fonction utilitaire pour récupérer les arguments GoRouter
+  Map _readArgs(BuildContext context) {
+    final goExtra = (GoRouterState.of(context).extra as Map?) ?? {};
+    final modal = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};
+    return {...modal, ...goExtra}; // go_router prioritaire
+  }
+
   @override
   void initState() {
     super.initState();
@@ -36,38 +43,27 @@ class _PrayerCarouselPageState extends State<PrayerCarouselPage> {
     
     // Récupérer les arguments passés lors de la navigation
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final args = ModalRoute.of(context)?.settings.arguments;
+      final args = _readArgs(context);
       print('🔍 ARGUMENTS REÇUS: $args');
       print('🔍 TYPE: ${args.runtimeType}');
       
-      if (args is List) {
-        print('🔍 NOMBRE D\'ITEMS: ${args.length}');
-        setState(() {
-          _items = args.cast<PrayerItem>();
-        });
+      if (args is Map && args.containsKey('items')) {
+        final itemsList = args['items'] as List;
+        _memoryVerse = (args['memoryVerse'] as String?)?.trim() ?? '';
+        setState(() { _items = itemsList.cast<PrayerItem>(); });
         print('🔍 ITEMS FINAUX: ${_items.length}');
         for (int i = 0; i < _items.length; i++) {
           print('🔍 Item $i: ${_items[i].theme} - ${_items[i].subject}');
         }
-      } else if (args is Map && args.containsKey('items')) {
-        final itemsList = args['items'] as List;
-        _memoryVerse = (args['memoryVerse'] as String?)?.trim() ?? '';
-        print('🔍 NOMBRE D\'ITEMS (Map): ${itemsList.length}');
-        print('🔍 MEMORY VERSE: "$_memoryVerse"');
-        setState(() {
-          _items = itemsList.cast<PrayerItem>();
-        });
-        print('🔍 ITEMS FINAUX (Map): ${_items.length}');
+      } else if (args is List) {
+        setState(() { _items = (args as List).cast<PrayerItem>(); });
+        print('🔍 ITEMS FINAUX: ${_items.length}');
         for (int i = 0; i < _items.length; i++) {
           print('🔍 Item $i: ${_items[i].theme} - ${_items[i].subject}');
         }
       } else {
-        // Si aucun argument n'est fourni, créer des données de test
-        print('🔍 AUCUN ARGUMENT - CRÉATION DE DONNÉES DE TEST');
-        setState(() {
-          _items = _createTestPrayerItems();
-        });
-        print('🔍 ITEMS DE TEST CRÉÉS: ${_items.length}');
+        setState(() { _items = _createTestPrayerItems(); });
+        print('🔍 ARGUMENTS NON RECONNUS, UTILISATION DES ITEMS DE TEST');
       }
     });
   }

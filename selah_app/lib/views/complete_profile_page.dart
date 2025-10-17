@@ -23,15 +23,15 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
   String? selectedBibleVersion;
   int durationMin = 15;
   TimeOfDay reminder = const TimeOfDay(hour: 7, minute: 0);
-  String goal = 'Discipline quotidienne';
+  String goal = '✨ Rencontrer Jésus dans la Parole';
   String level = 'Fidèle régulier';
   String meditation = 'Méditation biblique';
   bool autoReminder = true;
   bool isLoading = false; // ← Indicateur de chargement
   
   // ═══ Générateur Ultime (Jean 5:40) ═══
-  String heartPosture = 'Rencontrer Jésus personnellement';
-  String motivation = 'Passion pour Christ';
+  String heartPosture = '🙏 Écouter la voix de Dieu';
+  String motivation = '🙏 Recherche de direction';
   
   // 🧠 Variables pour les recommandations intelligentes
   List<Map<String, dynamic>> _durationRecommendations = [];
@@ -39,7 +39,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
 
   final goals = const [
     // ═══ Objectifs Christ-centrés (Jean 5:40) ═══
-    'Rencontrer Jésus dans la Parole',
+    '✨ Rencontrer Jésus dans la Parole',
     'Voir Jésus dans chaque livre',
     'Être transformé à son image',
     'Développer l\'intimité avec Dieu',
@@ -81,7 +81,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
   final heartPostures = const [
     'Rencontrer Jésus personnellement',
     'Être transformé par l\'Esprit',
-    'Écouter la voix de Dieu',
+    '🙏 Écouter la voix de Dieu',
     'Approfondir ma connaissance',
     'Recevoir la puissance de l\'Esprit',
     'Développer l\'intimité avec le Père',
@@ -94,7 +94,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     'Obéissance joyeuse',
     'Désir de connaître Dieu',
     'Besoin de transformation',
-    'Recherche de direction',
+    '🙏 Recherche de direction',
     'Discipline spirituelle',
   ];
 
@@ -171,15 +171,15 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
         reminder = TimeOfDay(hour: reminderHour, minute: reminderMinute);
         
         autoReminder = profileMap['autoReminder'] as bool? ?? true;
-        goal = profileMap['goal'] as String? ?? 'Discipline quotidienne';
+        goal = profileMap['goal'] as String? ?? '✨ Rencontrer Jésus dans la Parole';
         final rawLevel = profileMap['level'] as String? ?? 'Fidèle régulier';
         // ✅ Corriger l'incohérence "Rétrogarde" vs "Rétrograde"
         level = rawLevel == 'Rétrogarde' ? 'Rétrograde' : rawLevel;
         meditation = profileMap['meditation'] as String? ?? 'Méditation biblique';
         
         // ✅ Charger les nouveaux champs (Générateur Ultime)
-        heartPosture = profileMap['heartPosture'] as String? ?? 'Rencontrer Jésus personnellement';
-        motivation = profileMap['motivation'] as String? ?? 'Passion pour Christ';
+        heartPosture = profileMap['heartPosture'] as String? ?? '🙏 Écouter la voix de Dieu';
+        motivation = profileMap['motivation'] as String? ?? '🙏 Recherche de direction';
       });
       
       print('✅ Préférences chargées depuis UserPrefs (offline-first)');

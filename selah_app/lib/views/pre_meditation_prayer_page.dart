@@ -1,7 +1,12 @@
+import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
-import '../bootstrap.dart';
+import 'package:airplane_mode_checker/airplane_mode_checker.dart';
+import 'package:app_settings/app_settings.dart';
+import '../bootstrap.dart'; // pour planService + _navigateToReader()
 
 class PreMeditationPrayerPage extends StatefulWidget {
   const PreMeditationPrayerPage({super.key});
@@ -12,239 +17,111 @@ class PreMeditationPrayerPage extends StatefulWidget {
 
 class _PreMeditationPrayerPageState extends State<PreMeditationPrayerPage>
     with TickerProviderStateMixin {
-  late AnimationController _fadeController;
-  late AnimationController _scaleController;
-  late AnimationController _pulseController;
-  
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _pulseAnimation;
+  // Animations
+  late final AnimationController _fadeIn;
+  late final AnimationController _pulse;
+  late final Animation<double> _fade;
+  late final Animation<double> _pulseScale;
+
+  // Airplane mode
+  AirplaneModeStatus? _airplane;
+  StreamSubscription<AirplaneModeStatus>? _airSub;
 
   @override
   void initState() {
     super.initState();
-    
-    // Animation de fade pour le texte
-    _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    );
-    
-    // Animation de scale pour le cercle
-    _scaleController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
-      vsync: this,
-    );
-    
-    // Animation de pulse pour l'icône
-    _pulseController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
-      vsync: this,
-    );
 
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeInOut,
-    ));
+    _fadeIn = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
+    _fade = CurvedAnimation(parent: _fadeIn, curve: Curves.easeOutCubic);
 
-    _scaleAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _scaleController,
-      curve: Curves.elasticOut,
-    ));
+    _pulse = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500));
+    _pulseScale = Tween(begin: 0.96, end: 1.04)
+        .animate(CurvedAnimation(parent: _pulse, curve: Curves.easeInOut));
 
-    _pulseAnimation = Tween<double>(
-      begin: 1.0,
-      end: 1.2,
-    ).animate(CurvedAnimation(
-      parent: _pulseController,
-      curve: Curves.easeInOut,
-    ));
+    _fadeIn.forward();
+    _pulse.repeat(reverse: true);
 
-    // Démarrer les animations
-    _startAnimations();
+    _initAirplaneWatcher();
   }
 
-  void _startAnimations() async {
-    // Vérifier si le widget est encore monté avant chaque opération
-    if (!mounted) return;
-    
-    // Délai avant de commencer les animations
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (!mounted) return;
-    
-    // Démarrer l'animation de fade
-    _fadeController.forward();
-    
-    // Démarrer l'animation de scale après un délai
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (!mounted) return;
-    _scaleController.forward();
-    
-    // Démarrer l'animation de pulse en boucle
-    await Future.delayed(const Duration(milliseconds: 1000));
-    if (!mounted) return;
-    _pulseController.repeat(reverse: true);
+  Future<void> _initAirplaneWatcher() async {
+    try {
+      final s = await AirplaneModeChecker.instance.checkAirplaneMode();
+      if (mounted) setState(() => _airplane = s);
+    } catch (_) {
+      if (mounted) setState(() => _airplane = null);
+    }
+    _airSub = AirplaneModeChecker.instance.listenAirplaneMode().listen((s) {
+      if (mounted) setState(() => _airplane = s);
+    });
   }
 
   @override
   void dispose() {
-    _fadeController.dispose();
-    _scaleController.dispose();
-    _pulseController.dispose();
+    _airSub?.cancel();
+    _fadeIn.dispose();
+    _pulse.dispose();
     super.dispose();
   }
+
+  // ───────────────────────────────── UI ─────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0B1025),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+            begin: Alignment.topLeft, 
+            end: Alignment.bottomRight,
             colors: [
-              Color(0xFF4A148C), // Purple foncé
-              Color(0xFF6A1B9A), // Purple plus clair
-              Color(0xFF8E24AA), // Purple encore plus clair
+              Color(0xFF0B1025), 
+              Color(0xFF1C1740), 
+              Color(0xFF2D1B69),
+              Color(0xFF1A0B3D),
             ],
+            stops: [0.0, 0.3, 0.7, 1.0],
           ),
         ),
         child: SafeArea(
-          child: Column(
+          child: Stack(
             children: [
-              const Spacer(),
+              // Background decorative elements
+              _buildBackgroundElements(),
               
-              // Texte principal
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: Column(
-                  children: [
-                    Text(
-                      'Préparons',
-                      style: GoogleFonts.inter(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'notre cœur...',
-                      style: GoogleFonts.inter(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFFE1BEE7), // Light purple
-                      ),
-                    ),
-                  ],
+              // Back button with improved positioning
+              Positioned(
+                top: 16,
+                left: 16,
+                child: _GlassIconButton(
+                  icon: Icons.arrow_back_rounded,
+                  onTap: () => context.pop(),
                 ),
               ),
-              
-              const SizedBox(height: 60),
-              
-              // Cercle avec icône
-              ScaleTransition(
-                scale: _scaleAnimation,
-                child: AnimatedBuilder(
-                  animation: _pulseAnimation,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: _pulseAnimation.value,
-                      child: Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFFE1BEE7),
-                            width: 3,
-                          ),
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.favorite,
-                            size: 50,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              
-              const SizedBox(height: 60),
-              
-              // Texte de prière
+
+              // Main content with improved layout
               FadeTransition(
-                opacity: _fadeAnimation,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40),
-                  child: Text(
-                    'Seigneur, ouvre mon cœur à Ta Parole\net guide-moi dans cette méditation.',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      color: Colors.white70,
-                      height: 1.5,
-                    ),
-                  ),
-                ),
-              ),
-              
-              const Spacer(),
-              
-              // Bouton de validation
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        await _navigateToReader();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF4A148C),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                        elevation: 8,
-                        shadowColor: Colors.black26,
-                      ),
-                      child: Text(
-                        'Je suis prêt(e)',
-                        style: GoogleFonts.inter(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              
-              const SizedBox(height: 20),
-              
-              // Texte en bas
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 20),
-                  child: Text(
-                    'Basé sur Psaume 119:18',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: Colors.white60,
+                opacity: _fade,
+                child: Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Hero section with improved spacing
+                        _buildHeroSection(),
+                        
+                        const SizedBox(height: 32),
+                        
+                        // Main card with enhanced design
+                        _buildMainCard(),
+                        
+                        const SizedBox(height: 24),
+                        
+                        // Scripture reference with better styling
+                        _buildScriptureReference(),
+                      ],
                     ),
                   ),
                 ),
@@ -256,7 +133,386 @@ class _PreMeditationPrayerPageState extends State<PreMeditationPrayerPage>
     );
   }
 
-  /// ✅ Navigation vers ReaderPageModern avec le passage du jour actuel
+  Widget _buildBackgroundElements() {
+    return Stack(
+      children: [
+        // Floating orbs for depth
+        Positioned(
+          top: 100,
+          right: -50,
+          child: Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  Colors.purple.withOpacity(0.1),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: 200,
+          left: -30,
+          child: Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  Colors.blue.withOpacity(0.08),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeroSection() {
+    return Column(
+      children: [
+        // Enhanced icon with better animation
+        ScaleTransition(
+          scale: _pulseScale,
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  Colors.white.withOpacity(0.15),
+                  Colors.white.withOpacity(0.05),
+                ],
+              ),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.2),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.1),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.favorite_rounded,
+              size: 48,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        
+        const SizedBox(height: 24),
+        
+        // Enhanced title
+        Text(
+          'Prépare ton cœur',
+          style: GoogleFonts.inter(
+            color: Colors.white,
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.5,
+            height: 1.2,
+          ),
+        ),
+        
+        const SizedBox(height: 12),
+        
+        // Enhanced subtitle
+        Text(
+          'Tu t\'apprêtes à entrer dans la présence de Dieu.\n'
+          'Choisis le silence, écoute et reste disponible.',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.inter(
+            color: Colors.white.withOpacity(0.85),
+            height: 1.5,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMainCard() {
+    return _GlassCard(
+      child: Column(
+        children: [
+          // Tips section with improved design
+          _buildEnhancedTipsList(),
+          
+          const SizedBox(height: 20),
+          
+          // Airplane mode indicator with better styling
+          _buildEnhancedAirplanePill(),
+          
+          const SizedBox(height: 24),
+          
+          // Action buttons with improved spacing
+          _buildActionButtons(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEnhancedTipsList() {
+    final tips = [
+      {
+        'icon': Icons.flight_takeoff_rounded,
+        'text': 'Mets le téléphone en mode avion',
+        'color': const Color(0xFF10B981),
+      },
+      {
+        'icon': Icons.place_rounded,
+        'text': 'Trouve un endroit calme et respire profondément',
+        'color': const Color(0xFF3B82F6),
+      },
+      {
+        'icon': Icons.hearing_rounded,
+        'text': 'Fais silence : « Parle Seigneur, ton serviteur écoute »',
+        'color': const Color(0xFF8B5CF6),
+      },
+    ];
+
+    return Column(
+      children: tips.map((tip) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: (tip['color'] as Color).withOpacity(0.15),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: (tip['color'] as Color).withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Icon(
+                tip['icon'] as IconData,
+                color: tip['color'] as Color,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                tip['text'] as String,
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontSize: 15,
+                  height: 1.4,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      )).toList(),
+    );
+  }
+
+  Widget _buildEnhancedAirplanePill() {
+    final isOn = _airplane == AirplaneModeStatus.on;
+    final bg = isOn ? const Color(0xFF10B981) : const Color(0xFFF59E0B);
+    final txt = isOn ? "Mode avion activé" : "Mode avion désactivé";
+    final icon = isOn ? Icons.flight_takeoff_rounded : Icons.flight_land_rounded;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            bg.withOpacity(0.2),
+            bg.withOpacity(0.1),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: bg.withOpacity(0.4), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: bg.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: bg, size: 18),
+          const SizedBox(width: 10),
+          Text(
+            txt,
+            style: GoogleFonts.inter(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Column(
+      children: [
+        // Primary button with enhanced design
+        _EnhancedPrimaryButton(
+          text: 'Je suis prêt(e)',
+          onTap: _onReadyPressed,
+        ),
+        
+        const SizedBox(height: 12),
+        
+        // Secondary button with improved styling
+        _EnhancedGhostButton(
+          text: 'Passer pour l\'instant',
+          onTap: () => _navigateToReader(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildScriptureReference() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.1),
+          width: 1,
+        ),
+      ),
+      child: Text(
+        'Psaume 119:18',
+        style: GoogleFonts.inter(
+          color: Colors.white.withOpacity(0.6),
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  // ───────────────────────────── Actions ─────────────────────────────
+
+  Future<void> _onReadyPressed() async {
+    HapticFeedback.mediumImpact();
+    await _navigateToReader();
+  }
+
+  void _showAirplaneSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF111431),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (_) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 44, height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: const [
+                  Icon(Icons.flight_takeoff_rounded, color: Colors.amber, size: 20),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Active le mode avion',
+                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                "Tu t\'apprêtes à écouter Dieu. Élimine les distractions : "
+                "mets ton téléphone en mode avion pour un vrai face-à-face.",
+                style: GoogleFonts.inter(color: Colors.white70, height: 1.5),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white24),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _navigateToReader();
+                      },
+                      child: const Text("Continuer quand même"),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.check_rounded, size: 18, color: Colors.white),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+                      ),
+                      onPressed: () async {
+                        // Ouvrir les paramètres du téléphone
+                        try {
+                          await AppSettings.openAppSettings();
+                        } catch (e) {
+                          // Fallback si l'ouverture échoue
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Ouvre les réglages et active le mode avion, puis reviens."),
+                              duration: Duration(seconds: 3),
+                            ),
+                          );
+                        }
+                        Navigator.pop(context);
+                      },
+                      label: const Text("Je vais l\'activer"),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ✅ Navigation vers ReaderPageModern avec le passage du jour actuel
   Future<void> _navigateToReader() async {
     try {
       print('🔍 DEBUG: Début navigation vers ReaderPageModern');
@@ -279,14 +535,23 @@ class _PreMeditationPrayerPageState extends State<PreMeditationPrayerPage>
         print('🔍 DEBUG: Jours récupérés: ${planDays.length}');
         
         if (planDays.isNotEmpty) {
-          // Calculer le jour actuel basé sur la date de début
+          // ✅ Calculer la différence en jours calendaires (change à minuit)
           final today = DateTime.now();
           final startDate = activePlan.startDate;
-          final daysSinceStart = today.difference(startDate).inDays;
           
-          // Récupérer le passage du jour actuel
-          if (daysSinceStart >= 0 && daysSinceStart < planDays.length) {
-            final todayPassage = planDays[daysSinceStart];
+          // Normaliser les dates à minuit pour comparer les jours calendaires
+          final todayNormalized = DateTime(today.year, today.month, today.day);
+          final startNormalized = DateTime(startDate.year, startDate.month, startDate.day);
+          
+          final dayIndex = todayNormalized.difference(startNormalized).inDays + 1;
+          
+          print('🔍 DEBUG: Calcul du jour actuel (calendaire):');
+          print('   - Aujourd\'hui: ${today.day}/${today.month}/${today.year}');
+          print('   - Date début: ${startDate.day}/${startDate.month}/${startDate.year}');
+          print('   - Jour calculé: $dayIndex');
+          
+          if (dayIndex >= 1 && dayIndex <= planDays.length) {
+            final todayPassage = planDays.firstWhere((day) => day.dayIndex == dayIndex);
             
             // Construire la référence du passage (maintenant sécurisé par ReadingRef.fromJson)
             String passageRef;
@@ -318,7 +583,7 @@ class _PreMeditationPrayerPageState extends State<PreMeditationPrayerPage>
           } else {
             // Plan terminé ou pas encore commencé
             if (mounted) {
-              _showPlanStatusMessage(activePlan, daysSinceStart, planDays.length);
+              _showPlanStatusMessage(activePlan, dayIndex - 1, planDays.length);
             }
           }
         } else {
@@ -451,5 +716,179 @@ class _PreMeditationPrayerPageState extends State<PreMeditationPrayerPage>
     // Utiliser le passage correspondant au jour, ou revenir au début si on dépasse
     final index = (dayNumber - 1) % passages.length;
     return passages[index];
+  }
+}
+
+// ────────────────────────────── UI bits ──────────────────────────────
+
+class _GlassCard extends StatelessWidget {
+  final Widget child;
+  const _GlassCard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withOpacity(0.12),
+                Colors.white.withOpacity(0.06),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.18),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 30,
+                offset: const Offset(0, 15),
+                spreadRadius: 2,
+              ),
+              BoxShadow(
+                color: Colors.white.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+class _GlassIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  const _GlassIconButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withOpacity(0.18)),
+        ),
+        child: Icon(icon, color: Colors.white, size: 20),
+      ),
+    );
+  }
+}
+
+class _EnhancedPrimaryButton extends StatelessWidget {
+  final String text;
+  final VoidCallback onTap;
+  const _EnhancedPrimaryButton({required this.text, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.mediumImpact();
+        onTap();
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF1553FF),
+              Color(0xFF0D47A1),
+              Color(0xFF1E40AF),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.2),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF1553FF).withOpacity(0.4),
+              blurRadius: 25,
+              offset: const Offset(0, 10),
+              spreadRadius: 2,
+            ),
+            BoxShadow(
+              color: Colors.white.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          text,
+          style: GoogleFonts.inter(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EnhancedGhostButton extends StatelessWidget {
+  final String text;
+  final VoidCallback onTap;
+  const _EnhancedGhostButton({required this.text, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.15),
+            width: 1.5,
+          ),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          text,
+          style: GoogleFonts.inter(
+            color: Colors.white.withOpacity(0.8),
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+            letterSpacing: 0.3,
+          ),
+        ),
+      ),
+    );
   }
 }

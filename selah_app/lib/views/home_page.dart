@@ -17,6 +17,7 @@ import '../widgets/home/daily_blessing.dart';
 import '../widgets/home/calendar_bar.dart';
 import '../widgets/home/activity_carousel.dart';
 import '../widgets/home/progress_card.dart';
+import '../widgets/home_time_banner.dart';
 import 'profile_settings_page.dart';
 import 'journal_page.dart';
 import 'spiritual_wall_page.dart';
@@ -153,6 +154,9 @@ class _HomePageWidgetState extends State<HomePageWidget>
             trailing: const SelahAppIcon(size: 48),
           ),
           const SizedBox(height: 12),
+          
+          // Bannière "C'est l'heure"
+          _buildTimeBanner(vm),
 
           // Message d'encouragement intelligent (remplace le verset du jour)
           _buildIntelligentEncouragement(vm),
@@ -181,6 +185,25 @@ class _HomePageWidgetState extends State<HomePageWidget>
           const SizedBox(height: 14),
         ],
       ),
+    );
+  }
+
+  /// Bannière "C'est l'heure" avec logique d'affichage conditionnelle
+  Widget _buildTimeBanner(HomeVM vm) {
+    // Calculer l'heure préférée pour aujourd'hui (par défaut 9h00)
+    final now = DateTime.now();
+    final preferredTimeToday = DateTime(now.year, now.month, now.day, 9, 0);
+    
+    // Vérifier si le jour actuel est complété
+    final completedToday = vm.state.tasksDone >= vm.state.tasksTotal && vm.state.tasksTotal > 0;
+    
+    return HomeTimeBanner(
+      preferredTimeToday: preferredTimeToday,
+      completedToday: completedToday,
+      onResumeToday: () {
+        // Naviguer vers la page de pré-méditation
+        context.go('/pre_meditation_prayer');
+      },
     );
   }
 

@@ -46,6 +46,8 @@ dependencies:
   encrypt: ^5.0.3
   flutter_secure_storage: ^9.0.0
   http: ^1.1.0
+  airplane_mode_checker: ^3.1.0
+  app_settings: ^5.1.1
 
 dev_dependencies:
   flutter_test:

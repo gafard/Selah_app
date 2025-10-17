@@ -131,7 +131,11 @@ class HomeVM extends ChangeNotifier {
 
     final plan = await planService.getActivePlan();
     if (plan != null) {
-      final dayIndex = DateTime.now().difference(plan.startDate).inDays + 1;
+      // ✅ Calculer la différence en jours calendaires (change à minuit)
+      final now = DateTime.now();
+      final todayNormalized = DateTime(now.year, now.month, now.day);
+      final startNormalized = DateTime(plan.startDate.year, plan.startDate.month, plan.startDate.day);
+      final dayIndex = todayNormalized.difference(startNormalized).inDays + 1;
       final days = await planService.getPlanDays(plan.id, fromDay: dayIndex, toDay: dayIndex);
       today = TodayReading(plan: plan, today: days.isEmpty ? null : days.first);
       

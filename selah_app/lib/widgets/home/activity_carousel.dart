@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import '../../services/airplane_guard.dart';
 
 class ActivityCarousel extends StatefulWidget {
   const ActivityCarousel({super.key});
@@ -96,6 +98,23 @@ class _ActivityCarouselState extends State<ActivityCarousel> {
 class _ActivityCard extends StatelessWidget {
   const _ActivityCard({required this.activity});
   final _Activity activity;
+
+  Future<void> _handleActivityTap(BuildContext context) async {
+    if (activity.route == '/pre_meditation_prayer') {
+      await AirplaneGuard.ensureFocusMode(
+        context,
+        proceed: () async {
+          HapticFeedback.mediumImpact();
+          if (context.mounted) {
+            context.go(activity.route);
+          }
+        },
+      );
+    } else {
+      HapticFeedback.mediumImpact();
+      context.go(activity.route);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -269,7 +288,7 @@ class _ActivityCard extends StatelessWidget {
                         child: Material(
                           color: Colors.transparent,
                           child: InkWell(
-                            onTap: () => context.go(activity.route),
+                            onTap: () => _handleActivityTap(context),
                             borderRadius: BorderRadius.circular(22),
                             child: Center(
                               child: Text(
