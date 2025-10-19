@@ -1,6 +1,7 @@
 import '../models/plan_profile.dart';
 import 'plan_orchestrator.dart';
 import 'user_prefs.dart';
+import 'user_prefs_sync.dart';
 
 typedef ProfileProvider = Future<PlanProfile> Function();
 
@@ -16,6 +17,8 @@ class VersionWatcher {
     try {
       onStart?.call();
       await UserPrefs.setBibleVersionCode(newVersionCode);
+      // Synchroniser vers UserPrefsHive
+      await UserPrefsSync.syncFromPrefsToHive();
       final profile = await currentProfile();
       await PlanOrchestrator.generateAndCachePlan(
         profile: profile,

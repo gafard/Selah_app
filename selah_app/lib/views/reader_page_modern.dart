@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -15,8 +16,18 @@ import '../services/intentions_service.dart';
 import '../models/reading_passage.dart';
 import '../services/bible_version_manager.dart';
 import '../services/user_prefs.dart';
+import '../services/user_prefs_hive.dart';
+import '../services/user_prefs_sync.dart';
+import '../services/version_change_notifier.dart';
 import '../bootstrap.dart' as bootstrap;
 import 'advanced_bible_study_page.dart';
+import '../services/spiritual_foundations_service.dart';
+import '../models/spiritual_foundation.dart';
+import '../services/themes_service.dart';
+import '../services/bible_context_service.dart';
+import '../services/bible_comparison_service.dart';
+import '../services/thomson_service.dart';
+import 'bible_comparison_page.dart';
 
 class ReaderPageModern extends StatefulWidget {
   final String? passageRef;
@@ -46,6 +57,7 @@ class _ReaderPageModernState extends State<ReaderPageModern>
     with TickerProviderStateMixin {
   final bool _isFavorite = false;
   bool _isMarkedAsRead = false;
+  SpiritualFoundation? _foundationOfDay;
   late AnimationController _buttonAnimationController;
   String _notedVerse = ''; // Verset noté par l'utilisateur
   
@@ -54,6 +66,7 @@ class _ReaderPageModernState extends State<ReaderPageModern>
   String _passageText = '';
   String _dayTitle = 'Jour 15'; // Valeur par défaut
   bool _isLoadingText = true;
+  bool _isOfflineMode = false;
   
   // Multi-passage support
   ReadingSession? _readingSession;
@@ -61,6 +74,7 @@ class _ReaderPageModernState extends State<ReaderPageModern>
   // Version selection
   String _selectedVersion = 'lsg1910'; // ✅ Version VideoPsalm par défaut
   List<Map<String, String>> _availableVersions = [];
+  StreamSubscription<String>? _versionChangeSubscription;
 
   @override
   void initState() {
@@ -75,19 +89,58 @@ class _ReaderPageModernState extends State<ReaderPageModern>
     
     // Puis charger de manière asynchrone
     _init();
+    
+    // Charger la fondation du jour
+    _loadFoundationOfDay();
+    
+    // Écouter les changements de version
+    _versionChangeSubscription = VersionChangeNotifier.versionStream.listen((newVersion) {
+      print('📢 ReaderPage: Changement de version détecté: $newVersion');
+      _changeVersion(newVersion);
+    });
   }
 
   bool _hasInitialized = false;
 
+  /// Charge la fondation du jour
+  Future<void> _loadFoundationOfDay() async {
+    try {
+      final userPrefs = context.read<UserPrefsHive>();
+      final profile = userPrefs.profile;
+      
+      // Calculer le jour actuel du plan
+      int dayNumber = 1;
+      if (widget.planId != null && widget.dayNumber != null) {
+        dayNumber = widget.dayNumber!;
+      }
+      
+      final foundation = await SpiritualFoundationsService.getFoundationOfDay(
+        null, // Pas de plan spécifique pour le moment
+        dayNumber,
+        profile,
+      );
+      
+      if (mounted) {
+        setState(() {
+          _foundationOfDay = foundation;
+        });
+      }
+    } catch (e) {
+      print('❌ Erreur chargement fondation du jour: $e');
+    }
+  }
+
+  String? _lastAppliedVersion;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // ✅ Recharger le passage quand on revient des paramètres (une seule fois après l'init)
     if (_hasInitialized) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_readingSession?.currentPassage?.reference != null && 
-            _readingSession!.currentPassage!.reference != 'Jean 14:1-19') {
-          _reloadCurrentPassage();
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await _loadUserBibleVersion();
+        if (_selectedVersion != _lastAppliedVersion) {
+          _lastAppliedVersion = _selectedVersion;
+          await _reloadCurrentPassage();
         }
       });
     }
@@ -105,21 +158,95 @@ class _ReaderPageModernState extends State<ReaderPageModern>
   /// ✅ Charge la version de Bible de l'utilisateur
   Future<void> _loadUserBibleVersion() async {
     try {
-      final profile = await UserPrefs.loadProfile();
-      final userVersion = profile['bibleVersion'] as String?;
+      // Synchroniser d'abord les deux systèmes
+      await UserPrefsSync.syncBidirectional();
+      
+      // Essayer UserPrefsHive d'abord (système principal)
+      final prefs = context.read<UserPrefsHive?>();
+      String? userVersion;
+      
+      if (prefs != null) {
+        final profile = prefs.profile;
+        userVersion = profile['bibleVersion'] as String?;
+        print('🔍 _loadUserBibleVersion (UserPrefsHive): userVersion="$userVersion"');
+      } else {
+        // Fallback vers UserPrefs si UserPrefsHive non disponible
+        final profile = await UserPrefs.loadProfile();
+        userVersion = profile['bibleVersion'] as String?;
+        print('🔍 _loadUserBibleVersion (UserPrefs fallback): userVersion="$userVersion"');
+      }
+      
       if (userVersion != null && userVersion.isNotEmpty) {
-        setState(() {
-          _selectedVersion = userVersion;
-        });
-        print('📖 Version utilisateur chargée: $userVersion');
+        // Vérifier si la version est disponible
+        print('🔍 Vérification disponibilité de "$userVersion"...');
+        final isAvailable = await _checkVersionAvailability(userVersion);
+        print('🔍 Résultat vérification "$userVersion": isAvailable=$isAvailable');
+        if (isAvailable) {
+          setState(() {
+            _selectedVersion = userVersion!;
+          });
+          print('📖 Version utilisateur chargée: $userVersion');
+        } else {
+          // Essayer de forcer la réimportation pour francais_courant et semeur
+          if (userVersion == 'francais_courant' || userVersion == 'semeur') {
+            print('🔄 Tentative de réimportation forcée de $userVersion...');
+            try {
+              await BibleTextService.forceReimportVersion(userVersion);
+              // Vérifier à nouveau après réimportation
+              final isAvailableAfterReimport = await _checkVersionAvailability(userVersion);
+              if (isAvailableAfterReimport) {
+                setState(() {
+                  _selectedVersion = userVersion!;
+                });
+                print('✅ Version $userVersion réimportée avec succès');
+              } else {
+                setState(() {
+                  _selectedVersion = 'lsg1910';
+                });
+                print('⚠️ Réimportation échouée, fallback vers lsg1910');
+              }
+            } catch (e) {
+              setState(() {
+                _selectedVersion = 'lsg1910';
+              });
+              print('❌ Erreur réimportation $userVersion: $e, fallback vers lsg1910');
+            }
+          } else {
+            // Fallback vers LSG1910 pour les autres versions
+            setState(() {
+              _selectedVersion = 'lsg1910';
+            });
+            print('⚠️ Version utilisateur "$userVersion" non disponible, fallback vers lsg1910');
+          }
+        }
 
         // si la session est déjà prête, recharge
         if (_readingSession?.passages.isNotEmpty == true) {
           await _loadAllPassages();
         }
+      } else {
+        setState(() {
+          _selectedVersion = 'lsg1910';
+        });
+        print('⚠️ Aucune version utilisateur trouvée, fallback vers lsg1910');
       }
     } catch (e) {
       print('⚠️ Erreur chargement version utilisateur: $e');
+      setState(() {
+        _selectedVersion = 'lsg1910';
+      });
+    }
+  }
+
+  /// Vérifie si une version de Bible est disponible
+  Future<bool> _checkVersionAvailability(String versionId) async {
+    try {
+      await BibleTextService.ensureVersionAvailable(versionId);
+      // Vérifier spécifiquement cette version
+      return await BibleTextService.hasVerses(versionId);
+    } catch (e) {
+      print('⚠️ Version "$versionId" non disponible: $e');
+      return false;
     }
   }
   
@@ -157,24 +284,47 @@ class _ReaderPageModernState extends State<ReaderPageModern>
     
     try {
       await BibleTextService.init();
-      
-      // Charger tous les passages en parallèle
-      final futures = _readingSession!.passages.asMap().entries.map((entry) {
+      setState(() => _isLoadingText = true);
+
+      // Démarrer un timer pour détecter les chargements longs
+      Timer? offlineTimer;
+      offlineTimer = Timer(const Duration(seconds: 2), () {
+        if (mounted && _isLoadingText) {
+          setState(() => _isOfflineMode = true);
+        }
+      });
+
+      final updated = <int, ReadingPassage>{};
+      final tasks = _readingSession!.passages.asMap().entries.map((entry) async {
         final index = entry.key;
         final passage = entry.value;
-        return _loadSinglePassage(index, passage);
-      });
-      
-      await Future.wait(futures);
-      
-      // Mettre à jour le texte du passage actuel
-      await _updateCurrentPassageText();
-      
-    } catch (e) {
-      print('⚠️ Erreur chargement passages multiples: $e');
+
+        try {
+          await BibleTextService.ensureVersionAvailable(_selectedVersion);
+          final text = await BibleTextService.getPassageText(passage.reference, version: _selectedVersion);
+          final resolved = text ?? await _getFallbackText(passage.reference);
+          updated[index] = passage.copyWith(text: resolved, isLoaded: true, isLoading: false, error: text == null ? 'Texte non trouvé' : null);
+        } catch (e) {
+          final resolved = await _getFallbackText(passage.reference);
+          updated[index] = passage.copyWith(text: resolved, isLoaded: true, isLoading: false, error: e.toString());
+        }
+      }).toList();
+
+      await Future.wait(tasks);
+      offlineTimer.cancel();
+
+      if (!mounted) return;
       setState(() {
+        var rs = _readingSession!;
+        updated.forEach((i, p) => rs = rs.updatePassage(i, p));
+        _readingSession = rs;
         _isLoadingText = false;
       });
+      await _updateCurrentPassageText();
+    } catch (e) {
+      print('⚠️ Erreur chargement passages multiples: $e');
+      if (!mounted) return;
+      setState(() => _isLoadingText = false);
     }
   }
   
@@ -388,15 +538,26 @@ class _ReaderPageModernState extends State<ReaderPageModern>
 
   /// Texte de fallback si la base de données n'est pas disponible
   Future<String> _getFallbackText([String? reference]) async {
-    // Essayer de récupérer le vrai texte de Jean 14:1-19 depuis la base de données
+    // Essayer d'abord avec LSG1910 qui fonctionne toujours
     try {
-      final text = await BibleTextService.getPassageText('Jean 14:1-19', version: _selectedVersion);
+      final text = await BibleTextService.getPassageText(reference ?? 'Jean 14:1-19', version: 'lsg1910');
       if (text != null && text.trim().isNotEmpty) {
-        print('🔍 _getFallbackText: Texte récupéré depuis la base de données (${text.length} caractères)');
+        print('🔍 _getFallbackText: Texte récupéré depuis LSG1910 (${text.length} caractères)');
         return text;
       }
     } catch (e) {
-      print('⚠️ _getFallbackText: Erreur récupération depuis la base: $e');
+      print('⚠️ _getFallbackText: Erreur récupération LSG1910: $e');
+    }
+    
+    // Essayer avec la version sélectionnée
+    try {
+      final text = await BibleTextService.getPassageText(reference ?? 'Jean 14:1-19', version: _selectedVersion);
+      if (text != null && text.trim().isNotEmpty) {
+        print('🔍 _getFallbackText: Texte récupéré depuis $_selectedVersion (${text.length} caractères)');
+        return text;
+      }
+    } catch (e) {
+      print('⚠️ _getFallbackText: Erreur récupération $_selectedVersion: $e');
     }
     
     // Fallback statique si la base de données échoue
@@ -443,6 +604,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
   @override
   void dispose() {
     _buttonAnimationController.dispose();
+    _versionChangeSubscription?.cancel();
     super.dispose();
   }
 
@@ -482,9 +644,95 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
     }
     
     if (_isMarkedAsRead) {
-      // Afficher le bottom sheet pour noter le verset marquant
-      _showVerseNoteBottomSheet();
+      // Afficher les prompts de réflexion au lieu du bottom sheet
+      _showReflectionPrompts();
     }
+  }
+
+  /// Affiche les prompts de réflexion dans un bottom sheet
+  void _showReflectionPrompts() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Consumer<ReaderSettingsService>(
+        builder: (context, settings, child) {
+          final isDark = settings.effectiveTheme == 'dark';
+          final theme = Theme.of(context);
+          
+          return Container(
+            decoration: BoxDecoration(
+              color: isDark 
+                ? const Color(0xFF1F1B3B) 
+                : theme.colorScheme.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle bar
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark 
+                      ? Colors.white.withOpacity(0.3)
+                      : Colors.black.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                
+                // Titre
+                Text(
+                  'Réflexion sur le passage',
+                  style: TextStyle(
+                    fontFamily: 'Gilroy',
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Choisissez un prompt pour approfondir votre méditation',
+                  style: TextStyle(
+                    fontFamily: 'Gilroy',
+                    fontSize: 14,
+                    color: isDark 
+                      ? Colors.white.withOpacity(0.7)
+                      : theme.colorScheme.onSurface.withOpacity(0.7),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                
+                     // ReaderPromptsBar contextuel
+                     ReaderPromptsBar(
+                       isDark: isDark,
+                       passageRef: _readingSession?.currentPassage?.reference ?? '',
+                       foundation: _foundationOfDay,
+                       userLevel: 'intermédiaire', // TODO: Récupérer depuis le profil utilisateur
+                       onTapPrompt: (prompt) {
+                         Navigator.pop(context);
+                         _showNoteSheet(seedText: prompt);
+                       },
+                     ),
+                
+                const SizedBox(height: 20),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 
   void _goToMeditation() {
@@ -868,7 +1116,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {
@@ -1071,13 +1319,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
               _buildPassageHeader(isDark),
               const SizedBox(height: 8),
               
-              // Barre de prompts de réflexion
-              ReaderPromptsBar(
-                onTapPrompt: (prompt) {
-                  _showNoteSheet(seedText: prompt);
-                },
-              ),
-              const SizedBox(height: 8),
+              // Les prompts de réflexion sont maintenant dans le bottom sheet
               
               // Affichage de l'intention du jour
               FutureBuilder(
@@ -1117,6 +1359,8 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                         Expanded(
                           child: Text(
                             'Intention: $intention',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.inter(
                               color: Colors.white,
                               fontSize: 12,
@@ -1136,22 +1380,44 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                 Center(
                   child: Padding(
                     padding: const EdgeInsets.all(32.0),
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        isDark ? Colors.white : Colors.black,
-                      ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            isDark ? Colors.white : Colors.black,
+                          ),
+                        ),
+                        if (_isOfflineMode) ...[
+                          const SizedBox(height: 16),
+                          Text(
+                            'Mode hors ligne – chargement de secours',
+                            style: TextStyle(
+                              color: isDark ? Colors.white70 : Colors.black54,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 )
               else
-                HighlightableText(
-                  text: _passageText,
-                  style: settings.getFontStyle().copyWith(
-                    color: isDark ? Colors.white : Colors.black,
-                    fontSize: 16,
-                    height: 1.6,
+                GestureDetector(
+                  onLongPress: () {
+                    Clipboard.setData(ClipboardData(text: _passageText));
+                    _showSnackBar('Verset copié !', Icons.copy, Colors.blue);
+                    HapticFeedback.mediumImpact();
+                  },
+                  child: HighlightableText(
+                    text: _passageText,
+                    style: settings.getFontStyle().copyWith(
+                      color: isDark ? Colors.white : Colors.black,
+                      fontSize: 16,
+                      height: 1.6,
+                    ),
+                    textAlign: settings.getTextAlign(),
                   ),
-                  textAlign: settings.getTextAlign(),
                 ),
             ],
           ),
@@ -1404,7 +1670,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                     children: [
                       Flexible(
                         child: Text(
-                          'Marquer comme lu',
+                          _isMarkedAsRead ? 'Marqué comme lu' : 'Marquer comme lu',
                           style: const TextStyle(
                             fontFamily: 'Gilroy',
                             color: Colors.white,
@@ -1481,83 +1747,323 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
         final isDark = settings.effectiveTheme == 'dark';
         
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _buildStudyAction(
-                  Icons.info_outline,
-                  'Contexte',
-                  Colors.blue,
-                  () => _goToAdvancedStudyTab(0), // Tab Contexte
-                  isDark,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          child: Column(
+            children: [
+              // Aperçus intelligents enrichis
+              _buildSmartInsights(isDark),
+              
+              const SizedBox(height: 12),
+              
+              // Actions d'étude
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildStudyAction(
+                      Icons.info_outline,
+                      'Contexte',
+                      'Contexte historique et culturel',
+                      Colors.blue,
+                      () => _goToAdvancedStudyTab(0),
+                      isDark,
+                    ),
+                    const SizedBox(width: 6),
+                    _buildStudyAction(
+                      Icons.label_outline,
+                      'Thèmes',
+                      'Thèmes bibliques et doctrines',
+                      Colors.purple,
+                      () => _showThemesBottomSheet(),
+                      isDark,
+                    ),
+                    const SizedBox(width: 6),
+                    _buildStudyAction(
+                      Icons.person_outline,
+                      'Personnages',
+                      'Personnages bibliques',
+                      Colors.green,
+                      () => _showCharactersBottomSheet(),
+                      isDark,
+                    ),
+                    const SizedBox(width: 6),
+                    _buildStudyAction(
+                      Icons.menu_book_outlined,
+                      'Encyclopédie',
+                      'Encyclopédie biblique',
+                      Colors.orange,
+                      () => _goToAdvancedStudyTab(2),
+                      isDark,
+                    ),
+                    const SizedBox(width: 6),
+                    _buildStudyAction(
+                      Icons.search_outlined,
+                      'Concordance',
+                      'Références croisées BSB',
+                      Colors.teal,
+                      () => _showConcordanceBottomSheet(),
+                      isDark,
+                    ),
+                    const SizedBox(width: 6),
+                    _buildStudyAction(
+                      Icons.translate_outlined,
+                      'Lexique',
+                      'Mots grecs et hébreux',
+                      Colors.indigo,
+                      () => _goToAdvancedStudyTab(3),
+                      isDark,
+                    ),
+                    const SizedBox(width: 6),
+                    _buildStudyAction(
+                      Icons.library_books_outlined,
+                      'Index BSB',
+                      'Index thématique BSB',
+                      Colors.deepOrange,
+                      () => _showTopicalIndexBottomSheet(),
+                      isDark,
+                    ),
+                    const SizedBox(width: 6),
+                    _buildStudyAction(
+                      Icons.compare_arrows_outlined,
+                      'Versions',
+                      'Comparer 14 versions',
+                      Colors.cyan,
+                      () => _showBibleComparison(),
+                      isDark,
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                _buildStudyAction(
-                  Icons.label_outline,
-                  'Thèmes',
-                  Colors.purple,
-                  () => _goToAdvancedStudyTab(1), // Tab Thèmes
-                  isDark,
-                ),
-                const SizedBox(width: 12),
-                _buildStudyAction(
-                  Icons.person_outline,
-                  'Personnages',
-                  Colors.green,
-                  () => _goToAdvancedStudyTab(0), // Tab Contexte (contient personnages)
-                  isDark,
-                ),
-                const SizedBox(width: 12),
-                _buildStudyAction(
-                  Icons.menu_book_outlined,
-                  'Encyclopédie',
-                  Colors.orange,
-                  () => _goToAdvancedStudyTab(2), // Tab ISBE
-                  isDark,
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },
     );
   }
 
-  Widget _buildStudyAction(IconData icon, String title, Color color, VoidCallback onTap, bool isDark) {
+  /// Construit les aperçus intelligents simplifiés (optimisé)
+  Widget _buildSmartInsights(bool isDark) {
+    // Version simplifiée sans FutureBuilder lourd
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            isDark 
+                ? Colors.white.withOpacity(0.08)
+                : Colors.grey.shade50,
+            isDark 
+                ? Colors.white.withOpacity(0.03)
+                : Colors.grey.shade100,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark 
+              ? Colors.white.withOpacity(0.15)
+              : Colors.grey.shade200,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.auto_awesome,
+                color: Colors.amber,
+                size: 16,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Aperçus intelligents',
+                style: TextStyle(
+                  fontFamily: 'Gilroy',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white70 : Colors.grey.shade700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          
+          // Aperçu simplifié
+          _buildSmartInsightItem(
+            'Étude approfondie',
+            'Explorez ce passage avec nos outils d\'analyse',
+            Colors.purple,
+            Icons.auto_awesome,
+            isDark,
+          ),
+        ],
+      ),
+    );
+  }
+  
+  /// Construit un élément d'aperçu intelligent
+  Widget _buildSmartInsightItem(String label, String content, Color color, IconData icon, bool isDark) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Icon(
+            icon,
+            color: color,
+            size: 12,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontFamily: 'Gilroy',
+                  fontSize: 9,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                content,
+                style: TextStyle(
+                  fontFamily: 'Gilroy',
+                  fontSize: 10,
+                  color: isDark ? Colors.white70 : Colors.grey.shade600,
+                  height: 1.2,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+  
+  
+  /// Extrait le nom du livre d'une référence biblique
+  String _extractBookFromReference(String reference) {
+    final parts = reference.split(' ');
+    if (parts.isNotEmpty) {
+      return parts[0];
+    }
+    return '';
+  }
+
+  Widget _buildStudyAction(IconData icon, String title, String subtitle, Color color, VoidCallback onTap, bool isDark) {
     return GestureDetector(
       onTap: () {
         HapticFeedback.mediumImpact();
         onTap();
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        width: 100,
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              color.withOpacity(0.15),
+              color.withOpacity(0.08),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: color.withOpacity(0.3),
-            width: 1,
+            width: 1.5,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              color: color,
-              size: 18,
+            // Icône et titre
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: color,
+                    size: 14,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontFamily: 'Gilroy',
+                      color: isDark ? Colors.white : Colors.black87,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
+            const SizedBox(height: 4),
+            
+            // Description
             Text(
-              title,
+              subtitle,
               style: TextStyle(
                 fontFamily: 'Gilroy',
-                color: isDark ? Colors.white : Colors.black87,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white70 : Colors.grey.shade600,
+                fontSize: 8,
+                fontWeight: FontWeight.w500,
+                height: 1.1,
               ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            
+            const SizedBox(height: 4),
+            
+            // Indicateur d'action
+            Row(
+              children: [
+                Icon(
+                  Icons.arrow_forward_ios,
+                  color: color,
+                  size: 10,
+                ),
+                const SizedBox(width: 2),
+                Text(
+                  'Explorer',
+                  style: TextStyle(
+                    fontFamily: 'Gilroy',
+                    color: color,
+                    fontSize: 8,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -1600,13 +2106,12 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
   
   /// Navigue vers la page d'étude biblique avancée avec un onglet spécifique
   void _goToAdvancedStudyTab(int tabIndex) {
-    // Extraire le verset ID depuis la référence du passage
     final verseId = _extractVerseIdFromReference(_readingSession?.currentPassage?.reference ?? 'Jean 14:1-19');
-    
-    HapticFeedback.mediumImpact();
+    final ref = _readingSession?.currentPassage?.reference;
     context.push('/advanced_bible_study', extra: {
       'verseId': verseId,
       'initialTab': tabIndex,
+      'passageRef': ref, // pour TopicService/ConcordanceService
     });
   }
   
@@ -1657,9 +2162,14 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
           'language': v['language'] as String,
         }).toList();
         
-        // Sélectionner la première version disponible ou LSG par défaut
-        if (_availableVersions.isNotEmpty) {
-          _selectedVersion = _availableVersions.first['id']!;
+        // Ne change pas la version si déjà fixée et présente
+        final hasCurrent = _availableVersions.any((v) => v['id'] == _selectedVersion);
+        if (!hasCurrent) {
+          // Si l'utilisateur a une préférence mais pas encore dispo, on garde _selectedVersion
+          // sinon fallback sur la première dispo
+          if (_availableVersions.isNotEmpty) {
+            _selectedVersion = _availableVersions.first['id']!;
+          }
         }
       });
     } catch (e) {
@@ -1736,9 +2246,11 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
     final isSelected = version['id'] == _selectedVersion;
     
     return GestureDetector(
-      onTap: () {
-        _changeVersion(version['id']!);
-        Navigator.of(context).pop();
+      onTap: () async {
+        final id = version['id']!;
+        await context.read<UserPrefsHive>().patchProfile({'bibleVersion': id}); // ← persist
+        await _changeVersion(id);
+        if (mounted) Navigator.of(context).pop();
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -1793,6 +2305,644 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Affiche les thèmes du passage dans un bottom sheet
+  void _showThemesBottomSheet() {
+    final verseId = _extractVerseIdFromReference(_readingSession?.currentPassage?.reference ?? 'Jean 14:1-19');
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Consumer<ReaderSettingsService>(
+        builder: (context, settings, child) {
+          final isDark = settings.effectiveTheme == 'dark';
+          final theme = Theme.of(context);
+          
+          return Container(
+            decoration: BoxDecoration(
+              color: isDark 
+                  ? const Color(0xFF1F1B3B) 
+                  : theme.colorScheme.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle bar
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark 
+                        ? Colors.white.withOpacity(0.3)
+                        : Colors.black.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                
+                // Titre
+                Row(
+                  children: [
+                    Icon(
+                      Icons.label_outline,
+                      color: Colors.purple,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Thèmes bibliques',
+                      style: TextStyle(
+                        fontFamily: 'Gilroy',
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Thèmes identifiés dans ce passage',
+                  style: TextStyle(
+                    fontFamily: 'Gilroy',
+                    fontSize: 14,
+                    color: isDark 
+                        ? Colors.white.withOpacity(0.7)
+                        : theme.colorScheme.onSurface.withOpacity(0.7),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                // Liste des thèmes
+                FutureBuilder<List<String>>(
+                  future: ThomsonService.getThemes(verseId),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(32),
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    }
+                    
+                    final themes = snapshot.data ?? [];
+                    
+                    if (themes.isEmpty) {
+                      return Container(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: isDark ? Colors.white54 : Colors.grey.shade600,
+                              size: 48,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Aucun thème identifié',
+                              style: TextStyle(
+                                fontFamily: 'Gilroy',
+                                fontSize: 16,
+                                color: isDark ? Colors.white70 : Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    
+                    return Column(
+                      children: themes.map((theme) => _buildThemeItem(theme, isDark)).toList(),
+                    );
+                  },
+                ),
+                
+                const SizedBox(height: 20),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+  
+  /// Affiche les personnages du passage dans un bottom sheet
+  void _showCharactersBottomSheet() {
+    final verseId = _extractVerseIdFromReference(_readingSession?.currentPassage?.reference ?? 'Jean 14:1-19');
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Consumer<ReaderSettingsService>(
+        builder: (context, settings, child) {
+          final isDark = settings.effectiveTheme == 'dark';
+          final theme = Theme.of(context);
+          
+          return Container(
+            decoration: BoxDecoration(
+              color: isDark 
+                  ? const Color(0xFF1F1B3B) 
+                  : theme.colorScheme.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle bar
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark 
+                        ? Colors.white.withOpacity(0.3)
+                        : Colors.black.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                
+                // Titre
+                Row(
+                  children: [
+                    Icon(
+                      Icons.person_outline,
+                      color: Colors.green,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Personnages bibliques',
+                      style: TextStyle(
+                        fontFamily: 'Gilroy',
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Personnages mentionnés dans ce passage',
+                  style: TextStyle(
+                    fontFamily: 'Gilroy',
+                    fontSize: 14,
+                    color: isDark 
+                        ? Colors.white.withOpacity(0.7)
+                        : theme.colorScheme.onSurface.withOpacity(0.7),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                // Liste des personnages
+                FutureBuilder<List<String>>(
+                  future: ThomsonService.getCharacters(verseId),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(32),
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    }
+                    
+                    final characters = snapshot.data ?? [];
+                    
+                    if (characters.isEmpty) {
+                      return Container(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: isDark ? Colors.white54 : Colors.grey.shade600,
+                              size: 48,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Aucun personnage identifié',
+                              style: TextStyle(
+                                fontFamily: 'Gilroy',
+                                fontSize: 16,
+                                color: isDark ? Colors.white70 : Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    
+                    return Column(
+                      children: characters.map((character) => _buildCharacterItem(character, isDark)).toList(),
+                    );
+                  },
+                ),
+                
+                const SizedBox(height: 20),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+  
+  /// Construit un élément de thème
+  Widget _buildThemeItem(String theme, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.purple.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.purple.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.label,
+            color: Colors.purple,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              theme,
+              style: TextStyle(
+                fontFamily: 'Gilroy',
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  /// Construit un élément de personnage
+  Widget _buildCharacterItem(String character, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.green.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.green.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.person,
+            color: Colors.green,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              character,
+              style: TextStyle(
+                fontFamily: 'Gilroy',
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  /// Affiche la concordance BSB dans un bottom sheet
+  void _showConcordanceBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Consumer<ReaderSettingsService>(
+        builder: (context, settings, child) {
+          final isDark = settings.effectiveTheme == 'dark';
+          final theme = Theme.of(context);
+          
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.8,
+            decoration: BoxDecoration(
+              color: isDark 
+                  ? const Color(0xFF1F1B3B) 
+                  : theme.colorScheme.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                // Handle bar
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(top: 12),
+                  decoration: BoxDecoration(
+                    color: isDark 
+                        ? Colors.white.withOpacity(0.3)
+                        : Colors.black.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                
+                // Header
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.search_outlined,
+                        color: Colors.teal,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Concordance BSB',
+                        style: TextStyle(
+                          fontFamily: 'Gilroy',
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Search field
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Rechercher un mot...',
+                      hintStyle: TextStyle(
+                        color: isDark ? Colors.white54 : Colors.grey.shade600,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: Colors.teal,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: Colors.teal.withOpacity(0.3),
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: Colors.teal.withOpacity(0.3),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: Colors.teal,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                    onChanged: (value) {
+                      // TODO: Implémenter la recherche en temps réel
+                    },
+                  ),
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Results area
+                Expanded(
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Recherchez un mot pour voir ses références bibliques',
+                          style: TextStyle(
+                            fontFamily: 'Gilroy',
+                            fontSize: 14,
+                            color: isDark 
+                                ? Colors.white.withOpacity(0.7)
+                                : theme.colorScheme.onSurface.withOpacity(0.7),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Icon(
+                          Icons.search_off,
+                          color: isDark ? Colors.white54 : Colors.grey.shade600,
+                          size: 48,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Aucune recherche effectuée',
+                          style: TextStyle(
+                            fontFamily: 'Gilroy',
+                            fontSize: 16,
+                            color: isDark ? Colors.white70 : Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+  
+  /// Affiche l'index thématique BSB dans un bottom sheet
+  void _showTopicalIndexBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Consumer<ReaderSettingsService>(
+        builder: (context, settings, child) {
+          final isDark = settings.effectiveTheme == 'dark';
+          final theme = Theme.of(context);
+          
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.8,
+            decoration: BoxDecoration(
+              color: isDark 
+                  ? const Color(0xFF1F1B3B) 
+                  : theme.colorScheme.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                // Handle bar
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(top: 12),
+                  decoration: BoxDecoration(
+                    color: isDark 
+                        ? Colors.white.withOpacity(0.3)
+                        : Colors.black.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                
+                // Header
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.library_books_outlined,
+                        color: Colors.deepOrange,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Index Thématique BSB',
+                        style: TextStyle(
+                          fontFamily: 'Gilroy',
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Search field
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Rechercher un thème...',
+                      hintStyle: TextStyle(
+                        color: isDark ? Colors.white54 : Colors.grey.shade600,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: Colors.deepOrange,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: Colors.deepOrange.withOpacity(0.3),
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: Colors.deepOrange.withOpacity(0.3),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: Colors.deepOrange,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                    onChanged: (value) {
+                      // TODO: Implémenter la recherche en temps réel
+                    },
+                  ),
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Results area
+                Expanded(
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Recherchez un thème pour voir ses références bibliques',
+                          style: TextStyle(
+                            fontFamily: 'Gilroy',
+                            fontSize: 14,
+                            color: isDark 
+                                ? Colors.white.withOpacity(0.7)
+                                : theme.colorScheme.onSurface.withOpacity(0.7),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Icon(
+                          Icons.library_books_outlined,
+                          color: isDark ? Colors.white54 : Colors.grey.shade600,
+                          size: 48,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Aucune recherche effectuée',
+                          style: TextStyle(
+                            fontFamily: 'Gilroy',
+                            fontSize: 16,
+                            color: isDark ? Colors.white70 : Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -1918,6 +3068,21 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
       ),
     );
   }
+
+  /// Affiche la page de comparaison de versions
+  void _showBibleComparison() {
+    final currentReference = _readingSession?.currentPassage?.reference;
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BibleComparisonPage(
+          initialReference: currentReference,
+        ),
+      ),
+    );
+  }
+
 
 }
 

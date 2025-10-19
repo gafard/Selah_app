@@ -748,3 +748,5 @@ I/flutter (15824): 📖 Version utilisateur chargée: semeur
 ---
 
 *Ce rapport contient tous les éléments nécessaires pour comprendre et résoudre le problème de navigation et d'affichage du texte biblique dans l'application Selah.*
+
+

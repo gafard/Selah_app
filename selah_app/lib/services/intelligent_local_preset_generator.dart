@@ -8,6 +8,13 @@ import 'intelligent_motivation.dart';
 import 'needs_assessor.dart';
 import 'needs_first_scorer.dart';
 import 'doctrinal_guard.dart';
+// ═══ NOUVEAU ! Fondations Spirituelles ⭐ ═══
+import 'spiritual_foundations_service.dart';
+import '../models/spiritual_foundation.dart';
+// ═══ NOUVEAU ! Enrichissement BSB ⭐ ═══
+import 'bsb_topical_service.dart';
+import 'bsb_concordance_service.dart';
+import 'bible_comparison_service.dart';
 
 /// Signaux du profil pour évaluer les BESOINS réels
 class NeedSignals {
@@ -1902,6 +1909,118 @@ class IntelligentLocalPresetGenerator {
     }
     
     return combinedEmotions.take(4).toList();
+  }
+
+  /// 🧱 NOUVEAU ! Génère des fondations spirituelles pour un plan
+  static Future<List<String>> generateFoundationsForPlan(
+    Map<String, dynamic>? profile,
+    int totalDays,
+  ) async {
+    try {
+      final allFoundations = await SpiritualFoundationsService.loadFoundations();
+      if (allFoundations.isEmpty) return [];
+
+      final level = profile?['level'] as String? ?? 'Fidèle régulier';
+      final goal = profile?['goal'] as String? ?? 'Discipline quotidienne';
+      final heartPosture = profile?['heartPosture'] as String? ?? '';
+      final motivation = profile?['motivation'] as String? ?? '';
+
+      // 🎯 SCORING INTELLIGENT basé sur le système existant
+      final scoredFoundations = allFoundations.map((foundation) {
+        int score = 0;
+        final name = foundation.name.toLowerCase();
+        final description = foundation.fullDescription.toLowerCase();
+
+        // Objectifs Christ-centrés (même logique que goals_page.dart)
+        if (goal.contains('Rencontrer Jésus') && (name.contains('christ') || name.contains('jésus') || name.contains('fondement'))) {
+          score += 3;
+        } else if (goal.contains('Voir Jésus') && (name.contains('christ') || name.contains('jésus') || name.contains('gloire'))) {
+          score += 3;
+        } else if (goal.contains('transformé') && (name.contains('nouveau') || name.contains('renouveler') || name.contains('changer'))) {
+          score += 3;
+        } else if (goal.contains('intimité') && (name.contains('prière') || name.contains('méditation') || name.contains('relation'))) {
+          score += 3;
+        } else if (goal.contains('prier') && (name.contains('prière') || name.contains('méditation'))) {
+          score += 3;
+        } else if (goal.contains('voix de Dieu') && (name.contains('écouter') || name.contains('parole'))) {
+          score += 3;
+        } else if (goal.contains('fruit de l\'Esprit') && (name.contains('amour') || name.contains('joie') || name.contains('paix'))) {
+          score += 3;
+        } else if (goal.contains('Renouveler') && (name.contains('nouveau') || name.contains('renouveler'))) {
+          score += 3;
+        } else if (goal.contains('Esprit') && (name.contains('esprit') || name.contains('saint'))) {
+          score += 3;
+        }
+
+        // Posture du cœur
+        if (heartPosture.contains('Rencontrer Jésus') && (name.contains('christ') || name.contains('jésus'))) {
+          score += 2;
+        } else if (heartPosture.contains('transformé') && (name.contains('nouveau') || name.contains('changer'))) {
+          score += 2;
+        } else if (heartPosture.contains('Écouter') && (name.contains('écouter') || name.contains('parole'))) {
+          score += 2;
+        } else if (heartPosture.contains('intimité') && (name.contains('prière') || name.contains('relation'))) {
+          score += 2;
+        }
+
+        // Motivation
+        if (motivation.contains('direction') && (name.contains('chemin') || name.contains('voie'))) {
+          score += 1;
+        } else if (motivation.contains('croissance') && (name.contains('grandir') || name.contains('croître'))) {
+          score += 1;
+        } else if (motivation.contains('paix') && (name.contains('paix') || name.contains('sérénité'))) {
+          score += 1;
+        }
+
+        // Niveau spirituel
+        final spiritualLevel = _mapProfileToLevel(level);
+        if (foundation.targetProfiles.contains(spiritualLevel)) {
+          score += 1;
+        }
+
+        return MapEntry(foundation, score);
+      }).toList();
+
+      // Trier par score décroissant
+      scoredFoundations.sort((a, b) => b.value.compareTo(a.value));
+      
+      // Prendre les meilleures fondations (max 5 pour éviter la surcharge)
+      final maxFoundations = (totalDays / 7).ceil().clamp(1, 5); // 1 fondation par semaine max
+      final selectedFoundations = scoredFoundations
+          .take(maxFoundations)
+          .map((entry) => entry.key.id)
+          .toList();
+
+      print('🧱 Fondations générées pour le plan: ${selectedFoundations.join(', ')}');
+      return selectedFoundations;
+    } catch (e) {
+      print('❌ Erreur génération fondations: $e');
+      return [];
+    }
+  }
+
+  /// Mappe le niveau de profil utilisateur vers les niveaux de fondations
+  static String _mapProfileToLevel(String userLevel) {
+    switch (userLevel.toLowerCase()) {
+      case 'nouveau converti':
+      case 'rétrograde':
+      case 'débutant':
+      case 'beginner':
+        return 'beginner';
+      case 'fidèle pas si régulier':
+      case 'fidèle régulier':
+      case 'chrétien fidèle':
+      case 'intermédiaire':
+      case 'intermediate':
+        return 'intermediate';
+      case 'serviteur/leader':
+      case 'leader spirituel':
+      case 'avancé':
+      case 'advanced':
+        return 'advanced';
+      default:
+        return 'beginner';
+    }
   }
 
   /// Génération enrichie avec tous les facteurs d'apprentissage

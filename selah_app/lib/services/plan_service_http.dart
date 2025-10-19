@@ -10,10 +10,13 @@ import 'plan_service.dart';
 import 'sync_queue_hive.dart';
 import 'telemetry_console.dart';
 import 'user_prefs.dart';
+import 'user_prefs_sync.dart';
 import '../repositories/user_repository.dart';
 import 'plan_catchup_service.dart';
 import 'thompson_plan_generator.dart';
 import 'semantic_passage_boundary_service_v2.dart';
+import 'intelligent_local_preset_generator.dart';
+import 'bible_verses_database.dart';
 
 class PlanServiceHttp implements PlanService {
   final String baseUrl; // ex: https://api.selah.app
@@ -477,6 +480,7 @@ class PlanServiceHttp implements PlanService {
     required int minutesPerDay,
     List<Map<String, dynamic>>? customPassages,
     List<int>? daysOfWeek, // ✅ NOUVEAU - Jours de lecture (1=Lun, 7=Dim)
+    Map<String, dynamic>? userProfile, // ✅ NOUVEAU - Profil pour génération intelligente
   }) async {
     // 🔒 ARCHIVER L'ANCIEN PLAN S'IL EXISTE
     final current = cachePlans.get('active_plan');
@@ -502,6 +506,21 @@ class PlanServiceHttp implements PlanService {
     // Générer un ID unique pour le plan
     final planId = const Uuid().v4();
     
+    // 🧱 NOUVEAU ! Générer les fondations spirituelles intelligentes
+    List<String> foundationIds = [];
+    if (userProfile != null) {
+      try {
+        foundationIds = await IntelligentLocalPresetGenerator.generateFoundationsForPlan(
+          userProfile,
+          totalDays,
+        );
+        print('🧱 Fondations générées pour le plan: ${foundationIds.join(', ')}');
+      } catch (e) {
+        print('⚠️ Erreur génération fondations: $e');
+        // Continuer sans fondations si erreur
+      }
+    }
+    
     // Créer le plan local
     final plan = Plan(
       id: planId,
@@ -514,6 +533,7 @@ class PlanServiceHttp implements PlanService {
       specificBooks: specificBooks,
       minutesPerDay: minutesPerDay,
       daysOfWeek: daysOfWeek, // ✅ NOUVEAU
+      foundationIds: foundationIds.isNotEmpty ? foundationIds : null, // ✅ NOUVEAU
     );
     
     // Sauvegarder localement
@@ -582,6 +602,9 @@ class PlanServiceHttp implements PlanService {
       print('🧠 Génération intelligente avec IntelligentLocalPresetGenerator');
       
       try {
+        // Synchroniser d'abord les deux systèmes
+        await UserPrefsSync.syncBidirectional();
+        
         // Récupérer le profil utilisateur pour la génération intelligente
         final userProfile = await UserPrefs.loadProfile();
         
@@ -845,7 +868,9 @@ class PlanServiceHttp implements PlanService {
     final readingLength = _calculateReadingLength(durationMin);
     
     // 🚀 FALCON X v2 - Utiliser le service sémantique avancé pour des passages intelligents
-    final chapter = (day % 28) + 1; // Chapitre de base
+    // Corriger : utiliser le nombre réel de chapitres de chaque livre
+    final maxChapters = _getMaxChaptersForBook(book);
+    final chapter = (day % maxChapters) + 1; // Chapitre de base respectant les limites
     
     // Utiliser la version 2 pour un ajustement intelligent
     final boundary = SemanticPassageBoundaryService.adjustPassageChapters(
@@ -877,9 +902,14 @@ class PlanServiceHttp implements PlanService {
         url: null,
       );
     } else if (_isNewTestament(book)) {
+      // Pour les livres du NT, utiliser le nombre réel de versets
+      final maxVerses = _getVersesInChapter(book, chapter);
+      final requestedVerses = readingLength['gospels'] ?? 30;
+      final actualVerses = (requestedVerses ?? 30) > maxVerses ? maxVerses : (requestedVerses ?? 30);
+      
       return ReadingRef(
         book: book,
-        range: '${chapter}:1-${readingLength['gospels']}',
+        range: '$chapter:1-$actualVerses',
         url: null,
       );
     } else {
@@ -889,6 +919,11 @@ class PlanServiceHttp implements PlanService {
         url: null,
       );
     }
+  }
+  
+  /// Retourne le nombre maximum de chapitres pour un livre donné
+  int _getMaxChaptersForBook(String book) {
+    return BibleVersesDatabase.getChaptersInBook(book);
   }
   
   /// Parse une référence Thompson en ReadingRef
@@ -1020,6 +1055,9 @@ class PlanServiceHttp implements PlanService {
   /// Récupère la durée quotidienne choisie par l'utilisateur
   Future<int> _getUserDurationMin() async {
     try {
+      // Synchroniser d'abord les deux systèmes
+      await UserPrefsSync.syncBidirectional();
+      
       // Essayer de récupérer depuis UserPrefs
       final profile = await UserPrefs.loadProfile();
       return profile['durationMin'] as int? ?? 15; // 15 min par défaut
@@ -1047,6 +1085,11 @@ class PlanServiceHttp implements PlanService {
   /// Limite le nombre de versets dans une plage raisonnable
   int _clampVerses(int verses, int min, int max) {
     return verses.clamp(min, max);
+  }
+
+  /// Retourne le nombre réel de versets pour un chapitre donné
+  int _getVersesInChapter(String book, int chapter) {
+    return BibleVersesDatabase.getVersesInChapter(book, chapter);
   }
 
   @override

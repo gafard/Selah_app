@@ -1,4 +1,9 @@
 import 'prayer_subjects_builder.dart';
+import '../models/spiritual_foundation.dart';
+import 'spiritual_foundations_service.dart';
+import 'bsb_topical_service.dart';
+import 'bsb_concordance_service.dart';
+import 'bible_comparison_service.dart';
 
 /// Contexte complet pour la génération de prières intelligentes
 class PrayerContext {
@@ -9,6 +14,7 @@ class PrayerContext {
   final String passageRef;
   final String passageText;
   final DateTime? currentDate;
+  final SpiritualFoundation? foundationOfDay; // NOUVEAU: Fondation du jour
 
   PrayerContext({
     required this.userProfile,
@@ -18,6 +24,7 @@ class PrayerContext {
     required this.passageRef,
     required this.passageText,
     this.currentDate,
+    this.foundationOfDay,
   });
 
   /// Factory pour créer un contexte depuis les données existantes
@@ -28,6 +35,7 @@ class PrayerContext {
     required Map<String, Set<String>> answers,
     List<String>? detectedThemes,
     DateTime? currentDate,
+    SpiritualFoundation? foundationOfDay,
   }) {
     return PrayerContext(
       userProfile: userProfile,
@@ -37,6 +45,7 @@ class PrayerContext {
       passageRef: passageRef,
       passageText: passageText,
       currentDate: currentDate,
+      foundationOfDay: foundationOfDay,
     );
   }
 
@@ -210,6 +219,11 @@ class IntelligentPrayerGenerator {
     final emotionProfile = EmotionProfiles.forLevel(ctx.userProfile['level']);
     final activeTheme = _getActiveThemeForGoal(ctx.userProfile['goal']);
     
+    // 🚀 NOUVEAU - Enrichissement avec données BSB
+    final bsbThemes = _getBSBThemesForPassage(ctx.passageRef);
+    final concordanceWords = _getConcordanceWordsForPassage(ctx.passageRef);
+    final comparisonInsights = _getComparisonInsightsForPassage(ctx.passageRef);
+    
     final expanded = _expandWithKB(
       ideas: rawIdeas,
       theme: activeTheme,
@@ -217,6 +231,9 @@ class IntelligentPrayerGenerator {
       emotionProfile: emotionProfile,
       passageRef: ctx.passageRef,
       userProfile: ctx.userProfile,
+      // bsbThemes: bsbThemes,
+      // concordanceWords: concordanceWords,
+      // comparisonInsights: comparisonInsights,
     );
     print('✨ ${expanded.length} idées enrichies');
 
@@ -233,6 +250,79 @@ class IntelligentPrayerGenerator {
     print('✅ ${finalIdeas.length} prières finales générées');
     
     return finalIdeas;
+  }
+
+  /// 🚀 NOUVEAU - Obtenir les thèmes BSB pour un passage
+  static Future<List<String>> _getBSBThemesForPassage(String passageRef) async {
+    try {
+      await BSBTopicalService.init();
+      
+      // Extraire le livre du passage
+      final book = _extractBookFromReference(passageRef);
+      if (book.isNotEmpty) {
+        final themes = await BSBTopicalService.searchTheme(book);
+        return themes.take(5).toList(); // Limiter à 5 thèmes
+      }
+      
+      return [];
+    } catch (e) {
+      print('❌ Erreur récupération thèmes BSB: $e');
+      return [];
+    }
+  }
+
+  /// 🚀 NOUVEAU - Obtenir les mots de concordance pour un passage
+  static Future<List<String>> _getConcordanceWordsForPassage(String passageRef) async {
+    try {
+      await BSBConcordanceService.init();
+      
+      // Mots-clés spirituels communs
+      final spiritualWords = ['amour', 'grâce', 'foi', 'espérance', 'paix', 'joie', 'sagesse'];
+      final foundWords = <String>[];
+      
+      for (final word in spiritualWords) {
+        final results = await BSBConcordanceService.searchWord(word);
+        if (results.isNotEmpty) {
+          foundWords.add(word);
+        }
+      }
+      
+      return foundWords.take(3).toList(); // Limiter à 3 mots
+    } catch (e) {
+      print('❌ Erreur récupération concordance: $e');
+      return [];
+    }
+  }
+
+  /// 🚀 NOUVEAU - Obtenir les insights de comparaison pour un passage
+  static Future<Map<String, dynamic>> _getComparisonInsightsForPassage(String passageRef) async {
+    try {
+      await BibleComparisonService.init();
+      
+      final comparison = await BibleComparisonService.getVerseVersions(passageRef);
+      if (comparison != null && comparison.isNotEmpty) {
+        return {
+          'availableVersions': comparison.keys.length,
+          'hasComparison': true,
+          'passageRef': passageRef,
+        };
+      }
+      
+      return {'hasComparison': false, 'passageRef': passageRef};
+    } catch (e) {
+      print('❌ Erreur récupération comparaison: $e');
+      return {'hasComparison': false, 'passageRef': passageRef};
+    }
+  }
+
+  /// Extrait le livre d'une référence biblique
+  static String _extractBookFromReference(String passageRef) {
+    // Extraire le livre (ex: "Jean 3:16" -> "Jean")
+    final parts = passageRef.split(' ');
+    if (parts.isNotEmpty) {
+      return parts[0];
+    }
+    return '';
   }
 
   // === Étape 1 : Idées brutes (intégration avec PrayerSubjectsBuilder existant) ===
@@ -264,7 +354,16 @@ class IntelligentPrayerGenerator {
     final textBasedIdeas = _generateTextBasedIdeas(ctx);
     ideas.addAll(textBasedIdeas);
     
-    print('📝 ${ideas.length} idées générées (${prayerSubjects.length} du builder + ${textBasedIdeas.length} du texte)');
+    // NOUVEAU: Ajouter des prières basées sur la fondation du jour
+    int foundationPrayersCount = 0;
+    if (ctx.foundationOfDay != null) {
+      final foundationPrayers = _generateFoundationPrayers(ctx.foundationOfDay!);
+      ideas.addAll(foundationPrayers);
+      foundationPrayersCount = foundationPrayers.length;
+      print('🙏 ${foundationPrayersCount} prières de fondation ajoutées');
+    }
+    
+    print('📝 ${ideas.length} idées générées (${prayerSubjects.length} du builder + ${textBasedIdeas.length} du texte + ${foundationPrayersCount} fondations)');
     return ideas;
   }
 
@@ -583,6 +682,65 @@ class IntelligentPrayerGenerator {
         return body.replaceAll('Seigneur', 'Seigneur de compassion').replaceAll('Père', 'Père compatissant');
       default:
         return body;
+    }
+  }
+
+  /// NOUVEAU: Génère des prières basées sur la fondation spirituelle du jour
+  static List<PrayerIdea> _generateFoundationPrayers(SpiritualFoundation foundation) {
+    final prayers = <PrayerIdea>[];
+    
+    // Récupérer les prières contextuelles de la fondation
+    final foundationPrayers = SpiritualFoundationsService.getFoundationPrayers(foundation);
+    
+    for (int i = 0; i < foundationPrayers.length; i++) {
+      final prayer = foundationPrayers[i];
+      prayers.add(PrayerIdea(
+        title: 'Prière pour ${foundation.name}',
+        body: prayer,
+        category: _mapFoundationPrayerTone(foundation.prayerTone),
+        tags: ['foundation', foundation.id, foundation.prayerTone],
+        score: 0.9, // Score élevé car c'est la fondation du jour
+        metadata: {
+          'source': 'spiritual_foundation',
+          'foundationId': foundation.id,
+          'foundationName': foundation.name,
+          'prayerTone': foundation.prayerTone,
+          'verseReference': foundation.verseReference,
+        },
+      ));
+    }
+    
+    // Ajouter une prière basée sur le verset de la fondation
+    prayers.add(PrayerIdea(
+      title: 'Méditation sur ${foundation.verseReference}',
+      body: 'Seigneur, aide-moi à méditer sur ce verset: "${foundation.verseText}". Que cette parole transforme ma vie aujourd\'hui.',
+      category: 'adoration',
+      tags: ['foundation', foundation.id, 'verse_meditation'],
+      score: 0.85,
+      metadata: {
+        'source': 'foundation_verse',
+        'foundationId': foundation.id,
+        'verseReference': foundation.verseReference,
+        'verseText': foundation.verseText,
+      },
+    ));
+    
+    return prayers;
+  }
+
+  /// Mappe le ton de prière de la fondation vers les catégories ACTS
+  static String _mapFoundationPrayerTone(String prayerTone) {
+    switch (prayerTone) {
+      case 'adoration':
+        return 'adoration';
+      case 'intercession':
+        return 'intercession';
+      case 'repentance':
+        return 'confession';
+      case 'thanks':
+        return 'thanks';
+      default:
+        return 'intercession';
     }
   }
 }

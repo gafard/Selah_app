@@ -1,5 +1,8 @@
 import 'package:hive/hive.dart';
 import 'semantic_passage_boundary_service.dart';
+import 'bsb_concordance_service.dart';
+import 'bsb_topical_service.dart';
+import 'bible_comparison_service.dart';
 
 /// 🏎️ APÔTRE - Service de quiz ultra-intelligent
 /// 
@@ -77,7 +80,7 @@ class IntelligentQuizService {
     }
   }
 
-  /// 🎯 APÔTRE - Génération de questions personnalisées
+  /// 🎯 APÔTRE - Génération de questions personnalisées enrichies BSB
   static Future<List<IntelligentQuestion>> generatePersonalizedQuestions(String userId, String passageRef) async {
     try {
       final userProfile = await _getUserProfile(userId);
@@ -271,6 +274,20 @@ class IntelligentQuizService {
       final thompsonQuestions = await _getThompsonQuestionsForPassage(passageRef, userProfile);
       questions.addAll(thompsonQuestions);
       
+      // 7. 🚀 NOUVEAU - Questions basées sur la concordance BSB
+      if (semanticContext != null) {
+        final concordanceQuestions = await _generateConcordanceQuestions(passageRef, book, chapter, semanticContext);
+        questions.addAll(concordanceQuestions);
+        
+        // 8. 🚀 NOUVEAU - Questions thématiques BSB
+        final topicalQuestions = await _generateTopicalQuestions(passageRef, book, chapter, semanticContext);
+        questions.addAll(topicalQuestions);
+        
+        // 9. 🚀 NOUVEAU - Questions de comparaison de versions
+        final comparisonQuestions = await _generateComparisonQuestions(passageRef, book, chapter, semanticContext);
+        questions.addAll(comparisonQuestions);
+      }
+      
       return questions;
     } catch (e) {
       print('❌ Erreur génération questions passage: $e');
@@ -376,6 +393,226 @@ class IntelligentQuizService {
       print('❌ Erreur orchestration quiz: $e');
       return IntelligentQuiz.defaultQuiz();
     }
+  }
+
+  /// 🚀 NOUVEAU - Questions basées sur la concordance BSB
+  static Future<List<IntelligentQuestion>> _generateConcordanceQuestions(
+    String passageRef,
+    String book,
+    int chapter,
+    Map<String, dynamic> semanticContext,
+  ) async {
+    try {
+      await BSBConcordanceService.init();
+      final questions = <IntelligentQuestion>[];
+      
+      // Extraire les mots-clés du passage
+      final keywords = _extractKeywordsFromContext(semanticContext);
+      
+      for (final keyword in keywords.take(3)) {
+        // Rechercher dans la concordance BSB
+        final concordanceResults = await BSBConcordanceService.searchWord(keyword);
+        
+        if (concordanceResults.isNotEmpty) {
+          // Question sur la fréquence du mot
+          questions.add(IntelligentQuestion(
+            id: 'concordance_${keyword}_${DateTime.now().millisecondsSinceEpoch}',
+            text: 'Combien de fois le mot "$keyword" apparaît-il dans la Bible ?',
+            type: 'concordance',
+            difficulty: 'medium',
+            cognitiveLoad: 'medium',
+            options: [
+              '${concordanceResults.length} fois',
+              '${concordanceResults.length + 10} fois',
+              '${concordanceResults.length - 5} fois',
+              '${concordanceResults.length * 2} fois',
+            ],
+            correctAnswer: 0,
+            // explanation: 'Le mot "$keyword" apparaît ${concordanceResults.length} fois dans la Bible selon la concordance BSB.',
+              // bsbData: {
+              //   'keyword': keyword,
+              //   'occurrences': concordanceResults.length,
+              //   'references': concordanceResults.take(5).toList(),
+              // },
+          ));
+          
+          // Question sur les livres où le mot apparaît
+          final books = concordanceResults.map((r) => r.split(':')[0]).toSet().toList();
+          if (books.length > 1) {
+            questions.add(IntelligentQuestion(
+              id: 'concordance_books_${keyword}_${DateTime.now().millisecondsSinceEpoch}',
+              text: 'Dans quels livres bibliques le mot "$keyword" apparaît-il le plus ?',
+              type: 'concordance',
+              difficulty: 'hard',
+              cognitiveLoad: 'high',
+              options: books.take(4).toList(),
+              correctAnswer: 0,
+            ));
+          }
+        }
+      }
+      
+      return questions;
+    } catch (e) {
+      print('❌ Erreur génération questions concordance: $e');
+      return [];
+    }
+  }
+
+  /// 🚀 NOUVEAU - Questions thématiques BSB
+  static Future<List<IntelligentQuestion>> _generateTopicalQuestions(
+    String passageRef,
+    String book,
+    int chapter,
+    Map<String, dynamic> semanticContext,
+  ) async {
+    try {
+      await BSBTopicalService.init();
+      final questions = <IntelligentQuestion>[];
+      
+      // Rechercher des thèmes liés au passage
+      final themes = await BSBTopicalService.searchTheme(book);
+      
+      if (themes.isNotEmpty) {
+        // Question sur les thèmes principaux du livre
+        questions.add(IntelligentQuestion(
+          id: 'topical_${book}_${DateTime.now().millisecondsSinceEpoch}',
+          text: 'Quel est le thème principal du livre de $book selon l\'index BSB ?',
+          type: 'topical',
+          difficulty: 'medium',
+          cognitiveLoad: 'medium',
+          options: themes.take(4).toList(),
+          correctAnswer: 0,
+          // explanation: 'L\'index thématique BSB identifie plusieurs thèmes dans $book.',
+          // bsbData: {
+          //   'book': book,
+          //   'themes': themes,
+          //   'passageRef': passageRef,
+          // },
+        ));
+        
+        // Question sur la connexion thématique
+        if (themes.length > 1) {
+          questions.add(IntelligentQuestion(
+            id: 'topical_connection_${book}_${DateTime.now().millisecondsSinceEpoch}',
+            text: 'Quels thèmes sont liés dans $book selon l\'analyse BSB ?',
+            type: 'topical',
+            difficulty: 'hard',
+            cognitiveLoad: 'high',
+            options: [
+              '${themes[0]} et ${themes[1]}',
+              '${themes[1]} et ${themes[2]}',
+              '${themes[0]} et ${themes[2]}',
+              'Tous les thèmes sont liés',
+            ],
+            correctAnswer: 0,
+            // explanation: 'L\'index BSB montre des connexions thématiques dans $book.',
+            // bsbData: {
+            //   'book': book,
+            //   'themes': themes,
+            //   'connections': themes.take(3).toList(),
+            // },
+          ));
+        }
+      }
+      
+      return questions;
+    } catch (e) {
+      print('❌ Erreur génération questions thématiques: $e');
+      return [];
+    }
+  }
+
+  /// 🚀 NOUVEAU - Questions de comparaison de versions
+  static Future<List<IntelligentQuestion>> _generateComparisonQuestions(
+    String passageRef,
+    String book,
+    int chapter,
+    Map<String, dynamic> semanticContext,
+  ) async {
+    try {
+      await BibleComparisonService.init();
+      final questions = <IntelligentQuestion>[];
+      
+      // Obtenir la comparaison du verset
+      final comparison = await BibleComparisonService.getVerseVersions(passageRef);
+      
+      if (comparison != null && comparison.isNotEmpty) {
+        final versionNames = comparison.keys.toList();
+        
+        if (versionNames.length >= 2) {
+          // Question sur les différences entre versions
+          questions.add(IntelligentQuestion(
+            id: 'comparison_${passageRef}_${DateTime.now().millisecondsSinceEpoch}',
+            text: 'Quelle version traduit différemment le passage $passageRef ?',
+            type: 'comparison',
+            difficulty: 'medium',
+            cognitiveLoad: 'medium',
+            options: versionNames.take(4).toList(),
+            correctAnswer: 0,
+            // explanation: 'Les différentes versions peuvent traduire le même passage de manière différente.',
+            // bsbData: {
+            //   'passageRef': passageRef,
+            //   'versions': versionNames,
+            //   'texts': versions,
+            // },
+          ));
+          
+          // Question sur la richesse des versions
+          questions.add(IntelligentQuestion(
+            id: 'comparison_richness_${passageRef}_${DateTime.now().millisecondsSinceEpoch}',
+            text: 'Combien de versions bibliques sont disponibles pour $passageRef ?',
+            type: 'comparison',
+            difficulty: 'easy',
+            cognitiveLoad: 'low',
+            options: [
+              '${versionNames.length} versions',
+              '${versionNames.length + 2} versions',
+              '${versionNames.length - 1} versions',
+              'Plus de 20 versions',
+            ],
+            correctAnswer: 0,
+            // explanation: 'Le système de comparaison BSB propose ${versionNames.length} versions pour ce passage.',
+            // bsbData: {
+            //   'passageRef': passageRef,
+            //   'versionCount': versionNames.length,
+            //   'versions': versionNames,
+            // },
+          ));
+        }
+      }
+      
+      return questions;
+    } catch (e) {
+      print('❌ Erreur génération questions comparaison: $e');
+      return [];
+    }
+  }
+
+  /// Extrait les mots-clés du contexte sémantique
+  static List<String> _extractKeywordsFromContext(Map<String, dynamic> context) {
+    final keywords = <String>[];
+    
+    // Mots-clés communs à rechercher dans la concordance
+    final commonKeywords = ['amour', 'foi', 'espérance', 'grâce', 'paix', 'joie', 'sagesse', 'vérité', 'vie', 'mort'];
+    
+    // Extraire le texte du passage si disponible
+    final passageText = context['text'] as String? ?? '';
+    final textLower = passageText.toLowerCase();
+    
+    // Trouver les mots-clés présents dans le texte
+    for (final keyword in commonKeywords) {
+      if (textLower.contains(keyword)) {
+        keywords.add(keyword);
+      }
+    }
+    
+    // Si aucun mot-clé trouvé, utiliser des mots par défaut
+    if (keywords.isEmpty) {
+      keywords.addAll(['amour', 'foi', 'grâce']);
+    }
+    
+    return keywords;
   }
 
   /// 🧠 APÔTRE - Analyse de la progression spirituelle

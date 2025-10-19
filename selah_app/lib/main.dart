@@ -12,6 +12,7 @@ import 'package:selah_app/services/local_storage_service.dart';
 import 'package:selah_app/services/connectivity_service.dart';
 import 'package:selah_app/services/home_vm.dart';
 import 'package:selah_app/services/plan_service_http.dart';
+import 'package:selah_app/services/user_prefs_hive.dart';
 import 'bootstrap.dart' as bootstrap;
 
 /// Point d'entrée principal - VRAI OFFLINE-FIRST
@@ -71,6 +72,8 @@ Future<void> main() async {
       providers: [
         provider.ChangeNotifierProvider<AppState>(create: (context) => AppState(syncQueue: bootstrap.syncQueue)),
         provider.ChangeNotifierProvider<ReaderSettingsService>(create: (context) => ReaderSettingsService()),
+        provider.Provider<UserPrefsHive>(create: (context) => bootstrap.userPrefs),
+        provider.Provider<PlanServiceHttp>(create: (context) => bootstrap.planService as PlanServiceHttp),
         provider.ChangeNotifierProvider<HomeVM>(create: (context) => HomeVM(
           prefs: bootstrap.userPrefs,
           telemetry: bootstrap.telemetry,

@@ -140,3 +140,5 @@ class WisdomDoctrine extends AnchoredDoctrineModule {
     base: 1.0, bonus: .25,
   );
 }
+
+

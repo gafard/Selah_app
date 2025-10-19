@@ -7,7 +7,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../models/plan_preset.dart';
 import '../services/plan_presets_repo.dart';
 import '../services/user_prefs_hive.dart';
-import '../services/user_prefs.dart'; // ✅ UserPrefs ESSENTIEL
+import '../services/user_prefs.dart';
+import '../services/user_prefs_sync.dart'; // ✅ UserPrefs ESSENTIEL
 import 'package:provider/provider.dart';
 import '../services/dynamic_preset_generator.dart';
 import '../services/intelligent_local_preset_generator.dart';
@@ -80,6 +81,9 @@ class _GoalsPageState extends State<GoalsPage> {
   /// ✅ Recharger les presets si le profil a changé
   Future<void> _reloadPresetsIfNeeded() async {
     try {
+      // Synchroniser d'abord les deux systèmes
+      await UserPrefsSync.syncBidirectional();
+      
       // ✅ Utiliser UserPrefs (service principal, offline-first)
       final currentProfile = await UserPrefs.loadProfile();
       
@@ -2049,6 +2053,7 @@ class _GoalsPageState extends State<GoalsPage> {
         minutesPerDay: minutesPerDay,
         customPassages: customPassages,
         daysOfWeek: opts.daysOfWeek,
+        userProfile: _userProfile, // ✅ NOUVEAU - Passer le profil pour génération intelligente
       );
       
       print('🔒 Plan créé avec ID: ${createdPlan.id}');

@@ -1,4 +1,6 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +8,10 @@ import '../services/intelligent_prayer_generator.dart';
 import '../services/user_prefs_hive.dart';
 import '../repositories/user_repository.dart';
 import '../utils/prayer_subjects_mapper.dart';
+import '../services/spiritual_foundations_service.dart';
+import '../models/spiritual_foundation.dart';
+import '../widgets/meditation/foundation_reminder.dart';
+import '../widgets/meditation/foundation_practice_tracker.dart';
 
 class MeditationFreeV2Page extends StatefulWidget {
   final String? passageRef;
@@ -29,6 +35,7 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
   
   int _currentStep = 0;
   final int _totalSteps = 4;
+  SpiritualFoundation? _foundationOfDay;
 
   // Controllers pour les champs de texte
   final _charactersList = TextEditingController();
@@ -60,6 +67,34 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
       parent: _progressController,
       curve: Curves.easeInOut,
     ));
+    
+    // Charger la fondation du jour
+    _loadFoundationOfDay();
+  }
+
+  /// Charge la fondation du jour
+  Future<void> _loadFoundationOfDay() async {
+    try {
+      final userPrefs = context.read<UserPrefsHive>();
+      final profile = userPrefs.profile;
+      
+      // Utiliser le jour actuel (rotation simple)
+      final dayNumber = DateTime.now().day;
+      
+      final foundation = await SpiritualFoundationsService.getFoundationOfDay(
+        null, // Pas de plan spécifique pour le moment
+        dayNumber,
+        profile,
+      );
+      
+      if (mounted) {
+        setState(() {
+          _foundationOfDay = foundation;
+        });
+      }
+    } catch (e) {
+      print('❌ Erreur chargement fondation du jour: $e');
+    }
   }
 
   @override
@@ -188,6 +223,7 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
       answers: answers,
       detectedThemes: _detectThemes(widget.passageText ?? ''),
       currentDate: DateTime.now(),
+      foundationOfDay: _foundationOfDay, // NOUVEAU: Inclure la fondation du jour
     );
 
     // 4) Générer les idées de prière intelligentes
@@ -216,10 +252,7 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF1C1740),
-              Color(0xFF2D1B69),
-            ],
+            colors: [Color(0xFF1A1D29), Color(0xFF112244)],
           ),
         ),
         child: SafeArea(
@@ -233,14 +266,50 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
               
               // PageView avec les étapes
               Expanded(
-                child: PageView(
-                  controller: _pageController,
-                  onPageChanged: _onPageChanged,
+                child: Stack(
                   children: [
-                    _buildStep1(),
-                    _buildStep2(),
-                    _buildStep3(),
-                    _buildStep4(),
+                    // Ornements légers en arrière-plan
+                    Positioned(
+                      right: -60,
+                      top: -40,
+                      child: _softBlob(180),
+                    ),
+                    Positioned(
+                      left: -40,
+                      bottom: -50,
+                      child: _softBlob(220),
+                    ),
+
+                    // Contenu principal
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.2),
+                                width: 1,
+                              ),
+                            ),
+                            child: PageView(
+                              controller: _pageController,
+                              onPageChanged: _onPageChanged,
+                              children: [
+                                _buildStep1(),
+                                _buildStep2(),
+                                _buildStep3(),
+                                _buildStep4(),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -354,6 +423,12 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
           controller: _details,
           hint: '5 pains, 2 poissons, 5000 hommes...',
         ),
+        
+        // Rappel de fondation
+        if (_foundationOfDay != null) ...[
+          const SizedBox(height: 16),
+          FoundationReminder(foundation: _foundationOfDay!),
+        ],
       ],
     );
   }
@@ -380,6 +455,12 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
           controller: _reasons,
           hint: 'Compassion, obéissance, amour...',
         ),
+        
+        // Rappel de fondation
+        if (_foundationOfDay != null) ...[
+          const SizedBox(height: 16),
+          FoundationReminder(foundation: _foundationOfDay!),
+        ],
       ],
     );
   }
@@ -406,6 +487,12 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
           controller: _aboutNeighbor,
           hint: 'Aimer, servir, partager, être généreux...',
         ),
+        
+        // Rappel de fondation
+        if (_foundationOfDay != null) ...[
+          const SizedBox(height: 16),
+          FoundationReminder(foundation: _foundationOfDay!),
+        ],
       ],
     );
   }
@@ -432,58 +519,118 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
           controller: _setDifferent,
           hint: 'Comment je veux grandir...',
         ),
+        
+        // Tracker de pratique de fondation
+        if (_foundationOfDay != null) ...[
+          const SizedBox(height: 20),
+          FoundationPracticeTracker(foundation: _foundationOfDay!),
+        ],
       ],
     );
   }
 
   Widget _buildNavigationButtons() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Row(
-        children: [
-          if (_currentStep > 0)
-            Expanded(
-              child: ElevatedButton(
-                onPressed: _previousStep,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white.withOpacity(0.1),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: Colors.white.withOpacity(0.3)),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.transparent,
+            const Color(0xFF1A1D29).withOpacity(0.9),
+            const Color(0xFF1A1D29),
+          ],
+        ),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+          child: Row(
+            children: [
+              if (_currentStep > 0)
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.10),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withOpacity(0.20)),
+                    ),
+                    child: ElevatedButton(
+                      onPressed: _previousStep,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'Étape précédente',
+                        style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                      ),
+                    ),
                   ),
                 ),
-                child: Text(
-                  'Étape précédente',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+              
+              if (_currentStep > 0) const SizedBox(width: 12),
+              
+              Expanded(
+                flex: _currentStep == 0 ? 1 : 1,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color(0xFF1553FF),
+                        Color(0xFF0D47A1),
+                      ],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF1553FF).withOpacity(0.3),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: ElevatedButton(
+                    onPressed: _currentStep == _totalSteps - 1 ? _finish : _nextStep,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      _currentStep == _totalSteps - 1 
+                        ? 'Proposer des sujets de prière'
+                        : 'Étape suivante',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          
-          if (_currentStep > 0) const SizedBox(width: 12),
-          
-          Expanded(
-            flex: _currentStep == 0 ? 1 : 1,
-            child: ElevatedButton(
-              onPressed: _currentStep == _totalSteps - 1 ? _finish : _nextStep,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: const Color(0xFF1C1740),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Text(
-                _currentStep == _totalSteps - 1 
-                  ? 'Proposer des sujets de prière'
-                  : 'Étape suivante',
-                style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-              ),
-            ),
+            ],
           ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _softBlob(double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [Colors.white.withOpacity(0.20), Colors.transparent],
+        ),
       ),
     );
   }
@@ -503,44 +650,58 @@ class _StepCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      padding: const EdgeInsets.all(20.0),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           // Titre de l'étape
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-              ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+              color: Colors.white.withOpacity(0.10),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withOpacity(0.20)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: GoogleFonts.inter(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.self_improvement_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: GoogleFonts.inter(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Text(
                   subtitle,
                   style: GoogleFonts.inter(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.7),
+                    height: 1.4,
                   ),
                 ),
               ],
@@ -552,6 +713,7 @@ class _StepCard extends StatelessWidget {
           // Champs de l'étape
           ...children,
         ],
+        ),
       ),
     );
   }
@@ -584,10 +746,10 @@ class _FreeFieldDark extends StatelessWidget {
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.08),
+            color: Colors.white.withOpacity(0.10),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: Colors.white.withOpacity(0.18),
+              color: Colors.white.withOpacity(0.20),
               width: 1,
             ),
           ),

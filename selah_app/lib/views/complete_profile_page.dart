@@ -4,8 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../services/notification_service.dart';
 import '../services/daily_scheduler.dart';
-import '../services/user_prefs.dart'; // ✅ UserPrefs ESSENTIEL (offline-first)
+import '../services/user_prefs.dart';
+import '../services/user_prefs_sync.dart'; // ✅ UserPrefs ESSENTIEL (offline-first)
 import '../services/user_prefs_hive.dart';
+import '../services/version_change_notifier.dart';
+import '../bootstrap.dart' as bootstrap;
 import '../services/intelligent_duration_calculator.dart'; // 🧠 IntelligentDurationCalculator
 import '../repositories/user_repository.dart';
 import '../widgets/bible_version_selector.dart';
@@ -98,6 +101,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     'Discipline spirituelle',
   ];
 
+
   @override
   void initState() {
     super.initState();
@@ -146,43 +150,44 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     }
   }
   
-  /// ✅ Charger les préférences sauvegardées depuis UserPrefs (offline-first)
+  /// ✅ Charger les préférences sauvegardées depuis UserPrefsHive (système unifié)
   Future<void> _loadSavedPreferences() async {
     try {
-      // ✅ Utiliser UserPrefs (service principal, offline-first)
-      final profile = await UserPrefs.loadProfile();
+      // ✅ Synchroniser d'abord les deux systèmes
+      await UserPrefsSync.syncBidirectional();
+      
+      // ✅ Utiliser UserPrefsHive comme source principale (comme profile_settings_page)
+      final prefs = bootstrap.userPrefs;
+      final profile = prefs.profile;
       
       if (profile.isEmpty) {
         print('ℹ️ Aucune préférence sauvegardée');
         return;
       }
       
-      // ✅ Déclarer profileMap en dehors de setState pour y accéder
-      final profileMap = Map<String, dynamic>.from(profile);
-      
       setState(() {
-        // Charger tous les paramètres sauvegardés
-        selectedBibleVersion = profileMap['bibleVersion'] as String? ?? 'lsg1910';
-        durationMin = profileMap['durationMin'] as int? ?? 15;
+        // Charger tous les paramètres sauvegardés depuis UserPrefsHive
+        selectedBibleVersion = profile['bibleVersion'] as String? ?? 'lsg1910';
+        durationMin = profile['durationMin'] as int? ?? 15;
         
         // Charger l'heure du rappel
-        final reminderHour = profileMap['reminderHour'] as int? ?? 7;
-        final reminderMinute = profileMap['reminderMinute'] as int? ?? 0;
+        final reminderHour = profile['reminderHour'] as int? ?? 7;
+        final reminderMinute = profile['reminderMinute'] as int? ?? 0;
         reminder = TimeOfDay(hour: reminderHour, minute: reminderMinute);
         
-        autoReminder = profileMap['autoReminder'] as bool? ?? true;
-        goal = profileMap['goal'] as String? ?? '✨ Rencontrer Jésus dans la Parole';
-        final rawLevel = profileMap['level'] as String? ?? 'Fidèle régulier';
+        autoReminder = profile['autoReminder'] as bool? ?? true;
+        goal = profile['goal'] as String? ?? '✨ Rencontrer Jésus dans la Parole';
+        final rawLevel = profile['level'] as String? ?? 'Fidèle régulier';
         // ✅ Corriger l'incohérence "Rétrogarde" vs "Rétrograde"
         level = rawLevel == 'Rétrogarde' ? 'Rétrograde' : rawLevel;
-        meditation = profileMap['meditation'] as String? ?? 'Méditation biblique';
+        meditation = profile['meditation'] as String? ?? 'Méditation biblique';
         
         // ✅ Charger les nouveaux champs (Générateur Ultime)
-        heartPosture = profileMap['heartPosture'] as String? ?? '🙏 Écouter la voix de Dieu';
-        motivation = profileMap['motivation'] as String? ?? '🙏 Recherche de direction';
+        heartPosture = profile['heartPosture'] as String? ?? '🙏 Écouter la voix de Dieu';
+        motivation = profile['motivation'] as String? ?? '🙏 Recherche de direction';
       });
       
-      print('✅ Préférences chargées depuis UserPrefs (offline-first)');
+      print('✅ Préférences chargées depuis UserPrefsHive (système unifié)');
     } catch (e) {
       print('⚠️ Erreur chargement préférences: $e');
       // Continuer avec les valeurs par défaut
@@ -1018,7 +1023,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
       print('   dailyMinutes: $dailyMinutes');
       print('   level corrigé: $correctedLevel');
 
-      // 2) Sauvegarde des préférences utilisateur avec toutes les clés
+      // 2) Sauvegarde des préférences utilisateur avec toutes les clés (système unifié)
       print('💾 Sauvegarde profil utilisateur...');
       final payload = {
         'bibleVersion': bibleVersionCode,
@@ -1039,25 +1044,18 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
         'daysOfWeek': [1, 2, 3, 4, 5, 6, 7], // Tous les jours par défaut
       };
       
-      await UserPrefs.saveProfile(payload);
-      print('✅ Profil sauvegardé');
+      // ✅ Utiliser le même système que profile_settings_page.dart
+      final prefs = bootstrap.userPrefs;
+      await prefs.patchProfile(payload);
+      print('✅ Profil sauvegardé dans UserPrefsHive');
 
-      // 2.5) 🔁 Synchroniser aussi UserPrefsHive (ce que lit GoalsPage)
-      try {
-        final hive = context.mounted ? context.read<UserPrefsHive?>() : null;
-        if (hive != null) {
-          await hive.patchProfile(payload);
-          print('✅ Profil synchronisé avec Hive');
-        }
-      } catch (e) {
-        print('⚠️ UserPrefsHive non disponible (normal): $e');
-        // Si Provider absent, on ignore: GoalsPage pourra relire UserPrefs si déjà adapté
-      }
-
-      // 3) Sauvegarde de la version de la Bible
-      print('📖 Sauvegarde version Bible...');
-      await UserPrefs.setBibleVersionCode(bibleVersionCode);
-      print('✅ Version Bible sauvegardée');
+      // ✅ Synchroniser vers UserPrefs pour compatibilité
+      await UserPrefsSync.syncFromHiveToPrefs();
+      print('✅ Synchronisation vers UserPrefs terminée');
+      
+      // ✅ Notifier le changement de version (comme profile_settings_page)
+      VersionChangeNotifier.notifyVersionChange(bibleVersionCode);
+      print('✅ Changement de version notifié');
       
       // 2.5) Marquer le profil comme complet dans UserRepository
       print('✅ Marquage profil comme complet...');

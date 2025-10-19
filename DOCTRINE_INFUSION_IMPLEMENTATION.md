@@ -191,3 +191,5 @@ Jour 6: Psaume 111:10 ← ANCRAge doctrinal
 **L'infusion doctrinale "Crainte de Dieu" est maintenant active dans tous les plans générés par Selah !**
 
 Chaque utilisateur bénéficie automatiquement d'ancrages doctrinaux réguliers, adaptés à son profil spirituel, sans aucune intervention manuelle requise.
+
+

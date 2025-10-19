@@ -212,3 +212,5 @@ Cette implémentation fournit une base solide et extensible pour l'infusion doct
 - Interface utilisateur pour configurer les doctrines
 - Analytics sur l'impact des doctrines
 - Tests unitaires complets
+
+

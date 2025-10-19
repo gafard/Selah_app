@@ -1,0 +1,147 @@
+{
+  "foundations": [
+    {
+      "id": "christ_foundation",
+      "name": "Le Christ comme fondement",
+      "shortDescription": "Bâtis sur le roc aujourd'hui en obéissant à ce que tu lis.",
+      "fullDescription": "La Bible compare le Christ à la seule pierre sur laquelle il faut bâtir. L'obéissance à ses enseignements est la base d'une vie solide, tout comme construire sur le roc au lieu du sable.",
+      "icon": "landscape_rounded",
+      "gradient": ["#8B7355", "#D2B48C"],
+      "verseReference": "Matthieu 7:24",
+      "verseText": "Celui qui écoute mes paroles et les met en pratique bâtit sur le roc.",
+      "category": "foundation",
+      "prayerTone": "adoration",
+      "targetProfiles": ["beginner", "intermediate", "advanced"]
+    },
+    {
+      "id": "word_keystone",
+      "name": "La Parole comme clé de voûte",
+      "shortDescription": "Suivre la Parole de Dieu, et ne pas se contenter de l'écouter.",
+      "fullDescription": "Suivre la parole de Dieu, et ne pas se contenter de l'écouter, est la clé de voûte pour une maison durable.",
+      "icon": "menu_book_rounded",
+      "gradient": ["#4A90E2", "#7BB3F0"],
+      "verseReference": "Jacques 1:22",
+      "verseText": "Mettez en pratique la parole, et ne vous bornez pas à l'écouter.",
+      "category": "foundation",
+      "prayerTone": "adoration",
+      "targetProfiles": ["beginner", "intermediate", "advanced"]
+    },
+    {
+      "id": "humility_prayer",
+      "name": "Humilité et prière",
+      "shortDescription": "Ces pratiques sont essentielles pour une vie chrétienne exigeante.",
+      "fullDescription": "Ces pratiques sont essentielles, car la vie chrétienne est un chemin exigeant qui demande d'être mené avec humilité et en constante prière.",
+      "icon": "self_improvement",
+      "gradient": ["#9333EA", "#C084FC"],
+      "verseReference": "1 Pierre 5:6",
+      "verseText": "Humiliez-vous donc sous la puissante main de Dieu.",
+      "category": "practice",
+      "prayerTone": "intercession",
+      "targetProfiles": ["intermediate", "advanced"]
+    },
+    {
+      "id": "forgiveness",
+      "name": "Pardon",
+      "shortDescription": "L'usage du pardon est crucial pour maintenir l'unité et surmonter les épreuves.",
+      "fullDescription": "L'usage du pardon est crucial pour maintenir l'unité dans les couples et les relations, et pour surmonter les épreuves.",
+      "icon": "volunteer_activism",
+      "gradient": ["#EC4899", "#F472B6"],
+      "verseReference": "Matthieu 6:14",
+      "verseText": "Si vous pardonnez aux hommes leurs fautes, votre Père céleste vous pardonnera aussi.",
+      "category": "practice",
+      "prayerTone": "repentance",
+      "targetProfiles": ["beginner", "intermediate", "advanced"]
+    },
+    {
+      "id": "trust_god",
+      "name": "Confiance en Dieu",
+      "shortDescription": "Il faut faire confiance à Dieu plutôt qu'aux choses éphémères.",
+      "fullDescription": "Il faut faire confiance à Dieu plutôt qu'aux choses éphémères comme l'approbation des autres ou les réseaux sociaux.",
+      "icon": "favorite_rounded",
+      "gradient": ["#10B981", "#34D399"],
+      "verseReference": "Proverbes 3:5",
+      "verseText": "Confie-toi en l'Éternel de tout ton cœur.",
+      "category": "practice",
+      "targetProfiles": ["beginner", "intermediate", "advanced"]
+    },
+    {
+      "id": "priorities",
+      "name": "Priorités selon Dieu",
+      "shortDescription": "Se concentrer sur les priorités qui correspondent à la volonté de Dieu.",
+      "fullDescription": "Se concentrer sur les priorités qui correspondent à la volonté de Dieu, et non sur les richesses terrestres.",
+      "icon": "flag_rounded",
+      "gradient": ["#F59E0B", "#FCD34D"],
+      "verseReference": "Matthieu 6:33",
+      "verseText": "Cherchez premièrement le royaume et la justice de Dieu.",
+      "category": "practice",
+      "prayerTone": "intercession",
+      "targetProfiles": ["intermediate", "advanced"]
+    },
+    {
+      "id": "discernment",
+      "name": "Discerner avec justesse",
+      "shortDescription": "Se garder de juger les autres, mais chercher à se juger soi-même avec justesse.",
+      "fullDescription": "Se garder de juger les autres, mais au contraire chercher à se juger soi-même avec justesse.",
+      "icon": "visibility_rounded",
+      "gradient": ["#8B5CF6", "#A78BFA"],
+      "verseReference": "Matthieu 7:1",
+      "verseText": "Ne jugez point, afin que vous ne soyez point jugés.",
+      "category": "practice",
+      "prayerTone": "intercession",
+      "targetProfiles": ["advanced"]
+    },
+    {
+      "id": "obedience",
+      "name": "Obéissance",
+      "shortDescription": "Mettre en pratique la Parole de Dieu dans la vie quotidienne.",
+      "fullDescription": "L'obéissance à la Parole de Dieu est la manifestation concrète de notre foi et de notre amour pour le Seigneur.",
+      "icon": "check_circle_outline",
+      "gradient": ["#059669", "#10B981"],
+      "verseReference": "Jean 14:15",
+      "verseText": "Si vous m'aimez, gardez mes commandements.",
+      "category": "practice",
+      "prayerTone": "adoration",
+      "targetProfiles": ["beginner", "intermediate", "advanced"]
+    },
+    {
+      "id": "practice",
+      "name": "Mise en pratique",
+      "shortDescription": "Transformer la connaissance en action concrète dans la vie quotidienne.",
+      "fullDescription": "La mise en pratique de la Parole de Dieu est ce qui distingue une foi vivante d'une simple connaissance intellectuelle.",
+      "icon": "fitness_center",
+      "gradient": ["#DC2626", "#EF4444"],
+      "verseReference": "Jacques 2:17",
+      "verseText": "La foi, si elle n'a pas les œuvres, est morte en elle-même.",
+      "category": "practice",
+      "prayerTone": "intercession",
+      "targetProfiles": ["intermediate", "advanced"]
+    },
+    {
+      "id": "sand_foundation",
+      "name": "Construire sur le sable",
+      "shortDescription": "Les vies fondées sur le sable sont vouées à s'écrouler lors des épreuves.",
+      "fullDescription": "Les vies fondées sur le sable (choses instables ou vanités) sont vouées à s'écrouler lors des épreuves.",
+      "icon": "warning_amber_rounded",
+      "gradient": ["#F59E0B", "#FBBF24"],
+      "verseReference": "Matthieu 7:26",
+      "verseText": "Quiconque entend ces paroles que je dis et ne les met pas en pratique sera semblable à un homme insensé qui a bâti sa maison sur le sable.",
+      "category": "pitfall",
+      "prayerTone": "repentance",
+      "targetProfiles": ["beginner", "intermediate", "advanced"]
+    },
+    {
+      "id": "vain_work",
+      "name": "Travailler en vain",
+      "shortDescription": "Sans la direction de Dieu, les efforts peuvent être vains.",
+      "fullDescription": "Sans la direction de Dieu, les efforts peuvent être vains. Il est nécessaire de bâtir avec lui pour que la maison tienne.",
+      "icon": "block",
+      "gradient": ["#6B7280", "#9CA3AF"],
+      "verseReference": "Psaume 127:1",
+      "verseText": "Si l'Éternel ne bâtit la maison, ceux qui la bâtissent travaillent en vain.",
+      "category": "pitfall",
+      "prayerTone": "repentance",
+      "targetProfiles": ["intermediate", "advanced"]
+    }
+  ]
+}
+

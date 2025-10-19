@@ -75,3 +75,5 @@ class IntentionsService {
     await saveTodayIntention(newText);
   }
 }
+
+

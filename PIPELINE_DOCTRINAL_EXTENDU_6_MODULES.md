@@ -281,3 +281,5 @@ flutter analyze lib/services/doctrine/ lib/views/goals_page.dart
 Cette implémentation étendue fournit un système doctrinal complet et modulaire qui enrichit automatiquement tous les plans de lecture avec 6 doctrines fondamentales. L'architecture est propre, extensible et parfaitement intégrée au système existant.
 
 **Résultat** : Tous les plans générés intègrent désormais automatiquement les doctrines appropriées selon le profil utilisateur, créant une expérience de lecture biblique plus riche et personnalisée.
+
+

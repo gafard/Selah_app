@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'services/sync_queue_hive.dart';
 import 'services/user_prefs_hive.dart';
+import 'services/user_prefs_sync.dart';
 import 'services/telemetry_console.dart';
 import 'services/user_repo_supabase.dart';
 import 'services/background_tasks.dart';
@@ -72,6 +73,15 @@ Future<void> appBootstrap() async {
 
   // Services
   userPrefs = UserPrefsHive(Hive.box('user_prefs'));
+  UserPrefsSync.init(userPrefs); // Initialiser la synchronisation
+  
+  // Synchronisation automatique au démarrage
+  await UserPrefsSync.syncBidirectional();
+  print('🔄 UserPrefsSync: Synchronisation automatique au démarrage terminée');
+  
+  // Démarrer la surveillance automatique
+  await UserPrefsSync.startAutoSync();
+  
   telemetry = TelemetryConsole();
   userRepo = UserRepoSupabase(); // configure via env SUPABASE_URL/KEY ou setters
   syncQueue = SyncQueueHive(Hive.box('sync_tasks'), telemetry: telemetry, userRepo: userRepo);

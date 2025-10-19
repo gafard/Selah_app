@@ -148,3 +148,5 @@ $$;
 COMMENT ON TABLE public.users IS 'Profils utilisateur étendus avec préférences et progression';
 COMMENT ON FUNCTION public.handle_new_user() IS 'Crée automatiquement un profil utilisateur lors de l''inscription';
 COMMENT ON FUNCTION public.update_user_current_plan(UUID, UUID) IS 'Met à jour le plan actuel de l''utilisateur et désactive les autres';
+
+

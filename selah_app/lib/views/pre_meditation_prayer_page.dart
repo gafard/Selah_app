@@ -70,6 +70,18 @@ class _PreMeditationPrayerPageState extends State<PreMeditationPrayerPage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0B1025),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          onPressed: () {
+            print('🔙 AppBar bouton retour tapé');
+            HapticFeedback.selectionClick();
+            context.go('/home');
+          },
+        ),
+      ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -89,16 +101,6 @@ class _PreMeditationPrayerPageState extends State<PreMeditationPrayerPage>
             children: [
               // Background decorative elements
               _buildBackgroundElements(),
-              
-              // Back button with improved positioning
-              Positioned(
-                top: 16,
-                left: 16,
-                child: _GlassIconButton(
-                  icon: Icons.arrow_back_rounded,
-                  onTap: () => context.pop(),
-                ),
-              ),
 
               // Main content with improved layout
               FadeTransition(
@@ -268,13 +270,13 @@ class _PreMeditationPrayerPageState extends State<PreMeditationPrayerPage>
   Widget _buildEnhancedTipsList() {
     final tips = [
       {
-        'icon': Icons.flight_takeoff_rounded,
-        'text': 'Mets le téléphone en mode avion',
+        'icon': Icons.favorite_rounded,
+        'text': 'Prie pour que Dieu te parle à travers cette lecture',
         'color': const Color(0xFF10B981),
       },
       {
         'icon': Icons.place_rounded,
-        'text': 'Trouve un endroit calme et respire profondément',
+        'text': 'Trouve un endroit calme',
         'color': const Color(0xFF3B82F6),
       },
       {
@@ -417,100 +419,6 @@ class _PreMeditationPrayerPageState extends State<PreMeditationPrayerPage>
     await _navigateToReader();
   }
 
-  void _showAirplaneSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF111431),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-      ),
-      builder: (_) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 44, height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: const [
-                  Icon(Icons.flight_takeoff_rounded, color: Colors.amber, size: 20),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Active le mode avion',
-                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(
-                "Tu t\'apprêtes à écouter Dieu. Élimine les distractions : "
-                "mets ton téléphone en mode avion pour un vrai face-à-face.",
-                style: GoogleFonts.inter(color: Colors.white70, height: 1.5),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white24),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _navigateToReader();
-                      },
-                      child: const Text("Continuer quand même"),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.check_rounded, size: 18, color: Colors.white),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF10B981),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
-                      ),
-                      onPressed: () async {
-                        // Ouvrir les paramètres du téléphone
-                        try {
-                          await AppSettings.openAppSettings();
-                        } catch (e) {
-                          // Fallback si l'ouverture échoue
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Ouvre les réglages et active le mode avion, puis reviens."),
-                              duration: Duration(seconds: 3),
-                            ),
-                          );
-                        }
-                        Navigator.pop(context);
-                      },
-                      label: const Text("Je vais l\'activer"),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
   // ✅ Navigation vers ReaderPageModern avec le passage du jour actuel
   Future<void> _navigateToReader() async {
@@ -777,19 +685,24 @@ class _GlassIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        onTap();
-      },
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.18)),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          print('🔙 _GlassIconButton tapé');
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withOpacity(0.18)),
+          ),
+          child: Icon(icon, color: Colors.white, size: 20),
         ),
-        child: Icon(icon, color: Colors.white, size: 20),
       ),
     );
   }

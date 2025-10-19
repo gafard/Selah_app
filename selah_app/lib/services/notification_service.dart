@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'dart:io';
@@ -219,4 +220,71 @@ class NotificationService {
       matchDateTimeComponents: DateTimeComponents.time, // tous les jours même heure
     );
   }
+
+  /// NOUVEAU: Planifie une notification avec payload personnalisé
+  Future<void> scheduleNotification({
+    required int id,
+    required String title,
+    required String body,
+    required TimeOfDay scheduledTime,
+    Map<String, dynamic>? payload,
+  }) async {
+    final now = DateTime.now();
+    final scheduledDateTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      scheduledTime.hour,
+      scheduledTime.minute,
+    );
+
+    // Si l'heure est déjà passée aujourd'hui, programmer pour demain
+    if (scheduledDateTime.isBefore(now)) {
+      scheduledDateTime.add(const Duration(days: 1));
+    }
+
+    final tzScheduledTime = tz.TZDateTime.from(scheduledDateTime, tz.local);
+
+    const android = AndroidNotificationDetails(
+      'selah_daily',
+      'Rappels quotidiens',
+      importance: Importance.high,
+      priority: Priority.high,
+      category: AndroidNotificationCategory.reminder,
+    );
+    const ios = DarwinNotificationDetails(
+      interruptionLevel: InterruptionLevel.active,
+      categoryIdentifier: 'FOUNDATION_REMINDER',
+    );
+    const details = NotificationDetails(android: android, iOS: ios);
+
+    await zonedDaily(
+      id: id,
+      title: title,
+      body: body,
+      details: details,
+      scheduledDate: tzScheduledTime,
+    );
+
+    print('🔔 Notification de fondation planifiée: $title à ${scheduledTime.hour}:${scheduledTime.minute.toString().padLeft(2, '0')}');
+  }
+
+  /// NOUVEAU: Annule une notification par ID
+  Future<void> cancelNotification(int id) async {
+    await _fln.cancel(id);
+    print('🚫 Notification $id annulée');
+  }
+
+  /// NOUVEAU: Vérifie si les notifications sont activées
+  Future<bool> areNotificationsEnabled() async {
+    if (kIsWeb) return false;
+    
+    if (Platform.isAndroid) {
+      final androidPlugin = _fln.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      return await androidPlugin?.areNotificationsEnabled() ?? false;
+    }
+    
+    return true; // iOS/macOS assume activées
+  }
+
 }

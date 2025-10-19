@@ -24,6 +24,7 @@ abstract class PlanService {
     required int minutesPerDay,
     List<Map<String, dynamic>>? customPassages,
     List<int>? daysOfWeek,
+    Map<String, dynamic>? userProfile, // ✅ NOUVEAU - Profil pour génération intelligente
   });
   
   /// 🔧 Force la régénération des jours du plan actuel

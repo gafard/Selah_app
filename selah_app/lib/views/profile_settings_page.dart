@@ -4,11 +4,13 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../bootstrap.dart' as bootstrap;
 import '../services/user_prefs_hive.dart';
+import '../services/user_prefs_sync.dart';
 import '../services/plan_service.dart';
 import '../services/telemetry_console.dart';
 import '../services/supabase_auth.dart';
 import '../services/local_storage_service.dart';
 import '../services/intentions_service.dart';
+import '../services/version_change_notifier.dart';
 import '../widgets/bible_version_selector.dart';
 
 /// Page épurée des paramètres selon la spécification
@@ -63,8 +65,16 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
   // Intentions
   bool _intentionsEnabled = false;
 
+  // Fondations spirituelles
+  bool _foundationsEnabled = true;
+  String _foundationLevel = 'beginner'; // beginner|intermediate|advanced
+  List<String> _preferredFoundations = [];
+  bool _foundationNotifications = true;
+  String _foundationTime = '08:00';
+
   // Listes
   final _languages = const ['Français', 'English', 'Español', 'Português', 'العربية'];
+  final _foundationLevels = const ['beginner', 'intermediate', 'advanced'];
 
   @override
   void initState() {
@@ -92,6 +102,14 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
         _notifications = true; // TODO: récupérer depuis le profil
         _intentionsEnabled = intentionsEnabled;
         _intentionController.text = intentionText ?? '';
+        
+        // Charger les préférences de fondations
+        _foundationsEnabled = profile['foundationsEnabled'] ?? true;
+        _foundationLevel = profile['foundationLevel'] ?? 'beginner';
+        _preferredFoundations = List<String>.from(profile['preferredFoundations'] ?? []);
+        _foundationNotifications = profile['foundationNotifications'] ?? true;
+        _foundationTime = profile['foundationTime'] ?? '08:00';
+        
         _loading = false;
       });
     } catch (e) {
@@ -127,8 +145,22 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
       updated['biometricsEnabled'] = _biometricsEnabled;
       updated['autoJournal'] = _autoJournal;
       updated['keepFavorites'] = _keepFavorites;
+      
+      // Sauvegarder les préférences de fondations
+      updated['foundationsEnabled'] = _foundationsEnabled;
+      updated['foundationLevel'] = _foundationLevel;
+      updated['preferredFoundations'] = _preferredFoundations;
+      updated['foundationNotifications'] = _foundationNotifications;
+      updated['foundationTime'] = _foundationTime;
 
       await prefs.patchProfile(updated);
+      // Synchroniser vers UserPrefs pour compatibilité
+      await UserPrefsSync.syncFromHiveToPrefs();
+      
+      // Notifier le changement de version si nécessaire
+      if (updated['bibleVersion'] != _profile!['bibleVersion']) {
+        VersionChangeNotifier.notifyVersionChange(updated['bibleVersion']);
+      }
       
       // Télémétrie
       telemetry.event('settings_saved', {
@@ -251,6 +283,8 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
 
       // 2) Déréférence le plan actif côté profil local
       await prefs.patchProfile({'activePlanId': null});
+      // Synchroniser vers UserPrefs pour compatibilité
+      await UserPrefsSync.syncFromHiveToPrefs();
 
       telemetry.event('start_new_plan_clicked', {'had_active_plan': activePlanId != null});
 
@@ -495,6 +529,9 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
 
                             // Section Intentions
                             _buildIntentionsSection(),
+                            const SizedBox(height: 20),
+
+                            // Section Fondations spirituelles (supprimée)
                             const SizedBox(height: 20),
 
                             // Section Actions de plan

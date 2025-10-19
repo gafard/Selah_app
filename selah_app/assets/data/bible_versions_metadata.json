@@ -1,0 +1,86 @@
+{
+  "BSB": {
+    "name": "Berean Standard Bible",
+    "language": "en",
+    "description": "Modern English translation with study notes",
+    "year": "2016"
+  },
+  "KJV": {
+    "name": "King James Version",
+    "language": "en",
+    "description": "Classic English translation (1611)",
+    "year": "1611"
+  },
+  "ASV": {
+    "name": "American Standard Version",
+    "language": "en",
+    "description": "Literal English translation (1901)",
+    "year": "1901"
+  },
+  "AKJV": {
+    "name": "American King James Version",
+    "language": "en",
+    "description": "Modernized KJV with American spelling",
+    "year": "1999"
+  },
+  "CPDV": {
+    "name": "Catholic Public Domain Version",
+    "language": "en",
+    "description": "Catholic translation in public domain",
+    "year": "2009"
+  },
+  "DBT": {
+    "name": "Darby Bible Translation",
+    "language": "en",
+    "description": "Literal translation by John Darby",
+    "year": "1890"
+  },
+  "DRB": {
+    "name": "Douay-Rheims Bible",
+    "language": "en",
+    "description": "Catholic English translation",
+    "year": "1582-1610"
+  },
+  "ERV": {
+    "name": "English Revised Version",
+    "language": "en",
+    "description": "British revision of KJV (1885)",
+    "year": "1885"
+  },
+  "JPS / WEY": {
+    "name": "JPS Tanakh / Weymouth NT",
+    "language": "en",
+    "description": "Jewish Publication Society OT + Weymouth NT",
+    "year": "1917/1903"
+  },
+  "NHEB": {
+    "name": "New Heart English Bible",
+    "language": "en",
+    "description": "Modern English translation",
+    "year": "2010"
+  },
+  "SLT": {
+    "name": "Smith's Literal Translation",
+    "language": "en",
+    "description": "Literal word-for-word translation",
+    "year": "1876"
+  },
+  "WBT": {
+    "name": "Webster Bible Translation",
+    "language": "en",
+    "description": "Noah Webster's revision of KJV",
+    "year": "1833"
+  },
+  "WEB": {
+    "name": "World English Bible",
+    "language": "en",
+    "description": "Public domain modern English translation",
+    "year": "2000"
+  },
+  "YLT": {
+    "name": "Young's Literal Translation",
+    "language": "en",
+    "description": "Very literal English translation",
+    "year": "1862"
+  }
+}

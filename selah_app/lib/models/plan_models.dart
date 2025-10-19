@@ -10,6 +10,7 @@ class Plan {
   final String? specificBooks;
   final int minutesPerDay;
   final List<int>? daysOfWeek; // ✅ NOUVEAU - Jours de lecture (1=Lun, 7=Dim)
+  final List<String>? foundationIds; // ✅ NOUVEAU - Fondations spirituelles liées au plan
 
   Plan({
     required this.id,
@@ -22,6 +23,7 @@ class Plan {
     this.specificBooks,
     required this.minutesPerDay,
     this.daysOfWeek, // ✅ NOUVEAU
+    this.foundationIds, // ✅ NOUVEAU
   });
 
   factory Plan.fromJson(Map<String, dynamic> j) => Plan(
@@ -35,6 +37,7 @@ class Plan {
         specificBooks: j['specific_books'],
         minutesPerDay: j['minutes_per_day'] ?? 15,
         daysOfWeek: (j['days_of_week'] as List?)?.cast<int>(), // ✅ NOUVEAU
+        foundationIds: (j['foundation_ids'] as List?)?.cast<String>(), // ✅ NOUVEAU
       );
 
   Map<String, dynamic> toJson() => {
@@ -48,6 +51,7 @@ class Plan {
         'specific_books': specificBooks,
         'minutes_per_day': minutesPerDay,
         'days_of_week': daysOfWeek, // ✅ NOUVEAU
+        'foundation_ids': foundationIds, // ✅ NOUVEAU
       };
 }
 

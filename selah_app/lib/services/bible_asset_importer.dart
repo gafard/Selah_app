@@ -1,8 +1,6 @@
-import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:json5/json5.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart' as p;
+import 'bible_json_preprocessor.dart';
 
 /// Schéma attendu (tolérant):
 /// {
@@ -52,9 +50,32 @@ class BibleAssetImporter {
 
   /// Renvoie true si cette version est déjà importée (≥ 30k versets ≈ Bible entière)
   static Future<bool> isVersionImported(Database db, String versionId) async {
-    final x = Sqflite.firstIntValue(await db.rawQuery(
-      'SELECT COUNT(*) FROM verses WHERE version = ?', [versionId]));
-    return (x ?? 0) > 30000;
+    try {
+      final x = Sqflite.firstIntValue(await db.rawQuery(
+        'SELECT COUNT(*) FROM verses WHERE version = ?', [versionId]));
+      final count = x ?? 0;
+      final isImported = count > 30000;
+      print('🔍 isVersionImported($versionId): $count versets, isImported=$isImported');
+      return isImported;
+    } catch (e) {
+      print('❌ Erreur isVersionImported($versionId): $e');
+      return false;
+    }
+  }
+
+  /// Renvoie true si cette version existe dans la base (même avec peu de versets)
+  static Future<bool> isVersionAvailable(Database db, String versionId) async {
+    try {
+      final x = Sqflite.firstIntValue(await db.rawQuery(
+        'SELECT COUNT(*) FROM verses WHERE version = ?', [versionId]));
+      final count = x ?? 0;
+      final isAvailable = count > 0;
+      print('🔍 isVersionAvailable($versionId): $count versets, isAvailable=$isAvailable');
+      return isAvailable;
+    } catch (e) {
+      print('❌ Erreur isVersionAvailable($versionId): $e');
+      return false;
+    }
   }
 
   /// Import d'un asset JSON/JSON5 « loose »
@@ -66,8 +87,20 @@ class BibleAssetImporter {
     await ensureSchema(db);
 
     final raw = await rootBundle.loadString(assetPath);
-    // tolère clés non-quotées/virgules finales
-    final Map<String, dynamic> data = Map<String, dynamic>.from(JSON5.parse(raw));
+    
+    // Utilisation du préprocesseur JSON robuste
+    Map<String, dynamic> data;
+    final pre = LooseJsonPreprocessor();
+    try {
+      data = LooseJsonPreprocessor.parseOrThrow(raw, out: pre);
+      for (final line in pre.log) {
+        print('🧹 Preprocess: $line');
+      }
+      print('✅ Parsing réussi (JSON5 + préprocessing si nécessaire)');
+    } catch (e) {
+      print('❌ Parsing impossible: $e');
+      rethrow;
+    }
 
     final metaAbbr = (data['Abbreviation'] ?? data['abbr'] ?? forceVersionId ?? 'unknown').toString().trim();
     final versionId = _normalizeVersionId(metaAbbr);
@@ -200,8 +233,10 @@ class BibleAssetImporter {
   static String _normalizeVersionId(String s) {
     final lower = s.toLowerCase();
     if (lower.contains('semeur')) return 'semeur';
+    if (lower.contains('bds')) return 'semeur';  // BDS = Bible Du Semeur
     if (lower.contains('lsg')) return 'lsg1910';
-    if (lower.contains('fc')) return 'francais_courant';
+    if (lower.contains('fc') || lower.contains('frc97')) return 'francais_courant';
     return lower.replaceAll(RegExp(r'\s+'), '_');
   }
+
 }

@@ -27,7 +27,15 @@ class BibleTextService {
   /// À appeler au démarrage (ou lazy) pour s'assurer que la version existe.
   static Future<void> ensureVersionAvailable(String versionId) async {
     await init();
-    if (await BibleAssetImporter.isVersionImported(_database!, versionId)) return;
+    
+    // Vérifier si la version est déjà disponible
+    final isAvailable = await BibleAssetImporter.isVersionAvailable(_database!, versionId);
+    print('🔍 ensureVersionAvailable($versionId): isAvailable=$isAvailable');
+    
+    if (isAvailable) {
+      print('✅ Version "$versionId" déjà disponible en base SQLite');
+      return;
+    }
 
     // map versionId -> asset
     final assetPath = _assetFor(versionId);
@@ -35,11 +43,19 @@ class BibleTextService {
       print('⚠️ Pas d\'asset configuré pour "$versionId"');
       return;
     }
-    await BibleAssetImporter.importFromAsset(
-      db: _database!,
-      assetPath: assetPath,
-      forceVersionId: versionId,
-    );
+    
+    print('📥 Import de la version "$versionId" depuis $assetPath');
+    try {
+      await BibleAssetImporter.importFromAsset(
+        db: _database!,
+        assetPath: assetPath,
+        forceVersionId: versionId,
+      );
+      print('✅ Import de "$versionId" terminé avec succès');
+    } catch (e) {
+      print('❌ Erreur lors de l\'import de "$versionId": $e');
+      // Ne pas relancer l'erreur pour éviter de casser l'app
+    }
   }
 
   static String? _assetFor(String versionId) {
@@ -127,10 +143,6 @@ class BibleTextService {
             return rows2.map((r) => r['text'] as String).join('\n\n');
           }
         }
-        
-        // Log des misses pour télémetrie
-        print('📊 MISS: "$reference" (version=$version) → 0 résultats');
-        print('📊 MISS: livre="$book", chapitres=$sc-$ec, versets=$sv-$ev');
         return null;
       }
 
@@ -140,7 +152,7 @@ class BibleTextService {
       return null;
     }
   }
-  
+
   static Future<int?> _maxVerse(String version, String book, int chapter) async {
     final r = await _database!.rawQuery(
       'SELECT MAX(verse) m FROM verses WHERE version=? AND book=? AND chapter=?',
@@ -166,17 +178,14 @@ class BibleTextService {
     return s;
   }
 
-  /// Vérifie si la base contient des versets
-  static Future<bool> hasVerses() async {
+  /// Vérifie si la base contient des versets pour une version spécifique
+  static Future<bool> hasVerses([String? versionId]) async {
     try {
       await init();
       if (_database == null) return false;
       
-      final count = Sqflite.firstIntValue(await _database!.rawQuery(
-        'SELECT COUNT(*) FROM verses WHERE version = ?', ['lsg1910']
-      )) ?? 0;
-      
-      return count > 0;
+      final version = versionId ?? 'lsg1910';
+      return await BibleAssetImporter.isVersionAvailable(_database!, version);
     } catch (e) {
       print('⚠️ Erreur hasVerses: $e');
       return false;
@@ -192,19 +201,20 @@ class BibleTextService {
   /// Force la réimportation d'une version (pour dev/QA)
   static Future<void> forceReimportVersion(String versionId) async {
     await init();
+    if (_database == null) return;
+    
+    // Supprimer les anciennes entrées
+    await _database!.delete('verses', where: 'version = ?', whereArgs: [versionId]);
+    await _database!.execute('VACUUM');
+    
+    // Réimporter
     final assetPath = _assetFor(versionId);
-    if (assetPath == null) {
-      print('⚠️ Pas d\'asset configuré pour "$versionId"');
-      return;
+    if (assetPath != null) {
+      await BibleAssetImporter.importFromAsset(
+        db: _database!,
+        assetPath: assetPath,
+        forceVersionId: versionId,
+      );
     }
-    
-    await BibleAssetImporter.forceReimport(
-      db: _database!,
-      assetPath: assetPath,
-      forceVersionId: versionId,
-    );
-    
-    // Réinitialiser le cache de pré-chargement
-    _preloadedVersion = null;
   }
 }

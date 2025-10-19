@@ -17,7 +17,6 @@ import '../widgets/home/daily_blessing.dart';
 import '../widgets/home/calendar_bar.dart';
 import '../widgets/home/activity_carousel.dart';
 import '../widgets/home/progress_card.dart';
-import '../widgets/home_time_banner.dart';
 import 'profile_settings_page.dart';
 import 'journal_page.dart';
 import 'spiritual_wall_page.dart';
@@ -144,7 +143,7 @@ class _HomePageWidgetState extends State<HomePageWidget>
   /// Contenu de la page d'accueil
   Widget _buildHomeContent(HomeVM vm) {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       child: Column(
         children: [
           // Header (Shalom + logo)
@@ -153,25 +152,22 @@ class _HomePageWidgetState extends State<HomePageWidget>
             subtitle: 'Dieu t\'attend dans Sa Parole',
             trailing: const SelahAppIcon(size: 48),
           ),
-          const SizedBox(height: 12),
-          
-          // Bannière "C'est l'heure"
-          _buildTimeBanner(vm),
-
-          // Message d'encouragement intelligent (remplace le verset du jour)
-          _buildIntelligentEncouragement(vm),
-
-          const SizedBox(height: 18),
+          const SizedBox(height: 6),
 
           // Calendar line + quick stats
           const CalendarBar(),
 
-          const SizedBox(height: 18),
+          const SizedBox(height: 8),
 
-          // Activity carousel (Lecture / Quiz / Communauté)
+          // Message d'encouragement intelligent (remplace le verset du jour)
+          _buildIntelligentEncouragement(vm),
+
+          const SizedBox(height: 8),
+
+          // Activity carousel (Lecture / Quiz / Étude thématique / Communauté)
           const Expanded(child: ActivityCarousel()),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
 
           // Progress (goals of the day) - maintenant après les cartes
           HomeProgressCard(
@@ -188,24 +184,6 @@ class _HomePageWidgetState extends State<HomePageWidget>
     );
   }
 
-  /// Bannière "C'est l'heure" avec logique d'affichage conditionnelle
-  Widget _buildTimeBanner(HomeVM vm) {
-    // Calculer l'heure préférée pour aujourd'hui (par défaut 9h00)
-    final now = DateTime.now();
-    final preferredTimeToday = DateTime(now.year, now.month, now.day, 9, 0);
-    
-    // Vérifier si le jour actuel est complété
-    final completedToday = vm.state.tasksDone >= vm.state.tasksTotal && vm.state.tasksTotal > 0;
-    
-    return HomeTimeBanner(
-      preferredTimeToday: preferredTimeToday,
-      completedToday: completedToday,
-      onResumeToday: () {
-        // Naviguer vers la page de pré-méditation
-        context.go('/pre_meditation_prayer');
-      },
-    );
-  }
 
   /// Message d'encouragement intelligent basé sur la progression réelle
   Widget _buildIntelligentEncouragement(HomeVM vm) {
@@ -229,7 +207,7 @@ class _HomePageWidgetState extends State<HomePageWidget>
     }
 
     return Container(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,

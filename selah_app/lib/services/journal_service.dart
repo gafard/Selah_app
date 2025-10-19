@@ -160,3 +160,5 @@ class JournalEntry {
     return 'JournalEntry(id: $id, date: $date, bullets: ${bullets.length}, passageRef: $passageRef)';
   }
 }
+
+

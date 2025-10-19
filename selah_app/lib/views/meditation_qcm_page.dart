@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,7 +7,6 @@ import '../models/passage_qcm_builder.dart';
 import '../models/passage_analysis.dart';
 import '../utils/prayer_subjects_mapper.dart';
 import 'prayer_carousel_page.dart';
-import '../widgets/uniform_back_button.dart';
 
 class MeditationQcmPage extends StatefulWidget {
   final String? passageRef;
@@ -441,7 +441,7 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF1C1740), Color(0xFF2D1B69)],
+            colors: [Color(0xFF1A1D29), Color(0xFF112244)],
           ),
         ),
         child: SafeArea(
@@ -450,14 +450,52 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
               _buildHeader(),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  physics: const BouncingScrollPhysics(),
+                  child: Stack(
                     children: [
-                      _buildInfoCard(),
-                      const SizedBox(height: 24),
-                      ..._questions.map((q) => _buildQuestionCard(q)),
-                      const SizedBox(height: 100), // Espace pour le bouton flottant
+                      // Ornements légers en arrière-plan
+                      Positioned(
+                        right: -60,
+                        top: -40,
+                        child: _softBlob(180),
+                      ),
+                      Positioned(
+                        left: -40,
+                        bottom: -50,
+                        child: _softBlob(220),
+                      ),
+
+                      // Contenu principal
+                      Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                            child: Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.2),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const SizedBox(height: 8),
+                                  _buildInfoCard(),
+                                  const SizedBox(height: 24),
+                                  ..._questions.map((q) => _buildQuestionCard(q)),
+                                  const SizedBox(height: 100), // Espace pour le bouton flottant
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -515,17 +553,9 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF06B6D4), Color(0xFF3B82F6)],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF06B6D4).withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        color: Colors.white.withOpacity(0.10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.20)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -535,7 +565,9 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF06B6D4), Color(0xFF3B82F6)],
+                  ),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
@@ -563,7 +595,7 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
             'L\'Esprit t\'éclaire pendant que tu médites. 🙏',
             style: GoogleFonts.inter(
               fontSize: 14,
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withOpacity(0.7),
               height: 1.4,
             ),
           ),
@@ -583,10 +615,10 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white.withOpacity(0.10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.white.withOpacity(0.18),
+          color: Colors.white.withOpacity(0.20),
           width: 1,
         ),
       ),
@@ -654,7 +686,7 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
                   ? Icon(
                       type == 'single' ? Icons.circle : Icons.check,
                       size: 12,
-                      color: const Color(0xFF1C1740),
+                      color: const Color(0xFF1A1D29),
                     )
                   : null,
               ),
@@ -681,10 +713,10 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
     
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
+        color: Colors.white.withOpacity(0.10),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.white.withOpacity(0.18),
+          color: Colors.white.withOpacity(0.20),
           width: 1,
         ),
       ),
@@ -1050,16 +1082,50 @@ Jésus se rendit en Samarie... "Donne-moi à boire" ... "il t'aurait donné de l
   }
 
   Widget _buildFloatingButton() {
-    return FloatingActionButton.extended(
-      onPressed: _canContinue ? _finish : null,
-      backgroundColor: _canContinue ? Colors.white : Colors.white.withOpacity(0.3),
-      foregroundColor: _canContinue ? const Color(0xFF1C1740) : Colors.white.withOpacity(0.5),
-      icon: const Icon(Icons.arrow_forward_rounded),
-      label: Text(
-        'Continuer vers la prière',
-        style: GoogleFonts.inter(
-          fontWeight: FontWeight.w700,
-          fontSize: 16,
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        gradient: _canContinue 
+          ? const LinearGradient(
+              colors: [
+                Color(0xFF1553FF),
+                Color(0xFF0D47A1),
+              ],
+            )
+          : null,
+        boxShadow: _canContinue ? [
+          BoxShadow(
+            color: const Color(0xFF1553FF).withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ] : null,
+      ),
+      child: FloatingActionButton.extended(
+        onPressed: _canContinue ? _finish : null,
+        backgroundColor: _canContinue ? Colors.transparent : Colors.white.withOpacity(0.3),
+        foregroundColor: _canContinue ? Colors.white : Colors.white.withOpacity(0.5),
+        elevation: 0,
+        icon: const Icon(Icons.arrow_forward_rounded),
+        label: Text(
+          'Continuer vers la prière',
+          style: GoogleFonts.inter(
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _softBlob(double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [Colors.white.withOpacity(0.20), Colors.transparent],
         ),
       ),
     );

@@ -1,0 +1,46 @@
+{
+  "Jean": {
+    "chapters": {
+      "3": {
+        "16": {
+          "themes": ["Salut", "Amour de Dieu", "Foi", "Vie éternelle"],
+          "characters": ["Jésus", "Nicodème", "Dieu le Père"]
+        }
+      },
+      "14": {
+        "1": {
+          "themes": ["Paix", "Confiance", "Préparation", "Retour de Christ"],
+          "characters": ["Jésus", "Disciples", "Père"]
+        },
+        "6": {
+          "themes": ["Chemin", "Vérité", "Vie", "Accès au Père"],
+          "characters": ["Jésus", "Thomas", "Père"]
+        }
+      }
+    }
+  },
+  "Jacques": {
+    "chapters": {
+      "3": {
+        "1": {
+          "themes": ["Enseignement", "Responsabilité", "Langue", "Maîtrise de soi"],
+          "characters": ["Jacques", "Enseignants", "Frères"]
+        },
+        "2": {
+          "themes": ["Langue", "Maîtrise", "Péché", "Corps"],
+          "characters": ["Jacques", "Frères"]
+        }
+      }
+    }
+  },
+  "Romains": {
+    "chapters": {
+      "2": {
+        "1": {
+          "themes": ["Jugement", "Hypocrisie", "Repentance", "Justice de Dieu"],
+          "characters": ["Paul", "Juifs", "Gentils"]
+        }
+      }
+    }
+  }
+}
