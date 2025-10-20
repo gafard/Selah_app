@@ -570,6 +570,92 @@ class PlanServiceHttp implements PlanService {
     final List<PlanDay> days = [];
     
     // ═══════════════════════════════════════════════════════════
+    // 🔍 DÉTECTION : Plan avec données vides → Régénération intelligente ⭐
+    // ═══════════════════════════════════════════════════════════
+    if (books.isEmpty || totalDays == 0) {
+      print('🔍 Plan détecté avec données vides - Régénération intelligente');
+      
+      try {
+        // Synchroniser d'abord les deux systèmes
+        await UserPrefsSync.syncBidirectional();
+        
+        // Récupérer le profil utilisateur pour la génération intelligente
+        final userProfile = await UserPrefs.loadProfile();
+        
+        // Générer des presets intelligents basés sur le profil
+        final presets = IntelligentLocalPresetGenerator.generateEnrichedPresets(userProfile);
+        
+        if (presets.isNotEmpty) {
+          final selectedPreset = presets.first; // Prendre le premier preset recommandé
+          
+          print('🎯 Preset sélectionné: ${selectedPreset.name} (${selectedPreset.durationDays} jours)');
+          print('📚 Livres: ${selectedPreset.books}');
+          
+          // Utiliser les données du preset pour régénérer le plan
+          final intelligentPassages = await _generateIntelligentPassages(
+            books: selectedPreset.books,
+            totalDays: selectedPreset.durationDays,
+            startDate: startDate,
+            daysOfWeek: daysOfWeek,
+            userProfile: userProfile,
+          );
+          
+          for (int i = 0; i < intelligentPassages.length; i++) {
+            final passage = intelligentPassages[i];
+            final dayDate = startDate.add(Duration(days: i));
+            
+            // Respecter daysOfWeek si disponible
+            if (daysOfWeek != null && !daysOfWeek.contains(dayDate.weekday)) {
+              continue; // ✅ Sauter les jours non sélectionnés
+            }
+            
+            final day = PlanDay(
+              id: '${planId}_day_${i + 1}',
+              planId: planId,
+              dayIndex: i + 1,
+              date: dayDate,
+              completed: false,
+              readings: [passage],
+            );
+            days.add(day);
+          }
+          
+          print('✅ ${days.length} jours régénérés intelligemment');
+          
+          // Mettre à jour le plan avec les nouvelles données
+          final activePlan = await getActivePlan();
+          if (activePlan != null) {
+            final updatedPlan = Plan(
+              id: activePlan.id,
+              userId: activePlan.userId,
+              name: selectedPreset.name,
+              totalDays: selectedPreset.durationDays,
+              startDate: activePlan.startDate,
+              isActive: activePlan.isActive,
+              books: selectedPreset.books,
+              specificBooks: activePlan.specificBooks,
+              minutesPerDay: selectedPreset.minutesPerDay ?? 15,
+              daysOfWeek: activePlan.daysOfWeek,
+              foundationIds: activePlan.foundationIds,
+            );
+            
+            // Sauvegarder le plan mis à jour
+            await cachePlans.put('active_plan', updatedPlan.toJson());
+            print('✅ Plan mis à jour avec les données du preset');
+          }
+          
+          // Sauvegarder les jours avec la même clé que getPlanDays
+          await cachePlanDays.put('days:$planId:1:0', days.map((d) => d.toJson()).toList());
+          print('✅ ${days.length} jours de plan sauvegardés localement avec clé: days:$planId:1:0');
+          return;
+        }
+      } catch (e) {
+        print('❌ Erreur régénération intelligente: $e');
+        // Continuer avec la logique normale
+      }
+    }
+    
+    // ═══════════════════════════════════════════════════════════
     // PRIORITÉ : Utiliser customPassages si disponibles ⭐
     // ═══════════════════════════════════════════════════════════
     if (customPassages != null && customPassages.isNotEmpty) {
@@ -1068,17 +1154,17 @@ class PlanServiceHttp implements PlanService {
 
   /// Calcule la longueur de lecture selon la durée disponible
   Map<String, int> _calculateReadingLength(int durationMin) {
-    // Estimation : 1 minute = 2-3 versets moyens
-    const versesPerMinute = 2.5;
+    // Estimation : 1 minute = 1.5-2 versets moyens (plus réaliste pour la méditation)
+    const versesPerMinute = 1.8;
     final totalVerses = (durationMin * versesPerMinute).round();
     
     return {
-      'psalms': _clampVerses(totalVerses, 5, 30), // Psaumes : 5-30 versets
-      'proverbs': _clampVerses(totalVerses, 8, 40), // Proverbes : 8-40 versets
-      'gospels': _clampVerses(totalVerses, 6, 35), // Évangiles : 6-35 versets
-      'epistles': _clampVerses(totalVerses, 10, 50), // Épîtres : 10-50 versets
-      'ot': _clampVerses(totalVerses, 8, 45), // AT : 8-45 versets
-      'default': _clampVerses(totalVerses, 6, 30), // Défaut : 6-30 versets
+      'psalms': _clampVerses(totalVerses, 3, 15), // Psaumes : 3-15 versets
+      'proverbs': _clampVerses(totalVerses, 5, 20), // Proverbes : 5-20 versets
+      'gospels': _clampVerses(totalVerses, 4, 18), // Évangiles : 4-18 versets
+      'epistles': _clampVerses(totalVerses, 6, 25), // Épîtres : 6-25 versets
+      'ot': _clampVerses(totalVerses, 5, 22), // AT : 5-22 versets
+      'default': _clampVerses(totalVerses, 4, 18), // Défaut : 4-18 versets
     };
   }
 

@@ -66,9 +66,7 @@ class _GoalsPageState extends State<GoalsPage> {
   void initState() {
     super.initState();
     _carouselController = FancyStackCarouselController();
-    _loadUserProfile();
-    // Générer des presets dynamiques basés sur le profil utilisateur
-    _presetsFuture = _fetchPresets();
+    _loadUserProfile(); // _fetchPresets() sera appelé dans _loadUserProfile()
   }
   
   @override
@@ -129,6 +127,7 @@ class _GoalsPageState extends State<GoalsPage> {
 
   Future<List<PlanPreset>> _fetchPresets() async {
     print('🧠 Génération intelligente de presets locaux...');
+    print('🔍 _userProfile dans _fetchPresets: $_userProfile');
     
     try {
       // Utiliser le générateur enrichi avec apprentissage et adaptation émotionnelle
@@ -578,8 +577,10 @@ class _GoalsPageState extends State<GoalsPage> {
 
   /// Charge le profil utilisateur et applique la logique de personnalisation
   Future<void> _loadUserProfile() async {
+    print('🔍 _loadUserProfile() appelé');
     try {
       final profile = context.read<UserPrefsHive>().profile;
+      print('🔍 Profile récupéré: $profile');
       final level = profile['level'] as String? ?? 'Nouveau converti';
       final goal = profile['goal'] as String? ?? 'Discipline quotidienne';
 

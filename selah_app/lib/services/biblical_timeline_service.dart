@@ -27,7 +27,9 @@ class BiblicalTimelineService {
   /// Obtient les périodes bibliques
   static Future<List<Map<String, dynamic>>> getBiblicalPeriods() async {
     await init();
-    return _timelineData?['periods'] as List<dynamic>? ?? [];
+    return (_timelineData?['periods'] as List<dynamic>? ?? [])
+        .map((e) => e as Map<String, dynamic>)
+        .toList();
   }
 
   /// Obtient les événements d'une période

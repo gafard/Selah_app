@@ -230,3 +230,4 @@ class BibleComparisonService {
   /// Vérifie si le service est initialisé
   static bool get isInitialized => _isInitialized;
 }
+

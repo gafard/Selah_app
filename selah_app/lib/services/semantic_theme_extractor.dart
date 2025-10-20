@@ -176,3 +176,4 @@ class SemanticThemeExtractor {
     return themes.isNotEmpty ? themes.first : 'amour';
   }
 }
+

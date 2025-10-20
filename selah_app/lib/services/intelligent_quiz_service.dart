@@ -418,9 +418,9 @@ class IntelligentQuizService {
           questions.add(IntelligentQuestion(
             id: 'concordance_${keyword}_${DateTime.now().millisecondsSinceEpoch}',
             text: 'Combien de fois le mot "$keyword" apparaît-il dans la Bible ?',
-            type: 'concordance',
-            difficulty: 'medium',
-            cognitiveLoad: 'medium',
+            type: QuestionType.multipleChoice,
+            difficulty: 0.5,
+            cognitiveLoad: 0.5,
             options: [
               '${concordanceResults.length} fois',
               '${concordanceResults.length + 10} fois',
@@ -442,9 +442,9 @@ class IntelligentQuizService {
             questions.add(IntelligentQuestion(
               id: 'concordance_books_${keyword}_${DateTime.now().millisecondsSinceEpoch}',
               text: 'Dans quels livres bibliques le mot "$keyword" apparaît-il le plus ?',
-              type: 'concordance',
-              difficulty: 'hard',
-              cognitiveLoad: 'high',
+              type: QuestionType.multipleChoice,
+              difficulty: 0.8,
+              cognitiveLoad: 0.8,
               options: books.take(4).toList(),
               correctAnswer: 0,
             ));
@@ -478,9 +478,9 @@ class IntelligentQuizService {
         questions.add(IntelligentQuestion(
           id: 'topical_${book}_${DateTime.now().millisecondsSinceEpoch}',
           text: 'Quel est le thème principal du livre de $book selon l\'index BSB ?',
-          type: 'topical',
-          difficulty: 'medium',
-          cognitiveLoad: 'medium',
+          type: QuestionType.multipleChoice,
+          difficulty: 0.5,
+          cognitiveLoad: 0.5,
           options: themes.take(4).toList(),
           correctAnswer: 0,
           // explanation: 'L\'index thématique BSB identifie plusieurs thèmes dans $book.',
@@ -496,9 +496,9 @@ class IntelligentQuizService {
           questions.add(IntelligentQuestion(
             id: 'topical_connection_${book}_${DateTime.now().millisecondsSinceEpoch}',
             text: 'Quels thèmes sont liés dans $book selon l\'analyse BSB ?',
-            type: 'topical',
-            difficulty: 'hard',
-            cognitiveLoad: 'high',
+            type: QuestionType.multipleChoice,
+            difficulty: 0.8,
+            cognitiveLoad: 0.8,
             options: [
               '${themes[0]} et ${themes[1]}',
               '${themes[1]} et ${themes[2]}',
@@ -545,9 +545,9 @@ class IntelligentQuizService {
           questions.add(IntelligentQuestion(
             id: 'comparison_${passageRef}_${DateTime.now().millisecondsSinceEpoch}',
             text: 'Quelle version traduit différemment le passage $passageRef ?',
-            type: 'comparison',
-            difficulty: 'medium',
-            cognitiveLoad: 'medium',
+            type: QuestionType.multipleChoice,
+            difficulty: 0.5,
+            cognitiveLoad: 0.5,
             options: versionNames.take(4).toList(),
             correctAnswer: 0,
             // explanation: 'Les différentes versions peuvent traduire le même passage de manière différente.',
@@ -562,9 +562,9 @@ class IntelligentQuizService {
           questions.add(IntelligentQuestion(
             id: 'comparison_richness_${passageRef}_${DateTime.now().millisecondsSinceEpoch}',
             text: 'Combien de versions bibliques sont disponibles pour $passageRef ?',
-            type: 'comparison',
-            difficulty: 'easy',
-            cognitiveLoad: 'low',
+            type: QuestionType.multipleChoice,
+            difficulty: 0.3,
+            cognitiveLoad: 0.3,
             options: [
               '${versionNames.length} versions',
               '${versionNames.length + 2} versions',

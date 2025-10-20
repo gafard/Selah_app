@@ -181,3 +181,4 @@ Avec ce système, vous obtenez :
 - Des données bibliques complètes
 - Une expérience utilisateur fluide
 - Une architecture scalable et maintenable
+

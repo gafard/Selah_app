@@ -285,3 +285,4 @@ class _BibleComparisonPageState extends State<BibleComparisonPage> {
     super.dispose();
   }
 }
+

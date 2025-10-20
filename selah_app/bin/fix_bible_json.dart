@@ -58,3 +58,4 @@ Future<void> main(List<String> args) async {
   print('✅ Statut: ${valid ? 'Valide ✅' : 'Toujours invalide ⚠️'}');
 }
 
+

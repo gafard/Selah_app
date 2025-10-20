@@ -236,3 +236,4 @@ class SimpleJsonPreprocessor {
     return '\u0000';
   }
 }
+

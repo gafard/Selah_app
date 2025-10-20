@@ -33,8 +33,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
   bool isLoading = false; // ← Indicateur de chargement
   
   // ═══ Générateur Ultime (Jean 5:40) ═══
-  String heartPosture = '🙏 Écouter la voix de Dieu';
-  String motivation = '🙏 Recherche de direction';
+  String heartPosture = 'Écouter la voix de Dieu';
+  String motivation = 'Recherche de direction';
   
   // 🧠 Variables pour les recommandations intelligentes
   List<Map<String, dynamic>> _durationRecommendations = [];
@@ -84,7 +84,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
   final heartPostures = const [
     'Rencontrer Jésus personnellement',
     'Être transformé par l\'Esprit',
-    '🙏 Écouter la voix de Dieu',
+    'Écouter la voix de Dieu',
     'Approfondir ma connaissance',
     'Recevoir la puissance de l\'Esprit',
     'Développer l\'intimité avec le Père',
@@ -183,8 +183,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
         meditation = profile['meditation'] as String? ?? 'Méditation biblique';
         
         // ✅ Charger les nouveaux champs (Générateur Ultime)
-        heartPosture = profile['heartPosture'] as String? ?? '🙏 Écouter la voix de Dieu';
-        motivation = profile['motivation'] as String? ?? '🙏 Recherche de direction';
+        heartPosture = profile['heartPosture'] as String? ?? 'Écouter la voix de Dieu';
+        motivation = profile['motivation'] as String? ?? 'Recherche de direction';
       });
       
       print('✅ Préférences chargées depuis UserPrefsHive (système unifié)');

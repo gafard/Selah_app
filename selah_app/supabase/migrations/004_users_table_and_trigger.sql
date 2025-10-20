@@ -150,3 +150,4 @@ COMMENT ON FUNCTION public.handle_new_user() IS 'Crée automatiquement un profil
 COMMENT ON FUNCTION public.update_user_current_plan(UUID, UUID) IS 'Met à jour le plan actuel de l''utilisateur et désactive les autres';
 
 
+

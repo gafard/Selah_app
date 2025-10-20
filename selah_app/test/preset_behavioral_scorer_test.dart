@@ -1,6 +1,7 @@
 /// ═══════════════════════════════════════════════════════════════════════════
 /// TESTS - Preset Behavioral Scorer
 /// ═══════════════════════════════════════════════════════════════════════════
+library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:selah_app/services/preset_behavioral_scorer.dart';
@@ -176,7 +177,7 @@ void main() {
         // Pas de book, duration, score
       };
 
-      final profile = {
+      final profile = <String, dynamic>{
         // Profil minimal
       };
 
@@ -259,7 +260,7 @@ void main() {
       print('   UI helpers OK:');
       print('   - Complétion: ${(prob! * 100).round()}%');
       print('   - Témoignage: $testimony');
-      print('   - Reasoning: ${reasoning?.split('\n').first}...');
+      print('   - Reasoning: ${reasoning.split('\n').first}...');
     });
   });
 }
