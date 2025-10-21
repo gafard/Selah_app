@@ -28,6 +28,7 @@ import '../services/biblical_timeline_service.dart';
 import '../services/thomson_characters_service.dart';
 import '../services/bsb_topical_service.dart';
 import '../services/mirror_verse_service.dart';
+import '../services/treasury_crossref_service.dart';
 // Services supprimés (packs incomplets)
 import '../services/foundations_progress_service.dart';
 import '../services/reading_memory_service.dart';
@@ -2199,7 +2200,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
+            const Icon(
               Icons.book,
               size: 16,
               color: Color(0xFF1553FF),
@@ -2215,7 +2216,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
               ),
             ),
             const SizedBox(width: 4),
-            Icon(
+            const Icon(
               Icons.keyboard_arrow_down,
               size: 16,
               color: Color(0xFF1553FF),
@@ -2758,7 +2759,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
               ),
             ),
             if (isSelected)
-              Icon(
+              const Icon(
                 Icons.check_circle,
                 color: Colors.blue,
                 size: 20,
@@ -2821,7 +2822,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.label_outline, color: Colors.purple, size: 24),
+                              const Icon(Icons.label_outline, color: Colors.purple, size: 24),
                               const SizedBox(width: 8),
                               Text(
                                 'Thèmes bibliques',
@@ -2895,21 +2896,9 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                             
                             return Column(
                               children: [
-                                // Thèmes Thomson
-                                if (thomsonThemes.isNotEmpty) ...[
-                                  _buildThemeSectionHeader('🎨 Thomson', isDark),
-                                  const SizedBox(height: 12),
-                                  ...thomsonThemes.map((theme) => _buildThemeItem(theme, isDark, 'thomson')),
-                                  const SizedBox(height: 20),
-                                ],
-                                
-                                // Thèmes BSB
-                                if (bsbThemes.isNotEmpty) ...[
-                                  _buildThemeSectionHeader('📚 BSB', isDark),
-                                  const SizedBox(height: 12),
-                                  ...bsbThemes.map((theme) => _buildThemeItem(theme, isDark, 'bsb')),
-                                ],
-                                
+                                // Tous les thèmes dans une seule liste
+                                ...thomsonThemes.map((theme) => _buildThemeItem(theme, isDark, 'thomson')),
+                                ...bsbThemes.map((theme) => _buildThemeItem(theme, isDark, 'bsb')),
                                 const SizedBox(height: 20),
                               ],
                             );
@@ -2980,7 +2969,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.person_outline, color: Colors.green, size: 24),
+                              const Icon(Icons.person_outline, color: Colors.green, size: 24),
                               const SizedBox(width: 8),
                               Text(
                                 'Personnages bibliques',
@@ -3052,7 +3041,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                             
                             return Column(
                               children: [
-                                ...characters.map((character) => _buildEnrichedCharacterItem(character, isDark)).toList(),
+                                ...characters.map((character) => _buildEnrichedCharacterItem(character, isDark)),
                                 const SizedBox(height: 20),
                               ],
                             );
@@ -3212,14 +3201,28 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
         if (characterData != null) {
           characters.add(characterData);
         } else {
-          // Fallback si pas de données enrichies
+          // Fallback avec descriptions spécifiques pour les groupes
+          String description = 'Personnage biblique mentionné dans ce passage';
+          String shortDescription = 'Personnage biblique';
+          
+          if (name.toLowerCase().contains('femmes') || name.toLowerCase().contains('chrétiennes')) {
+            description = 'Les femmes chrétiennes mentionnées dans ce passage, qui sont encouragées à vivre selon les principes bibliques de soumission et de témoignage.';
+            shortDescription = 'Femmes chrétiennes encouragées à vivre selon les principes bibliques';
+          } else if (name.toLowerCase().contains('maris') || name.toLowerCase().contains('non-croyants')) {
+            description = 'Les maris non-croyants mentionnés dans ce passage, qui peuvent être gagnés à la foi par le témoignage de leurs épouses.';
+            shortDescription = 'Maris non-croyants qui peuvent être gagnés par le témoignage';
+          } else if (name.toLowerCase().contains('sara')) {
+            description = 'Sara, l\'épouse d\'Abraham, mentionnée comme exemple de soumission et de beauté intérieure dans ce passage.';
+            shortDescription = 'Sara, épouse d\'Abraham, exemple de soumission et de beauté';
+          }
+          
           characters.add({
             'name': name,
-            'description': 'Personnage biblique mentionné dans ce passage',
-            'shortDescription': 'Personnage biblique',
+            'description': description,
+            'shortDescription': shortDescription,
             'keyPassages': [],
             'themes': [],
-            'period': 'Période inconnue',
+            'period': 'Période biblique',
             'books': [],
           });
         }
@@ -3279,7 +3282,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
         children: [
           Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.person,
                 color: Colors.green,
                 size: 20,
@@ -3305,8 +3308,10 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
               fontFamily: 'Gilroy',
               fontSize: 14,
               color: isDark ? Colors.white70 : Colors.black54,
-              height: 1.3,
+              height: 1.4,
             ),
+            maxLines: null, // Permet l'affichage sur plusieurs lignes
+            overflow: TextOverflow.visible,
           ),
           if (keyPassages.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -3389,7 +3394,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.sync_alt, color: Colors.orange, size: 24),
+                              const Icon(Icons.sync_alt, color: Colors.orange, size: 24),
                               const SizedBox(width: 8),
                               Text(
                                 'Verset miroir typologique',
@@ -3449,26 +3454,39 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                               return Container(
                                 padding: const EdgeInsets.all(32),
                                 child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Icon(
                                       Icons.info_outline,
-                                      size: 48,
-                                      color: isDark ? Colors.white54 : Colors.grey[400],
+                                      size: 64,
+                                      color: isDark ? Colors.white.withOpacity(0.3) : Colors.black.withOpacity(0.3),
                                     ),
                                     const SizedBox(height: 16),
                                     Text(
-                                      'Aucun verset miroir trouvé pour ce passage',
+                                      'Aucun verset miroir trouvé',
                                       style: GoogleFonts.inter(
-                                        fontSize: 16,
-                                        color: isDark ? Colors.white70 : Colors.grey[600],
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                        color: isDark ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7),
                                       ),
+                                      textAlign: TextAlign.center,
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      'Ce passage n\'a pas de connexion typologique identifiée',
+                                      'Ce passage n\'a pas de connexion typologique identifiée dans notre base de données (896 connexions).',
                                       style: GoogleFonts.inter(
                                         fontSize: 14,
-                                        color: isDark ? Colors.white54 : Colors.grey[500],
+                                        color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5),
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Les versets miroirs sont des passages de l\'Ancien Testament qui préfigurent le Nouveau Testament (typologie biblique).',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 13,
+                                        fontStyle: FontStyle.italic,
+                                        color: isDark ? Colors.white.withOpacity(0.4) : Colors.black.withOpacity(0.4),
                                       ),
                                       textAlign: TextAlign.center,
                                     ),
@@ -3554,7 +3572,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
           // En-tête avec icône et type de connexion
           Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.sync_alt,
                 color: Colors.orange,
                 size: 20,
@@ -3635,7 +3653,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.arrow_downward,
                     color: Colors.orange,
                     size: 16,
@@ -3791,7 +3809,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.link_outlined, color: Colors.teal, size: 24),
+                              const Icon(Icons.link_outlined, color: Colors.teal, size: 24),
                               const SizedBox(width: 8),
                               Text(
                                 'Références croisées',
@@ -3804,11 +3822,25 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                             ],
                           ),
                           const SizedBox(height: 8),
-                          Text(
-                            'Passages liés à $reference',
-                            style: GoogleFonts.inter(
-                              fontSize: 14,
-                              color: isDark ? Colors.white.withOpacity(0.7) : Colors.grey[600],
+                          RichText(
+                            text: TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: 'Passages liés à ',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    color: isDark ? Colors.white.withOpacity(0.7) : Colors.grey[600],
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: reference,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? Colors.white.withOpacity(0.9) : Colors.grey[800],
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -3872,7 +3904,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                             
                             return Column(
                               children: [
-                                ...references.map((ref) => _buildCrossReferenceItem(ref)).toList(),
+                                ...references.map((ref) => _buildCrossReferenceItem(ref)),
                                 const SizedBox(height: 20),
                               ],
                             );
@@ -3898,18 +3930,33 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
     try {
       print('🔍 === DÉBUT CHARGEMENT RÉFÉRENCES CROISÉES POUR: $reference ===');
       
-      // Service supprimé (packs incomplets)
-      print('⚠️ CrossRefService supprimé (packs incomplets)');
-      
-      // Récupérer les références croisées enrichies
-      final verseId = _extractVerseIdFromReference(reference);
-      print('🔍 VerseId extrait: $verseId');
-      
-      final crossRefs = <String>[];
-      
+      // Utiliser TreasuryCrossRefService
+      final crossRefs = await TreasuryCrossRefService.getCrossReferences(reference);
       print('🔍 Références croisées trouvées: ${crossRefs.length}');
       
-      print('🔍 === FIN CHARGEMENT RÉFÉRENCES CROISÉES ===');
+      // Récupérer le texte complet de chaque référence
+      for (final crossRef in crossRefs) {
+        final refString = crossRef['reference'] as String? ?? '';
+        
+        // Récupérer le texte du verset via BibleTextService
+        String verseText = '';
+        try {
+          verseText = await BibleTextService.getPassageText(refString) ?? '';
+          print('📖 Texte récupéré pour $refString: ${verseText.length} caractères');
+        } catch (e) {
+          print('⚠️ Erreur récupération texte pour $refString: $e');
+        }
+        
+        references.add({
+          'reference': refString,
+          'text': verseText,
+          'bookNumber': crossRef['bookNumber'] as int? ?? 0,
+          'chapter': crossRef['chapter'] as int? ?? 0,
+          'verse': crossRef['verse'] as int? ?? 0,
+        });
+      }
+      
+      print('🔍 === FIN CHARGEMENT RÉFÉRENCES CROISÉES (${references.length} avec textes) ===');
       
     } catch (e) {
       print('⚠️ Erreur chargement références croisées: $e');
@@ -3941,7 +3988,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
           // Référence
           Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.link,
                 color: Colors.teal,
                 size: 16,
@@ -4039,7 +4086,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                   padding: const EdgeInsets.all(24),
                   child: Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.search_outlined,
                         color: Colors.teal,
                         size: 24,
@@ -4067,7 +4114,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                       hintStyle: TextStyle(
                         color: isDark ? Colors.white54 : Colors.grey.shade600,
                       ),
-                      prefixIcon: Icon(
+                      prefixIcon: const Icon(
                         Icons.search,
                         color: Colors.teal,
                       ),
@@ -4085,7 +4132,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
+                        borderSide: const BorderSide(
                           color: Colors.teal,
                           width: 2,
                         ),
@@ -4191,7 +4238,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                   padding: const EdgeInsets.all(24),
                   child: Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.library_books_outlined,
                         color: Colors.deepOrange,
                         size: 24,
@@ -4219,7 +4266,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                       hintStyle: TextStyle(
                         color: isDark ? Colors.white54 : Colors.grey.shade600,
                       ),
-                      prefixIcon: Icon(
+                      prefixIcon: const Icon(
                         Icons.search,
                         color: Colors.deepOrange,
                       ),
@@ -4237,7 +4284,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
+                        borderSide: const BorderSide(
                           color: Colors.deepOrange,
                           width: 2,
                         ),
@@ -4324,7 +4371,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
             children: [
               Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.edit_note,
                     color: Colors.white,
                     size: 24,

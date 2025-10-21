@@ -18,6 +18,7 @@ import 'services/bible_context_service.dart';
 // Services supprimés (packs incomplets)
 import 'services/themes_service.dart';
 import 'services/mirror_verse_service.dart';
+import 'services/treasury_crossref_service.dart';
 // Services supprimés (packs incomplets)
 import 'dart:io';
 import 'services/intelligent_alarm_service.dart';
@@ -103,6 +104,10 @@ Future<void> appBootstrap() async {
 
   // Initialiser les services d'alarme intelligente
   await _initializeAlarmServices();
+  
+  // Initialiser TreasuryCrossRefService
+  await TreasuryCrossRefService.init();
+  print('✅ TreasuryCrossRefService initialisé');
 }
 
 /// Initialise les services d'alarme intelligente
