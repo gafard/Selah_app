@@ -366,7 +366,7 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
         children: [
           IconButton(
             onPressed: () => context.pop(),
-            icon: Icon(Icons.arrow_back, color: Colors.white),
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
           ),
           Expanded(
             child: Text(

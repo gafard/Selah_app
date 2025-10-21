@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:circle_nav_bar/circle_nav_bar.dart';
 import 'package:provider/provider.dart';
-import 'package:go_router/go_router.dart';
 import '../services/home_vm.dart';
 import '../state/app_state.dart';
 import '../widgets/connectivity_indicator.dart';
 import '../widgets/selah_logo.dart';
 import '../services/stable_random_service.dart';
+import '../utils/responsive_helper.dart';
 import 'my_plan_page_modern.dart';
 
 // Widgets factorisés
@@ -40,6 +40,7 @@ class _HomePageWidgetState extends State<HomePageWidget>
       context.read<HomeVM>().refreshQuizProgress();
     });
   }
+  
 
   @override
   Widget build(BuildContext context) {
@@ -78,24 +79,27 @@ class _HomePageWidgetState extends State<HomePageWidget>
           Icon(Icons.people, color: Colors.deepPurple),
           Icon(Icons.settings, color: Colors.deepPurple),
         ],
-        inactiveIcons: const [
-          Icon(Icons.calendar_today_outlined, color: Color(0xFF9CA3AF), size: 24),
-          Icon(Icons.book_outlined, color: Color(0xFF9CA3AF), size: 24),
-          Icon(Icons.home_outlined, color: Color(0xFF9CA3AF), size: 24),
-          Icon(Icons.people_outline, color: Color(0xFF9CA3AF), size: 24),
-          Icon(Icons.settings_outlined, color: Color(0xFF9CA3AF), size: 24),
+        inactiveIcons: [
+          Icon(Icons.calendar_today_outlined, color: const Color(0xFF9CA3AF), size: ResponsiveHelper.getResponsiveIconSize(context, 24)),
+          Icon(Icons.book_outlined, color: const Color(0xFF9CA3AF), size: ResponsiveHelper.getResponsiveIconSize(context, 24)),
+          Icon(Icons.home_outlined, color: const Color(0xFF9CA3AF), size: ResponsiveHelper.getResponsiveIconSize(context, 24)),
+          Icon(Icons.people_outline, color: const Color(0xFF9CA3AF), size: ResponsiveHelper.getResponsiveIconSize(context, 24)),
+          Icon(Icons.settings_outlined, color: const Color(0xFF9CA3AF), size: ResponsiveHelper.getResponsiveIconSize(context, 24)),
         ],
         color: Colors.white,
         circleColor: Colors.white,
-        height: 60,
-        circleWidth: 60,
+        height: ResponsiveHelper.getResponsiveHeight(context, 60),
+        circleWidth: ResponsiveHelper.getResponsiveWidth(context, 60),
         activeIndex: _navIndex,
         onTap: (v) {
           HapticFeedback.selectionClick();
           setState(() => _navIndex = v);
           // La page change automatiquement via _buildCurrentPage
         },
-        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
+        padding: ResponsiveHelper.getResponsivePadding(
+          context,
+          const EdgeInsets.only(left: 16, right: 16, bottom: 20),
+        ),
         cornerRadius: const BorderRadius.only(
           topLeft: Radius.circular(8),
           topRight: Radius.circular(8),
@@ -142,31 +146,36 @@ class _HomePageWidgetState extends State<HomePageWidget>
   /// Contenu de la page d'accueil
   Widget _buildHomeContent(HomeVM vm) {
     return Padding(
-      padding: const EdgeInsets.all(12),
+      padding: ResponsiveHelper.getResponsivePadding(
+        context,
+        const EdgeInsets.all(12),
+      ),
       child: Column(
         children: [
           // Header (Shalom + logo)
           HomeHeader(
             displayName: vm.state.firstName,
             subtitle: 'Dieu t\'attend dans Sa Parole',
-            trailing: const SelahAppIcon(size: 48),
+            trailing: SelahAppIcon(
+              size: ResponsiveHelper.getResponsiveWidth(context, 48),
+            ),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 6)),
 
           // Calendar line + quick stats
-          const CalendarBar(),
+          CalendarBar(planId: vm.today?.plan.id),
 
-          const SizedBox(height: 8),
+          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 8)),
 
           // Message d'encouragement intelligent (remplace le verset du jour)
           _buildIntelligentEncouragement(vm),
 
-          const SizedBox(height: 8),
+          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 8)),
 
           // Activity carousel (Lecture / Quiz / Étude thématique / Communauté)
           const Expanded(child: ActivityCarousel()),
 
-          const SizedBox(height: 8),
+          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 8)),
 
           // Progress (goals of the day) - maintenant après les cartes
           HomeProgressCard(
@@ -177,7 +186,7 @@ class _HomePageWidgetState extends State<HomePageWidget>
             weeksRemaining: vm.state.weeksRemaining ?? 0,
           ),
 
-          const SizedBox(height: 14),
+          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 14)),
         ],
       ),
     );
@@ -206,7 +215,10 @@ class _HomePageWidgetState extends State<HomePageWidget>
     }
 
     return Container(
-      padding: const EdgeInsets.all(4),
+      padding: ResponsiveHelper.getResponsivePadding(
+        context,
+        const EdgeInsets.all(4),
+      ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -234,22 +246,28 @@ class _HomePageWidgetState extends State<HomePageWidget>
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
           child: Container(
-            padding: const EdgeInsets.all(8),
+            padding: ResponsiveHelper.getResponsivePadding(
+              context,
+              const EdgeInsets.all(8),
+            ),
             child: Row(
               children: [
-                // Icône d'encouragement
+                // Icône cœur (remise)
                 Container(
-                  padding: const EdgeInsets.all(6),
+                  padding: ResponsiveHelper.getResponsivePadding(
+                    context,
+                    const EdgeInsets.all(6),
+                  ),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFF10B981), Color(0xFF059669)],
                     ),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.favorite_rounded,
                     color: Colors.white,
-                    size: 14,
+                    size: ResponsiveHelper.getResponsiveIconSize(context, 14),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -258,21 +276,21 @@ class _HomePageWidgetState extends State<HomePageWidget>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Message du jour',
                         style: TextStyle(
                           fontFamily: 'Gilroy',
-                          fontSize: 10,
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(context, 10),
                           fontWeight: FontWeight.w600,
                           color: Colors.white70,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 2)),
                       Text(
                         encouragementMessage,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Gilroy',
-                          fontSize: 13,
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(context, 13),
                           fontWeight: FontWeight.w500,
                           color: Colors.white,
                           height: 1.2,
@@ -296,27 +314,37 @@ class _SyncBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      top: 20,
-      left: 20,
+      top: ResponsiveHelper.getResponsiveHeight(context, 20),
+      left: ResponsiveHelper.getResponsiveWidth(context, 20),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: ResponsiveHelper.getResponsivePadding(
+          context,
+          const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        ),
         decoration: BoxDecoration(
           color: const Color(0xFFF59E0B),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
-              width: 8,
-              height: 8,
+              width: ResponsiveHelper.getResponsiveWidth(context, 8),
+              height: ResponsiveHelper.getResponsiveHeight(context, 8),
               child: CircularProgressIndicator(
-                strokeWidth: 1,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                strokeWidth: ResponsiveHelper.getResponsiveWidth(context, 1),
+                valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
               ),
             ),
-            SizedBox(width: 6),
-            Text('Sync...', style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w700)),
+            SizedBox(width: ResponsiveHelper.getResponsiveSpacing(context, 6)),
+            Text(
+              'Sync...',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getResponsiveFontSize(context, 12),
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ],
         ),
       ),

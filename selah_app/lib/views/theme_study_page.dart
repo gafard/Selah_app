@@ -455,11 +455,11 @@ class _ThemeStudyPageState extends State<ThemeStudyPage>
           ),
         ),
         const SizedBox(width: 16),
-        Expanded(
+        const Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'ÉTUDE THÉMATIQUE',
                 style: TextStyle(
                   fontFamily: 'Gilroy',
@@ -469,8 +469,8 @@ class _ThemeStudyPageState extends State<ThemeStudyPage>
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
-              const Text(
+              SizedBox(height: 8),
+              Text(
                 'Parcours aventure d\'un thème biblique',
                 style: TextStyle(
                   fontFamily: 'Gilroy',

@@ -47,7 +47,7 @@ class _PrayerCarouselPageState extends State<PrayerCarouselPage> {
       print('🔍 ARGUMENTS REÇUS: $args');
       print('🔍 TYPE: ${args.runtimeType}');
       
-      if (args is Map && args.containsKey('items')) {
+      if (args.containsKey('items')) {
         final itemsList = args['items'] as List;
         _memoryVerse = (args['memoryVerse'] as String?)?.trim() ?? '';
         setState(() { _items = itemsList.cast<PrayerItem>(); });

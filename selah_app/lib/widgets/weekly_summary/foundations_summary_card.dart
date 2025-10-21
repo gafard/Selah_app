@@ -44,7 +44,7 @@ class FoundationsSummaryCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(
+                const Icon(
                   Icons.star_rounded,
                   color: Colors.white,
                   size: 28,
@@ -224,7 +224,7 @@ class FoundationsSummaryCompact extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(
+            const Icon(
               Icons.star_rounded,
               color: Colors.white,
               size: 20,

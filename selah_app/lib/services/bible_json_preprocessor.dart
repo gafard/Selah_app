@@ -118,11 +118,15 @@ class LooseJsonPreprocessor {
         if (_isKeyStart(ch)) {
           final start = i;
           int j = i + 1;
-          while (j < s.length && _isKeyBody(s[j])) j++;
+          while (j < s.length && _isKeyBody(s[j])) {
+            j++;
+          }
 
           // skip espaces
           int k = j;
-          while (k < s.length && (s[k] == ' ' || s[k] == '\t')) k++;
+          while (k < s.length && (s[k] == ' ' || s[k] == '\t')) {
+            k++;
+          }
 
           if (k < s.length && s[k] == ':') {
             final key = s.substring(start, j);
@@ -244,8 +248,8 @@ class LooseJsonPreprocessor {
     int currentLine = 1; // 1-based pour logs
 
     // Utilitaires de logs
-    void _log(String s) {
-      if (log != null) log!(s);
+    void log0(String s) {
+      if (log != null) log(s);
     }
 
     // Écrit une réparation complète dans la sortie + log
@@ -258,11 +262,11 @@ class LooseJsonPreprocessor {
 
       final mergedLines = (startLine == -1) ? 0 : (currentLine - startLine);
       final previewStr = (preview.length > previewMax)
-          ? preview.substring(0, previewMax) + '…'
+          ? '${preview.substring(0, previewMax)}…'
           : preview;
 
-      _log('[fixMultilineStrings] Text réparé L:$startLine-${currentLine - 1} '
-          '(${mergedLines} lignes) → "${previewStr}"');
+      log0('[fixMultilineStrings] Text réparé L:$startLine-${currentLine - 1} '
+          '($mergedLines lignes) → "$previewStr"');
 
       // reset état
       insideText = false;
@@ -288,7 +292,9 @@ class LooseJsonPreprocessor {
         // Vérifier qu'on a bien "Text":"
         // 1) après "Text" -> skip espaces -> :
         int i = keyIdx + '"Text"'.length;
-        while (i < line.length && (line[i] == ' ' || line[i] == '\t')) i++;
+        while (i < line.length && (line[i] == ' ' || line[i] == '\t')) {
+          i++;
+        }
         if (i >= line.length || line[i] != ':') {
           // ce n'est pas un champ JSON correct → écrire tel quel
           out.writeln(line);
@@ -296,7 +302,9 @@ class LooseJsonPreprocessor {
           continue;
         }
         i++; // skip ':'
-        while (i < line.length && (line[i] == ' ' || line[i] == '\t')) i++;
+        while (i < line.length && (line[i] == ' ' || line[i] == '\t')) {
+          i++;
+        }
         if (i >= line.length || line[i] != '"') {
           // pas d'ouverture de chaîne → écrire tel quel
           out.writeln(line);
@@ -769,7 +777,9 @@ class LooseJsonPreprocessor {
         }
         if (ch == ',' && i + 1 < s.length) {
           int j = i + 1;
-          while (j < s.length && (s[j] == ' ' || s[j] == '\n' || s[j] == '\t')) j++;
+          while (j < s.length && (s[j] == ' ' || s[j] == '\n' || s[j] == '\t')) {
+            j++;
+          }
           if (j < s.length && (s[j] == ']' || s[j] == '}')) {
             // on skip la virgule
             continue;

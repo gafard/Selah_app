@@ -3,7 +3,7 @@ import 'lib/services/bible_json_preprocessor.dart';
 
 void main() {
   // Test simple avec apostrophe
-  final testJson = '''
+  const testJson = '''
   {
     "Text": "Tels sont les descendants de Cham, répartis d'après leurs clans"
   }

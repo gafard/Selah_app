@@ -4,8 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import '../models/passage_payload.dart';
-import 'meditation_free_v2_page.dart';
-import 'meditation_qcm_page.dart';
 
 class MeditationChooserPage extends StatelessWidget {
   const MeditationChooserPage({super.key});

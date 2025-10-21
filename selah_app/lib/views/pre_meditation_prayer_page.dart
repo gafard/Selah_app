@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:airplane_mode_checker/airplane_mode_checker.dart';
-import 'package:app_settings/app_settings.dart';
 import '../bootstrap.dart'; // pour planService + _navigateToReader()
 
 class PreMeditationPrayerPage extends StatefulWidget {
@@ -383,7 +382,7 @@ class _PreMeditationPrayerPageState extends State<PreMeditationPrayerPage>
         // Secondary button with improved styling
         _EnhancedGhostButton(
           text: 'Passer pour l\'instant',
-          onTap: () => _navigateToReader(),
+          onTap: () => context.go('/home'),
         ),
       ],
     );

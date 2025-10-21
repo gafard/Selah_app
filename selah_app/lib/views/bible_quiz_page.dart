@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import '../services/meditation_journal_service.dart';
-import '../services/intelligent_quiz_service.dart';
+import '../services/intelligent_content_quiz_generator.dart';
+import '../services/bible_text_service.dart';
+import '../services/adaptive_difficulty_service.dart';
 import '../models/meditation_journal_entry.dart';
 import '../models/quiz_question.dart';
-import '../widgets/uniform_back_button.dart';
+import '../bootstrap.dart' as bootstrap;
 
 class BibleQuizPage extends StatefulWidget {
   const BibleQuizPage({super.key});
@@ -70,50 +72,64 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
     await _generateIntelligentQuestions();
   }
 
-  /// 🧠 Génère des questions intelligentes avec le service Apôtre
+  /// 🧠 Génère des questions intelligentes basées sur le contenu et l'historique
   Future<void> _generateIntelligentQuestions() async {
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // Initialiser le service si nécessaire
-      await IntelligentQuizService.init();
+      // Récupérer le plan actuel et le passage du jour
+      final planService = bootstrap.planService;
+      final activePlan = await planService.getActiveLocalPlan();
       
-      // Générer des questions basées sur l'historique de méditation
-      // Utiliser le premier passage comme référence, ou un passage par défaut
-      final passageRef = _journalEntries.isNotEmpty 
-          ? _journalEntries.first.passageRef 
-          : 'Jean 3:16';
+      if (activePlan == null) {
+        print('⚠️ Aucun plan actif trouvé, utilisation du fallback');
+        _generateFallbackQuestions();
+        return;
+      }
       
-      final intelligentQuestions = await IntelligentQuizService.generatePersonalizedQuestions(
-        'user_${DateTime.now().millisecondsSinceEpoch}', // ID utilisateur temporaire
-        passageRef,
+      // Obtenir le passage actuel
+      final planDays = await planService.getPlanDays(activePlan.id);
+      final today = planDays.firstWhere(
+        (day) => day.dayIndex == _calculateCurrentDayIndex(activePlan),
+        orElse: () => planDays.first,
       );
       
-      // Convertir les questions intelligentes en QuizQuestion
-      final questions = intelligentQuestions.map((iq) => QuizQuestion(
-        id: iq.id,
-        question: iq.text,
-        options: iq.options,
-        correctAnswerIndex: iq.correctAnswer,
-        explanation: 'Explication générée par Apôtre - Analyse cognitive avancée',
-        difficulty: _convertDifficulty(iq.difficulty),
-        category: _convertQuestionType(iq.type),
-        passageReference: passageRef,
-        verseText: iq.semanticContext?['verseText'],
-        metadata: iq.semanticContext,
-      )).toList();
+      // Construire la référence du passage
+      final passageRef = today.readings.isNotEmpty 
+          ? '${today.readings.first.book} ${today.readings.first.range}'
+          : 'Jean 3:16';
+      
+      // Récupérer le texte du passage
+      final passageText = await _getPassageText(passageRef);
+      
+      if (passageText == null) {
+        print('⚠️ Impossible de récupérer le texte du passage, utilisation du fallback');
+        _generateFallbackQuestions();
+        return;
+      }
+      
+            // Calculer la difficulté adaptative
+            final difficulty = await AdaptiveDifficultyService.calculateAdaptiveDifficulty('user_${DateTime.now().millisecondsSinceEpoch}');
 
+            // Générer les questions intelligentes
+            final questions = await IntelligentContentQuizGenerator.generatePersonalizedQuestions(
+              currentPassageText: passageText,
+              currentPassageRef: passageRef,
+              currentPlanId: activePlan.id,
+              questionCount: 10,
+              targetDifficulty: difficulty.name,
+            );
+      
       setState(() {
         _questions = questions;
         _isLoading = false;
       });
-
-      print('🧠 Apôtre: ${questions.length} questions générées intelligemment');
+      
+      print('🧠 ${questions.length} questions générées (contenu + historique + cross-refs)');
     } catch (e) {
       print('❌ Erreur génération questions: $e');
-      // Fallback vers des questions par défaut
       _generateFallbackQuestions();
     }
   }
@@ -425,6 +441,9 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
     final timeSpent = DateTime.now().difference(_quizStartTime);
     final percentage = (_score / _questions.length) * 100;
     
+    // Enregistrer le score pour la difficulté adaptative
+    await _recordQuizScore(percentage / 100);
+    
     // Créer le résultat du quiz
     final result = QuizResult(
       quizId: 'quiz_${DateTime.now().millisecondsSinceEpoch}',
@@ -516,27 +535,30 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
     _generateIntelligentQuestions();
   }
 
-  /// 🔄 Convertit la difficulté numérique en string
-  String _convertDifficulty(double difficulty) {
-    if (difficulty <= 0.3) return 'easy';
-    if (difficulty <= 0.7) return 'medium';
-    return 'hard';
+
+  /// 📖 Récupère le texte d'un passage biblique
+  Future<String?> _getPassageText(String passageRef) async {
+    try {
+      // Utiliser le service de texte biblique existant
+      final text = await BibleTextService.getPassageText(passageRef);
+      return text;
+    } catch (e) {
+      print('⚠️ Erreur récupération texte: $e');
+      return null;
+    }
   }
 
-  /// 🔄 Convertit le type de question en catégorie
-  String _convertQuestionType(QuestionType type) {
-    switch (type) {
-      case QuestionType.multipleChoice:
-        return 'comprehension';
-      case QuestionType.trueFalse:
-        return 'application';
-      case QuestionType.fillInBlank:
-        return 'analysis';
-      case QuestionType.essay:
-        return 'synthesis';
-      default:
-        return 'comprehension';
-    }
+  /// 📅 Calcule l'index du jour actuel dans le plan
+  int _calculateCurrentDayIndex(activePlan) {
+    final today = DateTime.now();
+    final startDate = activePlan.startDate;
+    
+    // Normaliser les dates à minuit pour comparer les jours calendaires
+    final todayNormalized = DateTime(today.year, today.month, today.day);
+    final startNormalized = DateTime(startDate.year, startDate.month, startDate.day);
+    
+    final dayIndex = todayNormalized.difference(startNormalized).inDays + 1;
+    return dayIndex;
   }
 
   @override
@@ -550,7 +572,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1a1a2e),
+      backgroundColor: const Color(0xFF0A0A0A),
       extendBodyBehindAppBar: true,
       body: Container(
         decoration: const BoxDecoration(
@@ -558,41 +580,43 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFF1a1a2e),
-              Color(0xFF16213e),
-              Color(0xFF0f3460),
+              Color(0xFF0A0A0A),
+              Color(0xFF1A1A2E),
+              Color(0xFF16213E),
             ],
           ),
         ),
-        child: SafeArea(
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: SlideTransition(
-              position: _slideAnimation,
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  children: [
-                    // Header
-                    UniformHeader(
-                      title: 'Quiz Biblique',
-                      onBackPressed: () => context.pop(),
-                      textColor: Colors.white,
-                      iconColor: Colors.white,
-                      titleAlignment: CrossAxisAlignment.center,
+        child: Stack(
+          children: [
+            // Dessins abstraits en arrière-plan
+            _buildAbstractBackground(),
+            
+            // Contenu principal
+            SafeArea(
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      children: [
+                        // Header avec style Selah
+                        _buildSelahHeader(),
+                        
+                        const SizedBox(height: 24),
+                        
+                        // Content
+                        Expanded(
+                          child: _buildContent(),
+                        ),
+                      ],
                     ),
-                    
-                    const SizedBox(height: 32),
-                    
-                    // Content
-                    Expanded(
-                      child: _buildContent(),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -677,7 +701,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.psychology, color: Colors.blue, size: 16),
+                const Icon(Icons.psychology, color: Colors.blue, size: 16),
                 const SizedBox(width: 8),
                 Text(
                   'Analyse cognitive en cours...',
@@ -944,7 +968,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.menu_book, size: 14, color: Colors.blue),
+                      const Icon(Icons.menu_book, size: 14, color: Colors.blue),
                       const SizedBox(width: 6),
                       Text(
                         question.passageReference!,
@@ -1293,4 +1317,272 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
     return 'Lisez plus régulièrement pour améliorer vos connaissances.';
   }
 
+  /// Enregistre le score du quiz pour la difficulté adaptative
+  Future<void> _recordQuizScore(double score) async {
+    try {
+      await AdaptiveDifficultyService.recordScore('user_${DateTime.now().millisecondsSinceEpoch}', score);
+      print('📊 Score enregistré: ${(score * 100).toStringAsFixed(1)}%');
+    } catch (e) {
+      print('⚠️ Erreur enregistrement score: $e');
+    }
+  }
+
+  /// 🎨 Dessins abstraits en arrière-plan (style Selah/Calm)
+  Widget _buildAbstractBackground() {
+    return Stack(
+      children: [
+        // Formes géométriques flottantes
+        Positioned(
+          top: 100,
+          right: -50,
+          child: Container(
+            width: 200,
+            height: 200,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  const Color(0xFF6366F1).withOpacity(0.1),
+                  const Color(0xFF8B5CF6).withOpacity(0.05),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+        ),
+        
+        Positioned(
+          bottom: 200,
+          left: -80,
+          child: Container(
+            width: 300,
+            height: 300,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  const Color(0xFF10B981).withOpacity(0.08),
+                  const Color(0xFF059669).withOpacity(0.04),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+        ),
+        
+        Positioned(
+          top: 300,
+          left: 50,
+          child: Container(
+            width: 150,
+            height: 150,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(30),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFFF59E0B).withOpacity(0.06),
+                  const Color(0xFFFBBF24).withOpacity(0.03),
+                ],
+              ),
+            ),
+          ),
+        ),
+        
+        // Lignes organiques
+        Positioned(
+          top: 150,
+          left: 0,
+          right: 0,
+          child: CustomPaint(
+            size: const Size(double.infinity, 200),
+            painter: OrganicLinesPainter(),
+          ),
+        ),
+        
+        // Particules flottantes
+        ...List.generate(8, (index) => _buildFloatingParticle(index)),
+      ],
+    );
+  }
+
+  /// ✨ Particule flottante individuelle
+  Widget _buildFloatingParticle(int index) {
+    final colors = [
+      const Color(0xFF6366F1),
+      const Color(0xFF8B5CF6),
+      const Color(0xFF10B981),
+      const Color(0xFFF59E0B),
+    ];
+    
+    final positions = [
+      const Offset(50, 200),
+      const Offset(300, 150),
+      const Offset(100, 400),
+      const Offset(250, 350),
+      const Offset(80, 500),
+      const Offset(320, 450),
+      const Offset(150, 300),
+      const Offset(280, 250),
+    ];
+    
+    return Positioned(
+      left: positions[index].dx,
+      top: positions[index].dy,
+      child: Container(
+        width: 4 + (index % 3) * 2,
+        height: 4 + (index % 3) * 2,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: colors[index % colors.length].withOpacity(0.3),
+          boxShadow: [
+            BoxShadow(
+              color: colors[index % colors.length].withOpacity(0.2),
+              blurRadius: 8,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 🎯 Header avec style Selah
+  Widget _buildSelahHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.1),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Bouton retour avec style Selah
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.2),
+                width: 1,
+              ),
+            ),
+            child: IconButton(
+              onPressed: () => context.pop(),
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ),
+          
+          const SizedBox(width: 16),
+          
+          // Titre avec style moderne
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Quiz Biblique',
+                  style: GoogleFonts.inter(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                Text(
+                  'Testez vos connaissances',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.7),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Icône de statut
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.psychology_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 🎨 Peintre pour les lignes organiques
+class OrganicLinesPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF6366F1).withOpacity(0.1)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final path = Path();
+    
+    // Ligne organique 1
+    path.moveTo(0, size.height * 0.3);
+    path.quadraticBezierTo(
+      size.width * 0.3, size.height * 0.1,
+      size.width * 0.6, size.height * 0.4,
+    );
+    path.quadraticBezierTo(
+      size.width * 0.8, size.height * 0.7,
+      size.width, size.height * 0.5,
+    );
+    
+    canvas.drawPath(path, paint);
+    
+    // Ligne organique 2
+    final path2 = Path();
+    paint.color = const Color(0xFF10B981).withOpacity(0.08);
+    
+    path2.moveTo(0, size.height * 0.7);
+    path2.quadraticBezierTo(
+      size.width * 0.4, size.height * 0.5,
+      size.width * 0.7, size.height * 0.8,
+    );
+    path2.quadraticBezierTo(
+      size.width * 0.9, size.height * 0.9,
+      size.width, size.height * 0.6,
+    );
+    
+    canvas.drawPath(path2, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

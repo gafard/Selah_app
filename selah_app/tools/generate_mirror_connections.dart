@@ -1117,3 +1117,4 @@ Future<void> _generateCitationConnections(Map<String, String> connections) async
   
   print('✅ ${connections.length} connexions par citations générées');
 }
+

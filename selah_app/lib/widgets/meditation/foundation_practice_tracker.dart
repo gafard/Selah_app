@@ -87,10 +87,10 @@ class _FoundationPracticeTrackerState extends State<FoundationPracticeTracker> {
                 size: 20,
               ),
               const SizedBox(width: 8),
-              Expanded(
+              const Expanded(
                 child: Text(
                   'As-tu mis en pratique cette fondation aujourd\'hui ?',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
@@ -113,9 +113,9 @@ class _FoundationPracticeTrackerState extends State<FoundationPracticeTracker> {
               ),
             ),
             child: CheckboxListTile(
-              title: Text(
+              title: const Text(
                 'Oui, je l\'ai fait',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,

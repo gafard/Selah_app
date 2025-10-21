@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:convert';
 import 'package:json5/json5.dart';
 
 /// Pipeline hybride Falcon X + LooseJsonPreprocessor
@@ -321,5 +320,6 @@ String _nextNonWsChar(String input, int start) {
   }
   return '\u0000';
 }
+
 
 

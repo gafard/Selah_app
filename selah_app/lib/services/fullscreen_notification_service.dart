@@ -1,6 +1,4 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:go_router/go_router.dart';
 
 /// 🔔 Service de notification plein écran pour les alarmes
 /// 
@@ -64,18 +62,18 @@ class FullScreenNotificationService {
           contentTitle: 'Selah - Moment de méditation',
         ),
         actions: [
-          AndroidNotificationAction(
+          const AndroidNotificationAction(
             'open_app',
             'Commencer maintenant',
             icon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
             showsUserInterface: true,
           ),
-          AndroidNotificationAction(
+          const AndroidNotificationAction(
             'snooze_10min',
             'Rappel dans 10min',
             icon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
           ),
-          AndroidNotificationAction(
+          const AndroidNotificationAction(
             'dismiss',
             'Ignorer',
             icon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),

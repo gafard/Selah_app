@@ -1,7 +1,4 @@
-import 'dart:convert';
-import 'package:flutter/services.dart';
 import 'bsb_topical_service.dart';
-import 'bsb_concordance_service.dart';
 
 /// 🧠 Service d'extraction de thèmes sémantiques depuis la lecture du jour
 class SemanticThemeExtractor {
@@ -176,5 +173,6 @@ class SemanticThemeExtractor {
     return themes.isNotEmpty ? themes.first : 'amour';
   }
 }
+
 
 

@@ -534,7 +534,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
   
   // Les systèmes intelligents travaillent en arrière-plan sans interface visible
   Widget _buildIntelligenceRecommendations() {
-    return SizedBox.shrink(); // Pas d'interface visible
+    return const SizedBox.shrink(); // Pas d'interface visible
   }
   
   

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:hive/hive.dart';
 import 'user_prefs.dart';
 import 'user_prefs_hive.dart';
 

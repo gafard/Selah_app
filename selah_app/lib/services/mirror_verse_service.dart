@@ -52,19 +52,22 @@ class MirrorVerseService {
   /// Retourne : ID du verset miroir ou null
   static Future<String?> mirrorOf(String id) async {
     try {
+      // Normaliser l'ID avant la recherche
+      final normalizedId = _normalizeVerseId(id);
+      
       // Chercher d'abord dans les donnees etendues
-      final extendedMirror = await MirrorVerseExtendedService.extendedMirrorOf(id);
+      final extendedMirror = await MirrorVerseExtendedService.extendedMirrorOf(normalizedId);
       if (extendedMirror != null) return extendedMirror;
       
       // Chercher dans les donnees de base
-      final forward = _mirrorsBox?.get(id) as String?;
+      final forward = _mirrorsBox?.get(normalizedId) as String?;
       if (forward != null) return forward;
 
       // Chercher en sens inverse dans les donnees de base
       final allKeys = _mirrorsBox?.keys ?? [];
       for (final key in allKeys) {
         final value = _mirrorsBox?.get(key) as String?;
-        if (value == id) return key as String;
+        if (value == normalizedId) return key as String;
       }
 
       return null;
@@ -84,20 +87,23 @@ class MirrorVerseService {
     String id, {
     required Future<String?> Function(String verseId) getVerseText,
   }) async {
+    // Normaliser l'ID
+    final normalizedId = _normalizeVerseId(id);
+    
     // Essayer d'abord le service etendu
     final extendedMirror = await MirrorVerseExtendedService.enrichedExtendedMirror(
-      id,
+      normalizedId,
       getVerseText: getVerseText,
     );
     if (extendedMirror != null) return extendedMirror;
     
     // Fallback sur le service de base
-    final mirrorId = await mirrorOf(id);
+    final mirrorId = await mirrorOf(normalizedId);
     if (mirrorId == null) return null;
 
     final originalText = await getVerseText(id);
     final mirrorText = await getVerseText(mirrorId);
-    final connection = _getConnectionType(id, mirrorId);
+    final connection = _getConnectionType(normalizedId, mirrorId);
 
     return MirrorVerse(
       originalId: id,
@@ -105,7 +111,7 @@ class MirrorVerseService {
       originalText: originalText,
       mirrorText: mirrorText,
       connectionType: connection,
-      explanation: _getExplanation(id, mirrorId),
+      explanation: _getExplanation(normalizedId, mirrorId),
     );
   }
   
@@ -176,6 +182,71 @@ class MirrorVerseService {
       '1Jean', '2Jean', '3Jean', 'Jude', 'Apocalypse',
     ];
     return ntBooks.contains(book);
+  }
+  
+  /// Normalise un ID de verset français vers anglais
+  /// Ex: "1 Pierre.3.1" → "1Peter.3.1"
+  static String _normalizeVerseId(String verseId) {
+    final bookMappings = {
+      // Ancien Testament
+      'genèse': 'Genesis',
+      'exode': 'Exodus',
+      'lévitique': 'Leviticus',
+      'nombres': 'Numbers',
+      'deutéronome': 'Deuteronomy',
+      'josué': 'Joshua',
+      'juges': 'Judges',
+      'ruth': 'Ruth',
+      '1 samuel': '1Samuel',
+      '2 samuel': '2Samuel',
+      '1 rois': '1Kings',
+      '2 rois': '2Kings',
+      'psaumes': 'Psalms',
+      'proverbes': 'Proverbs',
+      'ésaïe': 'Isaiah',
+      'jérémie': 'Jeremiah',
+      'ézéchiel': 'Ezekiel',
+      'daniel': 'Daniel',
+      
+      // Nouveau Testament
+      'matthieu': 'Matthew',
+      'marc': 'Mark',
+      'luc': 'Luke',
+      'jean': 'John',
+      'actes': 'Acts',
+      'romains': 'Romans',
+      '1 corinthiens': '1Corinthians',
+      '2 corinthiens': '2Corinthians',
+      'galates': 'Galatians',
+      'éphésiens': 'Ephesians',
+      'philippiens': 'Philippians',
+      'colossiens': 'Colossians',
+      '1 thessaloniciens': '1Thessalonians',
+      '2 thessaloniciens': '2Thessalonians',
+      '1 timothée': '1Timothy',
+      '2 timothée': '2Timothy',
+      'tite': 'Titus',
+      'philémon': 'Philemon',
+      'hébreux': 'Hebrews',
+      'jacques': 'James',
+      '1 pierre': '1Peter',
+      '2 pierre': '2Peter',
+      '1 jean': '1John',
+      '2 jean': '2John',
+      '3 jean': '3John',
+      'jude': 'Jude',
+      'apocalypse': 'Revelation',
+    };
+    
+    // Extraire le livre du verseId
+    final parts = verseId.split('.');
+    if (parts.isEmpty) return verseId;
+    
+    final book = parts[0].toLowerCase();
+    final normalizedBook = bookMappings[book] ?? parts[0];
+    
+    // Reconstruire le verseId avec le livre normalisé
+    return [normalizedBook, ...parts.sublist(1)].join('.');
   }
   
   /// Hydrate la box depuis les assets JSON

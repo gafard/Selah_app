@@ -31,7 +31,7 @@ Future<List<String>?> showMiniJournalSheet(BuildContext context) {
             // Header
             Row(
               children: [
-                Icon(
+                const Icon(
                   Icons.auto_awesome,
                   color: Colors.white,
                   size: 24,

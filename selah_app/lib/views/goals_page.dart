@@ -140,7 +140,7 @@ class _GoalsPageState extends State<GoalsPage> {
         final intelligentPresets = enrichedPresets.map((preset) {
           // ✅ CORRECTION : Utiliser la durée déjà calculée dans le preset au lieu de recalculer
           final presetDuration = preset.durationDays;
-          print('🔍 Preset ${preset.name}: durée originale = ${presetDuration} jours');
+          print('🔍 Preset ${preset.name}: durée originale = $presetDuration jours');
           
           // Créer un nouveau preset avec durée préservée
           return PlanPreset(
@@ -267,8 +267,8 @@ class _GoalsPageState extends State<GoalsPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            Icon(Icons.psychology, color: Colors.blue, size: 24),
-            SizedBox(width: 8),
+            const Icon(Icons.psychology, color: Colors.blue, size: 24),
+            const SizedBox(width: 8),
             Text(
               'Analyse Spirituelle & Théologique',
               style: GoogleFonts.inter(
@@ -287,17 +287,17 @@ class _GoalsPageState extends State<GoalsPage> {
               // 🕊️ Scores théologiques
               if (theologyInfo != null) ...[
                 _buildTheologyScoreCard('Doctrine de Christ', theologyInfo['doctrine_score'] as double? ?? 0.0, '1Jn 4:1-3'),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 _buildTheologyScoreCard('Autorité de la Bible', theologyInfo['authority_score'] as double? ?? 0.0, '2Tm 3:16'),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 _buildTheologyScoreCard('Évangile de Jésus', theologyInfo['gospel_score'] as double? ?? 0.0, 'Ga 1:6-9'),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
               ],
               
               // Niveau de confiance spirituelle
               if (durationInfo != null) ...[
                 Container(
-                  padding: EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: _getConfidenceColor(confidence).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -306,7 +306,7 @@ class _GoalsPageState extends State<GoalsPage> {
                   child: Row(
                     children: [
                       Icon(Icons.analytics, color: _getConfidenceColor(confidence), size: 20),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Text(
                         'Confiance Spirituelle: ${(confidence * 100).round()}%',
                         style: GoogleFonts.inter(
@@ -318,10 +318,10 @@ class _GoalsPageState extends State<GoalsPage> {
                     ],
                   ),
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
               ],
               
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               
               // Type comportemental
               if (behavioralType.isNotEmpty) ...[
@@ -333,7 +333,7 @@ class _GoalsPageState extends State<GoalsPage> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
               ],
               
               // Intensité
@@ -346,7 +346,7 @@ class _GoalsPageState extends State<GoalsPage> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
               ],
               
               // 🕊️ Tags et références théologiques
@@ -365,12 +365,12 @@ class _GoalsPageState extends State<GoalsPage> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Wrap(
                     spacing: 4,
                     runSpacing: 4,
                     children: tags.take(8).map((tag) => Container(
-                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: Colors.blue.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(4),
@@ -384,7 +384,7 @@ class _GoalsPageState extends State<GoalsPage> {
                       ),
                     )).toList(),
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                 ],
                 
                 if (verseAnchors.isNotEmpty) ...[
@@ -396,10 +396,10 @@ class _GoalsPageState extends State<GoalsPage> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   ...verseAnchors.take(5).map((verse) => Container(
-                    margin: EdgeInsets.only(bottom: 4),
-                    padding: EdgeInsets.all(6),
+                    margin: const EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
                       color: Colors.green.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(4),
@@ -412,8 +412,8 @@ class _GoalsPageState extends State<GoalsPage> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                  )).toList(),
-                  SizedBox(height: 12),
+                  )),
+                  const SizedBox(height: 12),
                 ],
                   ];
                 }(),
@@ -429,7 +429,7 @@ class _GoalsPageState extends State<GoalsPage> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
                   reasoning,
                   style: GoogleFonts.inter(
@@ -438,7 +438,7 @@ class _GoalsPageState extends State<GoalsPage> {
                     height: 1.4,
                   ),
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
               ],
               
               // Avertissements
@@ -451,18 +451,18 @@ class _GoalsPageState extends State<GoalsPage> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 ...warnings.map((warning) => Container(
-                  margin: EdgeInsets.only(bottom: 4),
-                  padding: EdgeInsets.all(8),
+                  margin: const EdgeInsets.only(bottom: 4),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: Colors.orange.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.warning, color: Colors.orange, size: 16),
-                      SizedBox(width: 8),
+                      const Icon(Icons.warning, color: Colors.orange, size: 16),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           warning.toString(),
@@ -474,7 +474,7 @@ class _GoalsPageState extends State<GoalsPage> {
                       ),
                     ],
                   ),
-                )).toList(),
+                )),
               ],
             ],
           ),
@@ -501,7 +501,7 @@ class _GoalsPageState extends State<GoalsPage> {
     final color = _getConfidenceColor(score);
     
     return Container(
-      padding: EdgeInsets.all(10),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
@@ -510,7 +510,7 @@ class _GoalsPageState extends State<GoalsPage> {
       child: Row(
         children: [
           Icon(Icons.menu_book, color: color, size: 18),
-          SizedBox(width: 8),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -534,7 +534,7 @@ class _GoalsPageState extends State<GoalsPage> {
             ),
           ),
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: color.withOpacity(0.2),
               borderRadius: BorderRadius.circular(8),
@@ -946,9 +946,9 @@ class _GoalsPageState extends State<GoalsPage> {
                       // ✅ "Recommandé" sous l'icône avec GoalBadge moderne
                       if (_isRecommendedPresetNew(preset)) ...[
                         const SizedBox(height: 6),
-                        GoalBadge(
+                        const GoalBadge(
                           label: 'Recommandé',
-                          color: const Color(0xFF1553FF),
+                          color: Color(0xFF1553FF),
                           icon: Icons.star_rounded,
                         ),
                         const SizedBox(height: 6),
@@ -957,7 +957,7 @@ class _GoalsPageState extends State<GoalsPage> {
                             final reasons = IntelligentLocalPresetGenerator.explainWhyRecommended(preset.slug, take: 3);
                             if (reasons.isEmpty) return;
                             _showSnackBar(
-                              'Pourquoi recommandé :\n• ' + reasons.join('\n• '),
+                              'Pourquoi recommandé :\n• ${reasons.join('\n• ')}',
                               Icons.info_outline,
                               const Color(0xFF1553FF),
                             );

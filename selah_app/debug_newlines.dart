@@ -12,7 +12,7 @@ void main() {
   for (int i = 0; i < testCase.length; i++) {
     final ch = testCase[i];
     if (ch == '\n' || ch == '"') {
-      print('Position $i: "${ch}" (${ch.codeUnitAt(0)})');
+      print('Position $i: "$ch" (${ch.codeUnitAt(0)})');
     }
   }
   
@@ -26,10 +26,11 @@ void main() {
   for (int i = 0; i < processed.length; i++) {
     final ch = processed[i];
     if (ch == '\n' || ch == '"' || ch == '\\') {
-      print('Position $i: "${ch}" (${ch.codeUnitAt(0)})');
+      print('Position $i: "$ch" (${ch.codeUnitAt(0)})');
     }
   }
 }
+
 
 
 

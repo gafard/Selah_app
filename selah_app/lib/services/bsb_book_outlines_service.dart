@@ -1,5 +1,3 @@
-import 'dart:convert';
-import 'package:flutter/services.dart';
 
 /// Service pour les plans de livres BSB
 /// Utilise le PDF bsb_book_outlines.pdf pour enrichir l'étude thématique
@@ -186,6 +184,55 @@ class BSBBookOutlinesService {
             'chapters': '6-8',
             'description': 'La vie chrétienne et la sanctification',
             'themes': ['sanctification', 'vie chrétienne', 'Esprit', 'liberté', 'amour'],
+          },
+        ],
+      },
+      '1 Pierre': {
+        'title': 'Première Épître de Pierre',
+        'period': 'Église primitive',
+        'description': 'L\'épître de l\'espérance et de la souffrance',
+        'sections': [
+          {
+            'title': 'Salutation et bénédiction',
+            'chapters': '1:1-2',
+            'description': 'Salutation aux chrétiens dispersés',
+            'themes': ['salutation', 'bénédiction', 'élection', 'grâce', 'paix'],
+          },
+          {
+            'title': 'L\'espérance vivante',
+            'chapters': '1:3-12',
+            'description': 'L\'héritage incorruptible et l\'espérance en Christ',
+            'themes': ['espérance', 'héritage', 'salut', 'foi', 'révélation'],
+          },
+          {
+            'title': 'La sainteté et l\'obéissance',
+            'chapters': '1:13-25',
+            'description': 'Appel à la sainteté et à l\'obéissance',
+            'themes': ['sainteté', 'obéissance', 'amour', 'rédemption', 'parole'],
+          },
+          {
+            'title': 'La pierre vivante et le sacerdoce',
+            'chapters': '2:1-10',
+            'description': 'Christ comme pierre angulaire et le sacerdoce royal',
+            'themes': ['pierre', 'sacerdoce', 'royal', 'saint', 'élection'],
+          },
+          {
+            'title': 'La soumission aux autorités',
+            'chapters': '2:11-25',
+            'description': 'Conduite chrétienne et soumission aux autorités',
+            'themes': ['soumission', 'autorités', 'conduite', 'souffrance', 'exemple'],
+          },
+          {
+            'title': 'Les relations dans le mariage',
+            'chapters': '3:1-7',
+            'description': 'Conseils pour les femmes et les maris',
+            'themes': ['mariage', 'soumission', 'respect', 'prière', 'héritage'],
+          },
+          {
+            'title': 'La souffrance et la gloire',
+            'chapters': '3:8-22',
+            'description': 'Bénédiction dans la souffrance et exemple de Christ',
+            'themes': ['souffrance', 'bénédiction', 'justice', 'exemple', 'salut'],
           },
         ],
       },

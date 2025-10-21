@@ -33,6 +33,7 @@ class UserPrefsHive implements UserPrefs {
   }
 
   // Méthodes existantes (compatibilité)
+  @override
   Future<void> setHasOnboarded(bool v) async {
     final p = profile;
     p['hasOnboarded'] = v;

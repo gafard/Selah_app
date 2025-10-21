@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:convert';
 
 void main() async {
   final file = File('assets/bibles/francais_courant.json');

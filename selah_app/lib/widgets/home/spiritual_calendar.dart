@@ -45,9 +45,9 @@ class SpiritualCalendar extends StatelessWidget {
           // Titre avec encouragement
           Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.calendar_today,
-                color: const Color(0xFF8B5CF6),
+                color: Color(0xFF8B5CF6),
                 size: 20,
               ),
               const SizedBox(width: 8),

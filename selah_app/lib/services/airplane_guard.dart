@@ -229,44 +229,7 @@ class AirplaneGuard {
                         ],
                         const SizedBox(height: 24),
                         
-                        // Boutons d'action avec style Selah (taille réduite)
-                        Column(
-                          children: [
-                            // Bouton "Continuer quand même" (ghost)
-                            SizedBox(
-                              width: double.infinity,
-                              child: GestureDetector(
-                                onTap: () async {
-                                  final prefs = await SharedPreferences.getInstance();
-                                  await prefs.setBool(_prefKeySkip, dontRemind);
-                                  Navigator.of(ctx).pop(false);
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.05),
-                                    borderRadius: BorderRadius.circular(14),
-                                    border: Border.all(
-                                      color: Colors.white.withOpacity(0.15),
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    'Continuer quand même',
-                                    textAlign: TextAlign.center,
-                                    style: GoogleFonts.inter(
-                                      color: Colors.white.withOpacity(0.8),
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            
-                            const SizedBox(height: 12),
-                            
-                            // Bouton principal
+                        // Bouton principal
                             SizedBox(
                               width: double.infinity,
                               child: GestureDetector(
@@ -307,8 +270,6 @@ class AirplaneGuard {
                                 ),
                               ),
                             ),
-                          ],
-                        ),
                       ],
                     ),
                   ),

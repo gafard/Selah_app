@@ -87,7 +87,7 @@ abstract class AnchoredDoctrineModule implements DoctrineModule {
       final inject = {
         ...day,
         'reference': anchor['ref'],
-        'annotation': '${theme} — ${anchor['why']}',
+        'annotation': '$theme — ${anchor['why']}',
         'theme': theme,
         'focus': focus,
         'doctrine': {...?day['doctrine'], id: true},

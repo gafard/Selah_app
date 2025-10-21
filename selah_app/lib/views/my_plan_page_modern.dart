@@ -120,7 +120,7 @@ class _MyPlanPageModernState extends State<MyPlanPageModern> {
           physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
           slivers: [
           _GlassAppBar(title: title, onClose: () => context.pop()),
-          SliverToBoxAdapter(child: const SizedBox(height: 8)),
+          const SliverToBoxAdapter(child: SizedBox(height: 8)),
 
           // Header mois + flèches
           SliverToBoxAdapter(
@@ -130,7 +130,7 @@ class _MyPlanPageModernState extends State<MyPlanPageModern> {
               onNext: () => _changeMonth(1),
             ),
           ),
-          SliverToBoxAdapter(child: const SizedBox(height: 8)),
+          const SliverToBoxAdapter(child: SizedBox(height: 8)),
 
           // Carte stats empilée + CTA aujourd'hui
           SliverToBoxAdapter(
@@ -143,7 +143,7 @@ class _MyPlanPageModernState extends State<MyPlanPageModern> {
             ),
           ),
 
-          SliverToBoxAdapter(child: const SizedBox(height: 16)),
+          const SliverToBoxAdapter(child: SizedBox(height: 16)),
           const SliverToBoxAdapter(child: _WeekdayStrip()),
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
@@ -593,7 +593,7 @@ class _DayCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color sel = const Color(0xFF1553FF);
+    const Color sel = Color(0xFF1553FF);
     final Color baseBorder = isToday ? Colors.white.withOpacity(0.35) : Colors.white.withOpacity(0.12);
 
     final bg = isSelected

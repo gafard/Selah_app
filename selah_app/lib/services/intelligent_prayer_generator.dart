@@ -360,10 +360,10 @@ class IntelligentPrayerGenerator {
       final foundationPrayers = _generateFoundationPrayers(ctx.foundationOfDay!);
       ideas.addAll(foundationPrayers);
       foundationPrayersCount = foundationPrayers.length;
-      print('🙏 ${foundationPrayersCount} prières de fondation ajoutées');
+      print('🙏 $foundationPrayersCount prières de fondation ajoutées');
     }
     
-    print('📝 ${ideas.length} idées générées (${prayerSubjects.length} du builder + ${textBasedIdeas.length} du texte + ${foundationPrayersCount} fondations)');
+    print('📝 ${ideas.length} idées générées (${prayerSubjects.length} du builder + ${textBasedIdeas.length} du texte + $foundationPrayersCount fondations)');
     return ideas;
   }
 

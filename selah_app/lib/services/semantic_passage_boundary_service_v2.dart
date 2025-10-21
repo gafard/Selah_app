@@ -12,10 +12,12 @@
 ///
 /// Audit complet : voir AUDIT_SEMANTIC_SERVICE.md
 /// ═══════════════════════════════════════════════════════════════════════════
+library;
 
 import 'dart:math';
 import 'package:hive/hive.dart';
 import 'biblical_timeline_service.dart';
+import 'bsb_book_outlines_service.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// MODELS
@@ -75,6 +77,12 @@ class LiteraryUnit {
   final UnitType type;
   final UnitPriority priority;
   final String? description;
+  
+  // 🆕 Enrichissement BSB
+  final List<String>? bsbThemes;          // Thèmes BSB associés
+  final String? bsbSection;               // Section BSB correspondante
+  final String? bsbPeriod;                // Période historique BSB
+  final Map<String, dynamic>? bsbContext; // Contexte enrichi BSB
 
   const LiteraryUnit({
     required this.name,
@@ -86,6 +94,10 @@ class LiteraryUnit {
     required this.type,
     required this.priority,
     this.description,
+    this.bsbThemes,
+    this.bsbSection,
+    this.bsbPeriod,
+    this.bsbContext,
   });
 
   int get sizeInVerses {
@@ -108,6 +120,10 @@ class LiteraryUnit {
         'type': type.name,
         'priority': priority.name,
         'description': description,
+        'bsbThemes': bsbThemes,
+        'bsbSection': bsbSection,
+        'bsbPeriod': bsbPeriod,
+        'bsbContext': bsbContext,
       };
 
   factory LiteraryUnit.fromJson(Map<String, dynamic> json) => LiteraryUnit(
@@ -120,6 +136,10 @@ class LiteraryUnit {
         type: UnitType.values.firstWhere((t) => t.name == json['type']),
         priority: UnitPriority.values.firstWhere((p) => p.name == json['priority']),
         description: json['description'] as String?,
+        bsbThemes: json['bsbThemes'] != null ? List<String>.from(json['bsbThemes'] as List) : null,
+        bsbSection: json['bsbSection'] as String?,
+        bsbPeriod: json['bsbPeriod'] as String?,
+        bsbContext: json['bsbContext'] as Map<String, dynamic>?,
       );
 }
 
@@ -302,7 +322,7 @@ class SemanticPassageBoundaryService {
     // ═══════════════════════════════════════════════════════════════════════════
     
     'Genèse': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Création',
         book: 'Genèse',
         startChapter: 1,
@@ -313,7 +333,7 @@ class SemanticPassageBoundaryService {
         priority: UnitPriority.critical,
         description: 'Récit de la création',
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Chute de l\'homme',
         book: 'Genèse',
         startChapter: 3,
@@ -323,7 +343,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.critical,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Déluge',
         book: 'Genèse',
         startChapter: 6,
@@ -333,7 +353,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Tour de Babel',
         book: 'Genèse',
         startChapter: 11,
@@ -343,7 +363,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.medium,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Appel d\'Abraham',
         book: 'Genèse',
         startChapter: 12,
@@ -353,7 +373,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.critical,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Sacrifice d\'Isaac',
         book: 'Genèse',
         startChapter: 22,
@@ -366,7 +386,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Exode': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Appel de Moïse',
         book: 'Exode',
         startChapter: 3,
@@ -376,7 +396,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.critical,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Dix plaies',
         book: 'Exode',
         startChapter: 7,
@@ -386,7 +406,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.critical,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Traversée de la mer Rouge',
         book: 'Exode',
         startChapter: 14,
@@ -396,7 +416,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.critical,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Dix commandements',
         book: 'Exode',
         startChapter: 20,
@@ -406,7 +426,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.discourse,
         priority: UnitPriority.critical,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Veau d\'or',
         book: 'Exode',
         startChapter: 32,
@@ -419,7 +439,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Lévitique': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Lois sur les sacrifices',
         book: 'Lévitique',
         startChapter: 1,
@@ -429,7 +449,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.discourse,
         priority: UnitPriority.medium,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Jour des expiations',
         book: 'Lévitique',
         startChapter: 16,
@@ -439,7 +459,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.discourse,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Loi de sainteté',
         book: 'Lévitique',
         startChapter: 19,
@@ -452,7 +472,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Nombres': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Murmures dans le désert',
         book: 'Nombres',
         startChapter: 11,
@@ -462,7 +482,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.medium,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Espionnage de Canaan',
         book: 'Nombres',
         startChapter: 13,
@@ -472,7 +492,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Révolte de Koré',
         book: 'Nombres',
         startChapter: 16,
@@ -485,7 +505,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Deutéronome': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Premier discours de Moïse',
         book: 'Deutéronome',
         startChapter: 1,
@@ -495,7 +515,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.discourse,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Deuxième discours de Moïse',
         book: 'Deutéronome',
         startChapter: 5,
@@ -505,7 +525,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.discourse,
         priority: UnitPriority.critical,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Bénédictions et malédictions',
         book: 'Deutéronome',
         startChapter: 27,
@@ -518,7 +538,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Josué': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Conquête de Jéricho',
         book: 'Josué',
         startChapter: 6,
@@ -528,7 +548,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Partage du pays',
         book: 'Josué',
         startChapter: 13,
@@ -541,7 +561,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Juges': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Cycle des juges',
         book: 'Juges',
         startChapter: 2,
@@ -551,7 +571,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Gédéon',
         book: 'Juges',
         startChapter: 6,
@@ -561,7 +581,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Samson',
         book: 'Juges',
         startChapter: 13,
@@ -574,7 +594,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Ruth': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Livre de Ruth',
         book: 'Ruth',
         startChapter: 1,
@@ -588,7 +608,7 @@ class SemanticPassageBoundaryService {
     ],
     
     '1 Samuel': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Appel de Samuel',
         book: '1 Samuel',
         startChapter: 3,
@@ -598,7 +618,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Onction de David',
         book: '1 Samuel',
         startChapter: 16,
@@ -608,7 +628,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.critical,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'David et Goliath',
         book: '1 Samuel',
         startChapter: 17,
@@ -621,7 +641,7 @@ class SemanticPassageBoundaryService {
     ],
     
     '2 Samuel': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Règne de David',
         book: '2 Samuel',
         startChapter: 5,
@@ -631,7 +651,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Péché de David',
         book: '2 Samuel',
         startChapter: 11,
@@ -644,7 +664,7 @@ class SemanticPassageBoundaryService {
     ],
     
     '1 Rois': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Sagesse de Salomon',
         book: '1 Rois',
         startChapter: 3,
@@ -654,7 +674,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Construction du temple',
         book: '1 Rois',
         startChapter: 6,
@@ -664,7 +684,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Élie et les prophètes de Baal',
         book: '1 Rois',
         startChapter: 18,
@@ -677,7 +697,7 @@ class SemanticPassageBoundaryService {
     ],
     
     '2 Rois': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Élie enlevé au ciel',
         book: '2 Rois',
         startChapter: 2,
@@ -687,7 +707,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Élisée',
         book: '2 Rois',
         startChapter: 2,
@@ -700,7 +720,7 @@ class SemanticPassageBoundaryService {
     ],
     
     '1 Chroniques': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Généalogies',
         book: '1 Chroniques',
         startChapter: 1,
@@ -710,7 +730,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.genealogy,
         priority: UnitPriority.low,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Règne de David',
         book: '1 Chroniques',
         startChapter: 11,
@@ -723,7 +743,7 @@ class SemanticPassageBoundaryService {
     ],
     
     '2 Chroniques': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Règne de Salomon',
         book: '2 Chroniques',
         startChapter: 1,
@@ -733,7 +753,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.medium,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Réforme de Josias',
         book: '2 Chroniques',
         startChapter: 34,
@@ -746,7 +766,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Esdras': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Retour d\'exil',
         book: 'Esdras',
         startChapter: 1,
@@ -756,7 +776,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.medium,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Reconstruction du temple',
         book: 'Esdras',
         startChapter: 3,
@@ -769,7 +789,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Néhémie': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Reconstruction des murailles',
         book: 'Néhémie',
         startChapter: 1,
@@ -779,7 +799,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Réforme de Néhémie',
         book: 'Néhémie',
         startChapter: 8,
@@ -792,7 +812,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Esther': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Livre d\'Esther',
         book: 'Esther',
         startChapter: 1,
@@ -806,7 +826,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Job': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Prologue',
         book: 'Job',
         startChapter: 1,
@@ -816,7 +836,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Dialogues',
         book: 'Job',
         startChapter: 3,
@@ -826,7 +846,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.poetry,
         priority: UnitPriority.critical,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Discours de Dieu',
         book: 'Job',
         startChapter: 38,
@@ -839,7 +859,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Psaumes': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Psaumes de louange',
         book: 'Psaumes',
         startChapter: 1,
@@ -849,7 +869,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.poetry,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Psaumes royaux',
         book: 'Psaumes',
         startChapter: 2,
@@ -859,7 +879,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.poetry,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Psaumes de lamentation',
         book: 'Psaumes',
         startChapter: 22,
@@ -872,7 +892,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Proverbes': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Proverbes de Salomon',
         book: 'Proverbes',
         startChapter: 1,
@@ -882,7 +902,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.poetry,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Collection de proverbes',
         book: 'Proverbes',
         startChapter: 10,
@@ -895,7 +915,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Ecclésiaste': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Vanité des vanités',
         book: 'Ecclésiaste',
         startChapter: 1,
@@ -909,7 +929,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Cantique des Cantiques': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Cantique des Cantiques',
         book: 'Cantique des Cantiques',
         startChapter: 1,
@@ -923,7 +943,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Ésaïe': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Prophéties messianiques',
         book: 'Ésaïe',
         startChapter: 7,
@@ -933,7 +953,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.prophecy,
         priority: UnitPriority.critical,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Serviteur souffrant',
         book: 'Ésaïe',
         startChapter: 52,
@@ -943,7 +963,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.prophecy,
         priority: UnitPriority.critical,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Nouvelle création',
         book: 'Ésaïe',
         startChapter: 65,
@@ -956,7 +976,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Jérémie': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Appel de Jérémie',
         book: 'Jérémie',
         startChapter: 1,
@@ -966,7 +986,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Nouvelle alliance',
         book: 'Jérémie',
         startChapter: 31,
@@ -979,7 +999,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Lamentations': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Lamentations',
         book: 'Lamentations',
         startChapter: 1,
@@ -993,7 +1013,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Ézéchiel': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Vision des ossements',
         book: 'Ézéchiel',
         startChapter: 37,
@@ -1003,7 +1023,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.prophecy,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Nouveau temple',
         book: 'Ézéchiel',
         startChapter: 40,
@@ -1016,7 +1036,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Daniel': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Daniel dans la fosse aux lions',
         book: 'Daniel',
         startChapter: 6,
@@ -1026,7 +1046,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Vision des quatre bêtes',
         book: 'Daniel',
         startChapter: 7,
@@ -1039,7 +1059,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Osée': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Mariage symbolique',
         book: 'Osée',
         startChapter: 1,
@@ -1052,7 +1072,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Joël': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Jour de l\'Éternel',
         book: 'Joël',
         startChapter: 1,
@@ -1065,7 +1085,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Amos': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Prophéties contre les nations',
         book: 'Amos',
         startChapter: 1,
@@ -1078,7 +1098,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Abdias': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Prophétie contre Édom',
         book: 'Abdias',
         startChapter: 1,
@@ -1091,7 +1111,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Jonas': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Jonas et le grand poisson',
         book: 'Jonas',
         startChapter: 1,
@@ -1105,7 +1125,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Michée': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Prophétie messianique',
         book: 'Michée',
         startChapter: 5,
@@ -1118,7 +1138,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Nahum': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Prophétie contre Ninive',
         book: 'Nahum',
         startChapter: 1,
@@ -1131,7 +1151,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Habakuk': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Dialogue avec Dieu',
         book: 'Habakuk',
         startChapter: 1,
@@ -1144,7 +1164,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Sophonie': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Jour de l\'Éternel',
         book: 'Sophonie',
         startChapter: 1,
@@ -1157,7 +1177,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Aggée': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Reconstruction du temple',
         book: 'Aggée',
         startChapter: 1,
@@ -1170,7 +1190,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Zacharie': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Vision du grand prêtre',
         book: 'Zacharie',
         startChapter: 3,
@@ -1183,7 +1203,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Malachie': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Prophétie finale',
         book: 'Malachie',
         startChapter: 1,
@@ -1200,7 +1220,7 @@ class SemanticPassageBoundaryService {
     // ═══════════════════════════════════════════════════════════════════════════
     
     'Matthieu': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Sermon sur la montagne',
         book: 'Matthieu',
         startChapter: 5,
@@ -1211,7 +1231,7 @@ class SemanticPassageBoundaryService {
         priority: UnitPriority.critical,
         description: 'Enseignement fondamental de Jésus',
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Discours missionnaire',
         book: 'Matthieu',
         startChapter: 10,
@@ -1221,7 +1241,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.discourse,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Paraboles du Royaume',
         book: 'Matthieu',
         startChapter: 13,
@@ -1232,7 +1252,7 @@ class SemanticPassageBoundaryService {
         priority: UnitPriority.critical,
         description: '7 paraboles sur le Royaume',
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Discours sur l\'Église',
         book: 'Matthieu',
         startChapter: 18,
@@ -1242,7 +1262,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.discourse,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Discours eschatologique',
         book: 'Matthieu',
         startChapter: 24,
@@ -1255,7 +1275,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Marc': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Ministère en Galilée',
         book: 'Marc',
         startChapter: 1,
@@ -1265,7 +1285,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Chemin vers Jérusalem',
         book: 'Marc',
         startChapter: 8,
@@ -1275,7 +1295,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Semaine de la passion',
         book: 'Marc',
         startChapter: 11,
@@ -1288,7 +1308,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Luc': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Enfance de Jésus',
         book: 'Luc',
         startChapter: 1,
@@ -1298,7 +1318,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Collection de paraboles (Luc 15)',
         book: 'Luc',
         startChapter: 15,
@@ -1309,7 +1329,7 @@ class SemanticPassageBoundaryService {
         priority: UnitPriority.critical,
         description: 'Brebis, drachme, fils prodigue',
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Parabole de la brebis perdue',
         book: 'Luc',
         startChapter: 15,
@@ -1319,7 +1339,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.parable,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Parabole de la drachme perdue',
         book: 'Luc',
         startChapter: 15,
@@ -1329,7 +1349,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.parable,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Parabole du fils prodigue',
         book: 'Luc',
         startChapter: 15,
@@ -1342,7 +1362,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Jean': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Prologue',
         book: 'Jean',
         startChapter: 1,
@@ -1352,7 +1372,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.poetry,
         priority: UnitPriority.critical,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Discours du pain de vie',
         book: 'Jean',
         startChapter: 6,
@@ -1362,7 +1382,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.discourse,
         priority: UnitPriority.critical,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Discours d\'adieu (partie 1)',
         book: 'Jean',
         startChapter: 13,
@@ -1372,7 +1392,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.discourse,
         priority: UnitPriority.critical,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Discours d\'adieu (partie 2)',
         book: 'Jean',
         startChapter: 15,
@@ -1386,7 +1406,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Actes': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Pentecôte',
         book: 'Actes',
         startChapter: 2,
@@ -1396,7 +1416,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.critical,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Conversion de Paul',
         book: 'Actes',
         startChapter: 9,
@@ -1406,7 +1426,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.narrative,
         priority: UnitPriority.critical,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Conseil de Jérusalem',
         book: 'Actes',
         startChapter: 15,
@@ -1419,7 +1439,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Romains': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Argument sur la justification',
         book: 'Romains',
         startChapter: 3,
@@ -1429,7 +1449,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.argument,
         priority: UnitPriority.critical,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Vie par l\'Esprit',
         book: 'Romains',
         startChapter: 8,
@@ -1439,7 +1459,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.argument,
         priority: UnitPriority.critical,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Élection et prédestination',
         book: 'Romains',
         startChapter: 9,
@@ -1452,7 +1472,7 @@ class SemanticPassageBoundaryService {
     ],
     
     '1 Corinthiens': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Problèmes de l\'Église',
         book: '1 Corinthiens',
         startChapter: 1,
@@ -1462,7 +1482,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.letter,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Chapitre de l\'amour',
         book: '1 Corinthiens',
         startChapter: 13,
@@ -1472,7 +1492,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.poetry,
         priority: UnitPriority.critical,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Résurrection',
         book: '1 Corinthiens',
         startChapter: 15,
@@ -1485,7 +1505,7 @@ class SemanticPassageBoundaryService {
     ],
     
     '2 Corinthiens': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Ministère de la réconciliation',
         book: '2 Corinthiens',
         startChapter: 5,
@@ -1495,7 +1515,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.argument,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Collection pour Jérusalem',
         book: '2 Corinthiens',
         startChapter: 8,
@@ -1508,7 +1528,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Galates': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Justification par la foi',
         book: 'Galates',
         startChapter: 2,
@@ -1518,7 +1538,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.argument,
         priority: UnitPriority.critical,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Liberté en Christ',
         book: 'Galates',
         startChapter: 5,
@@ -1531,7 +1551,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Éphésiens': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Bénédictions spirituelles',
         book: 'Éphésiens',
         startChapter: 1,
@@ -1541,7 +1561,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.poetry,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Unité de l\'Église',
         book: 'Éphésiens',
         startChapter: 4,
@@ -1554,7 +1574,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Philippiens': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Hymne de l\'abaissement',
         book: 'Philippiens',
         startChapter: 2,
@@ -1567,7 +1587,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Colossiens': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Hymne christologique',
         book: 'Colossiens',
         startChapter: 1,
@@ -1577,7 +1597,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.poetry,
         priority: UnitPriority.critical,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Mise en garde contre les philosophies',
         book: 'Colossiens',
         startChapter: 2,
@@ -1588,7 +1608,7 @@ class SemanticPassageBoundaryService {
         priority: UnitPriority.high,
         description: 'Mise en garde contre les philosophies trompeuses et les traditions humaines',
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Circoncision spirituelle',
         book: 'Colossiens',
         startChapter: 2,
@@ -1599,7 +1619,7 @@ class SemanticPassageBoundaryService {
         priority: UnitPriority.high,
         description: 'Enseignement sur la circoncision spirituelle et la victoire sur les puissances',
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Mise en garde contre les observances',
         book: 'Colossiens',
         startChapter: 2,
@@ -1613,7 +1633,7 @@ class SemanticPassageBoundaryService {
     ],
     
     '1 Thessaloniciens': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Seconde venue',
         book: '1 Thessaloniciens',
         startChapter: 4,
@@ -1626,7 +1646,7 @@ class SemanticPassageBoundaryService {
     ],
     
     '2 Thessaloniciens': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Homme de péché',
         book: '2 Thessaloniciens',
         startChapter: 2,
@@ -1639,7 +1659,7 @@ class SemanticPassageBoundaryService {
     ],
     
     '1 Timothée': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Qualifications des anciens',
         book: '1 Timothée',
         startChapter: 3,
@@ -1652,7 +1672,7 @@ class SemanticPassageBoundaryService {
     ],
     
     '2 Timothée': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Testament spirituel',
         book: '2 Timothée',
         startChapter: 4,
@@ -1665,7 +1685,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Tite': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Instructions pour Tite',
         book: 'Tite',
         startChapter: 1,
@@ -1678,7 +1698,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Philémon': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Lettre à Philémon',
         book: 'Philémon',
         startChapter: 1,
@@ -1692,7 +1712,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Hébreux': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Supériorité de Christ',
         book: 'Hébreux',
         startChapter: 1,
@@ -1702,7 +1722,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.argument,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Chapitre de la foi',
         book: 'Hébreux',
         startChapter: 11,
@@ -1715,7 +1735,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Jacques': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Foi et œuvres',
         book: 'Jacques',
         startChapter: 2,
@@ -1725,7 +1745,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.argument,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Langue et sagesse',
         book: 'Jacques',
         startChapter: 3,
@@ -1738,7 +1758,7 @@ class SemanticPassageBoundaryService {
     ],
     
     '1 Pierre': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Souffrance et gloire',
         book: '1 Pierre',
         startChapter: 1,
@@ -1751,7 +1771,7 @@ class SemanticPassageBoundaryService {
     ],
     
     '2 Pierre': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Faux prophètes',
         book: '2 Pierre',
         startChapter: 2,
@@ -1764,7 +1784,7 @@ class SemanticPassageBoundaryService {
     ],
     
     '1 Jean': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Amour de Dieu',
         book: '1 Jean',
         startChapter: 4,
@@ -1777,7 +1797,7 @@ class SemanticPassageBoundaryService {
     ],
     
     '2 Jean': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Lettre à l\'élue',
         book: '2 Jean',
         startChapter: 1,
@@ -1791,7 +1811,7 @@ class SemanticPassageBoundaryService {
     ],
     
     '3 Jean': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Lettre à Gaïus',
         book: '3 Jean',
         startChapter: 1,
@@ -1805,7 +1825,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Jude': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Contre les apostats',
         book: 'Jude',
         startChapter: 1,
@@ -1819,7 +1839,7 @@ class SemanticPassageBoundaryService {
     ],
     
     'Apocalypse': [
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Lettres aux sept Églises',
         book: 'Apocalypse',
         startChapter: 2,
@@ -1829,7 +1849,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.letter,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Vision du trône',
         book: 'Apocalypse',
         startChapter: 4,
@@ -1839,7 +1859,7 @@ class SemanticPassageBoundaryService {
         type: UnitType.prophecy,
         priority: UnitPriority.high,
       ),
-      LiteraryUnit(
+      const LiteraryUnit(
         name: 'Nouvelle Jérusalem',
         book: 'Apocalypse',
         startChapter: 21,
@@ -1961,13 +1981,13 @@ class SemanticPassageBoundaryService {
   /// ═══════════════════════════════════════════════════════════════════════
 
   /// Ajuste un passage pour respecter les unités littéraires (verse-level)
-  static PassageBoundary adjustPassageVerses({
+  static Future<PassageBoundary> adjustPassageVerses({
     required String book,
     required int startChapter,
     required int startVerse,
     required int endChapter,
     required int endVerse,
-  }) {
+  }) async {
     var range = VerseRange(startChapter, startVerse, endChapter, endVerse);
     final units = getUnitsForBook(book);
 
@@ -1998,6 +2018,11 @@ class SemanticPassageBoundaryService {
       reason = 'Ajusté (limite itérations atteinte)';
     }
 
+    // Enrichir l'unité avec BSB si disponible
+    if (finalUnit != null) {
+      finalUnit = await enrichWithBSBContext(finalUnit);
+    }
+
     return PassageBoundary(
       book: book,
       startChapter: range.sc,
@@ -2006,21 +2031,21 @@ class SemanticPassageBoundaryService {
       endVerse: range.ev,
       adjusted: iterations > 0 && (range.sc != startChapter || range.sv != startVerse || range.ec != endChapter || range.ev != endVerse),
       reason: reason,
-      includedUnit: finalUnit,
-      tags: finalUnit != null ? [finalUnit.type.name] : null,
+      includedUnit: finalUnit, // Maintenant enrichie avec BSB
+      tags: finalUnit != null ? [finalUnit.type.name, ...(finalUnit.bsbThemes ?? [])] : null,
     );
   }
 
   /// Ajuste un passage (chapitre-level, backward compat)
-  static PassageBoundary adjustPassageChapters({
+  static Future<PassageBoundary> adjustPassageChapters({
     required String book,
     required int startChapter,
     required int endChapter,
-  }) {
-    final startVerse = 1;
+  }) async {
+    const startVerse = 1;
     final endVerse = ChapterIndex.verseCount(book, endChapter);
 
-    return adjustPassageVerses(
+    return await adjustPassageVerses(
       book: book,
       startChapter: startChapter,
       startVerse: startVerse,
@@ -2034,12 +2059,12 @@ class SemanticPassageBoundaryService {
   /// ═══════════════════════════════════════════════════════════════════════
 
   /// Génère un plan optimisé basé sur minutes/jour
-  static List<DailyPassage> splitByTargetMinutes({
+  static Future<List<DailyPassage>> splitByTargetMinutes({
     required String book,
     required int totalChapters,
     required int targetDays,
     required int minutesPerDay,
-  }) {
+  }) async {
     final targetSeconds = minutesPerDay * 60;
     final passages = <DailyPassage>[];
 
@@ -2055,7 +2080,6 @@ class SemanticPassageBoundaryService {
 
         // Si même chapitre, compter les versets restants
         if (ec == sc) {
-          final remainingVerses = chapterVerseCount - sv + 1;
           final estimatedSec = ChapterIndex.estimateSeconds(
             book: book,
             startChapter: sc,
@@ -2096,7 +2120,7 @@ class SemanticPassageBoundaryService {
       }
 
       // Ajuster sémantiquement
-      final adj = adjustPassageVerses(
+      final adj = await adjustPassageVerses(
         book: book,
         startChapter: sc,
         startVerse: sv,
@@ -2208,6 +2232,122 @@ class SemanticPassageBoundaryService {
       print('⚠️ Erreur enrichissement description Timeline: $e');
       return originalDescription ?? '';
     }
+  }
+
+  /// Enrichit une unité littéraire avec le contexte BSB
+  static Future<LiteraryUnit> enrichWithBSBContext(LiteraryUnit unit) async {
+    try {
+      // Récupérer le plan du livre BSB
+      final bookOutline = await BSBBookOutlinesService.getBookOutline(unit.book);
+      
+      if (bookOutline == null) {
+        return unit;
+      }
+      
+      // Trouver la section BSB qui correspond à cette unité littéraire
+      final matchingSection = await _findMatchingBSBSection(unit, bookOutline);
+      
+      if (matchingSection != null) {
+        final bsbThemes = (matchingSection['themes'] as List<dynamic>?)
+            ?.map((t) => t.toString())
+            .toList();
+        
+        final bsbSection = matchingSection['title'] as String?;
+        final bsbPeriod = bookOutline['period'] as String?;
+        
+        // Enrichir la description avec les thèmes BSB
+        final enrichedDescription = _mergeDescriptions(
+          unit.description,
+          matchingSection['description'] as String?,
+          bsbThemes,
+        );
+        
+        return LiteraryUnit(
+          name: unit.name,
+          book: unit.book,
+          startChapter: unit.startChapter,
+          startVerse: unit.startVerse,
+          endChapter: unit.endChapter,
+          endVerse: unit.endVerse,
+          type: unit.type,
+          priority: unit.priority,
+          description: enrichedDescription,
+          bsbThemes: bsbThemes,
+          bsbSection: bsbSection,
+          bsbPeriod: bsbPeriod,
+          bsbContext: matchingSection,
+        );
+      }
+    } catch (e) {
+      print('⚠️ Erreur enrichissement BSB: $e');
+    }
+    
+    return unit;
+  }
+
+  /// Trouve la section BSB qui correspond à l'unité littéraire
+  static Future<Map<String, dynamic>?> _findMatchingBSBSection(
+    LiteraryUnit unit,
+    Map<String, dynamic> bookOutline,
+  ) async {
+    final sections = bookOutline['sections'] as List<dynamic>? ?? [];
+    
+    for (final section in sections) {
+      final sectionData = section as Map<String, dynamic>;
+      final chapters = sectionData['chapters'] as String?;
+      
+      if (chapters != null) {
+        // Parser les chapitres (ex: "1-3", "5", "6-8")
+        if (_chapterRangeOverlaps(chapters, unit.startChapter, unit.endChapter)) {
+          return sectionData;
+        }
+      }
+    }
+    
+    return null;
+  }
+
+  /// Vérifie si un range de chapitres BSB chevauche l'unité littéraire
+  static bool _chapterRangeOverlaps(String bsbRange, int unitStart, int unitEnd) {
+    try {
+      // Parser "1-3" ou "5"
+      if (bsbRange.contains('-')) {
+        final parts = bsbRange.split('-');
+        final bsbStart = int.parse(parts[0].trim());
+        final bsbEnd = int.parse(parts[1].trim());
+        
+        // Chevauchement si [bsbStart, bsbEnd] ∩ [unitStart, unitEnd] ≠ ∅
+        return !(bsbEnd < unitStart || bsbStart > unitEnd);
+      } else {
+        final bsbChapter = int.parse(bsbRange.trim());
+        return bsbChapter >= unitStart && bsbChapter <= unitEnd;
+      }
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Fusionne les descriptions sémantique et BSB
+  static String _mergeDescriptions(
+    String? semanticDesc,
+    String? bsbDesc,
+    List<String>? bsbThemes,
+  ) {
+    final parts = <String>[];
+    
+    if (semanticDesc != null && semanticDesc.isNotEmpty) {
+      parts.add(semanticDesc);
+    }
+    
+    if (bsbDesc != null && bsbDesc.isNotEmpty) {
+      parts.add(bsbDesc);
+    }
+    
+    if (bsbThemes != null && bsbThemes.isNotEmpty) {
+      parts.add('Thèmes: ${bsbThemes.take(3).join(", ")}');
+    }
+    
+    return parts.join(' • ');
   }
 
   /// Hydrate les unités depuis JSON
@@ -2337,7 +2477,7 @@ class SemanticPassageBoundaryService {
     required int endVerse,
   }) async {
     // Ajustement sémantique standard
-    final boundary = adjustPassageVerses(
+    final boundary = await adjustPassageVerses(
       book: book,
       startChapter: startChapter,
       startVerse: startVerse,
@@ -2443,6 +2583,78 @@ class SemanticPassageBoundaryService {
     }
     
     return results;
+  }
+
+  /// Recherche des unités littéraires par thème (sémantique + BSB)
+  static Future<List<LiteraryUnit>> searchUnitsByThemeCombined(String theme) async {
+    final results = <LiteraryUnit>[];
+    final themeLower = theme.toLowerCase();
+    
+    // 1. Recherche dans les livres BSB disponibles
+    final bsbBooks = await BSBBookOutlinesService.getAvailableBooks();
+    
+    for (final book in bsbBooks) {
+      // Trouver les sections BSB qui matchent le thème
+      final sections = await BSBBookOutlinesService.getSectionsForTheme(book, theme);
+      
+      if (sections.isNotEmpty) {
+        // Récupérer les unités littéraires pour ce livre
+        final units = getUnitsForBook(book);
+        
+        for (final unit in units) {
+          // Enrichir avec BSB
+          final enrichedUnit = await enrichWithBSBContext(unit);
+          
+          // Vérifier si le thème matche (sémantique ou BSB)
+          final matchesSemantic = enrichedUnit.description?.toLowerCase().contains(themeLower) ?? false;
+          final matchesBSB = enrichedUnit.bsbThemes?.any((t) => t.toLowerCase().contains(themeLower)) ?? false;
+          
+          if (matchesSemantic || matchesBSB) {
+            results.add(enrichedUnit);
+          }
+        }
+      }
+    }
+    
+    return results;
+  }
+
+  /// Obtient la progression d'un thème à travers un livre (combiné)
+  static Future<List<Map<String, dynamic>>> getThemeProgressionInBook(
+    String bookName,
+    String theme,
+  ) async {
+    final progression = <Map<String, dynamic>>[];
+    
+    // Récupérer la progression BSB
+    final bsbProgression = await BSBBookOutlinesService.getThemeProgressionInBook(bookName, theme);
+    
+    // Récupérer les unités littéraires correspondantes
+    final units = getUnitsForBook(bookName);
+    
+    for (final bsbSection in bsbProgression) {
+      final chapters = bsbSection['chapters'] as String?;
+      if (chapters == null) continue;
+      
+      // Trouver les unités littéraires qui correspondent
+      final matchingUnits = <LiteraryUnit>[];
+      for (final unit in units) {
+        if (_chapterRangeOverlaps(chapters, unit.startChapter, unit.endChapter)) {
+          final enriched = await enrichWithBSBContext(unit);
+          matchingUnits.add(enriched);
+        }
+      }
+      
+      progression.add({
+        'bsb_section': bsbSection,
+        'literary_units': matchingUnits,
+        'combined_description': matchingUnits.isNotEmpty
+            ? '${bsbSection['description']} — Unités: ${matchingUnits.map((u) => u.name).join(", ")}'
+            : bsbSection['description'],
+      });
+    }
+    
+    return progression;
   }
 }
 

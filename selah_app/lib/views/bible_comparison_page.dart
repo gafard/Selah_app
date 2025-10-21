@@ -15,7 +15,7 @@ class _BibleComparisonPageState extends State<BibleComparisonPage> {
   List<Map<String, dynamic>> _searchResults = [];
   bool _isLoading = false;
   Map<String, dynamic>? _selectedVerse;
-  List<String> _selectedVersions = ['KJV', 'BSB', 'WEB'];
+  final List<String> _selectedVersions = ['KJV', 'BSB', 'WEB'];
   Map<String, dynamic> _versionsMetadata = {};
 
   @override
@@ -285,5 +285,6 @@ class _BibleComparisonPageState extends State<BibleComparisonPage> {
     super.dispose();
   }
 }
+
 
 

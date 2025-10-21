@@ -122,3 +122,7 @@ class AppLifecycleTracker with WidgetsBindingObserver {
     await _recordAppOpen();
   }
 }
+
+
+
+

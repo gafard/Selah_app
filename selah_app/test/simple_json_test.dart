@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:json5/json5.dart';
-import '../lib/services/bible_json_preprocessor.dart';
+import 'package:selah_app/services/bible_json_preprocessor.dart';
 
 void main() {
   test('préprocesseur fonctionne sur JSON simple avec clés coupées', () {
@@ -26,6 +26,7 @@ void main() {
     expect(() => JSON5.parse(fixed), returnsNormally);
   });
 }
+
 
 
 

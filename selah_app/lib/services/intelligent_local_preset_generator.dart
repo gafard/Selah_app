@@ -2420,19 +2420,21 @@ class IntelligentLocalPresetGenerator {
     
     // Calculer la durée selon le niveau et le thème
     int duration = 30;
-    if (level == 'Nouveau converti') duration = 21;
-    else if (level == 'Serviteur/leader') duration = 60;
+    if (level == 'Nouveau converti') {
+      duration = 21;
+    } else if (level == 'Serviteur/leader') duration = 60;
     
     // Ajuster selon le thème pour créer de la variété
-    if (theme.contains('Fondements')) duration = (duration * 1.2).round();
-    else if (theme.contains('Discipline')) duration = (duration * 0.8).round();
+    if (theme.contains('Fondements')) {
+      duration = (duration * 1.2).round();
+    } else if (theme.contains('Discipline')) duration = (duration * 0.8).round();
     else if (theme.contains('Retour')) duration = (duration * 1.1).round();
     else if (theme.contains('Doctrine')) duration = (duration * 1.3).round();
     else if (theme.contains('Consolation')) duration = (duration * 0.9).round();
     else if (theme.contains('Paix')) duration = (duration * 1.0).round();
     
     return PlanPreset(
-      slug: 'needs_${theme}_${timestamp}',
+      slug: 'needs_${theme}_$timestamp',
       name: '$name — $booksString • $duration jours • ${durationMin}min/jour',
       durationDays: duration,
       order: 'thematic',
@@ -2859,7 +2861,9 @@ class IntelligentLocalPresetGenerator {
   static String _ensureUniqueName(String name, Set<String> seen) {
     if (seen.add(name)) return name;
     var i = 2;
-    while (!seen.add('$name ($i)')) i++;
+    while (!seen.add('$name ($i)')) {
+      i++;
+    }
     return '$name ($i)';
   }
   

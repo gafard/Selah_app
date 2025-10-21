@@ -57,7 +57,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
 
   // Hors-ligne & données
   bool _offlineMode = false;
-  int _downloadsSizeBytes = 0;
+  final int _downloadsSizeBytes = 0;
 
   // Journal & favoris
   bool _autoJournal = true;
@@ -1043,7 +1043,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
                 _intentionController.clear();
               }
             },
-            activeColor: const Color(0xFF3B82F6),
+            activeThumbColor: const Color(0xFF3B82F6),
           ),
         ),
         if (_intentionsEnabled) ...[
@@ -1693,14 +1693,14 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
               Icon(
                 Icons.bug_report,
                 color: Colors.orange,
                 size: 20,
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Text(
                 'Diagnostic',
                 style: TextStyle(

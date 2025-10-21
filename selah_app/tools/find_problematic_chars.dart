@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:convert';
 
 void main(List<String> args) async {
   final path = args.isNotEmpty ? args.first : 'assets/bibles/francais_courant.json';

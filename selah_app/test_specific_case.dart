@@ -17,7 +17,7 @@ void main() {
   
   // Vérifier si les guillemets typographiques sont échappés
   print('Contient "alors": ${processed.contains('"alors"')}');
-  print('Contient \"alors\": ${processed.contains('\\"alors\\"')}');
+  print('Contient "alors": ${processed.contains('\\"alors\\"')}');
   
   try {
     final parsed = JSON5.parse(processed);
@@ -27,6 +27,7 @@ void main() {
     print('❌ JSON5.parse() échoue: $e');
   }
 }
+
 
 
 

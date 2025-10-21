@@ -15,6 +15,7 @@ import 'services/connectivity_service.dart';
 import 'services/bible_text_service.dart';
 import 'services/bible_study_hydrator.dart';
 import 'services/bible_context_service.dart';
+import 'services/matthew_henry_service.dart';
 // Services supprimés (packs incomplets)
 import 'services/themes_service.dart';
 import 'services/mirror_verse_service.dart';
@@ -145,6 +146,9 @@ Future<void> _initializeBibleServices() async {
     print('⚠️ CrossRefService et LexiconService supprimés (packs incomplets)');
     await ThemesService.init();
     await MirrorVerseService.init();
+    
+    // Initialiser MatthewHenryService pour les commentaires enrichis
+    await MatthewHenryService.init();
     
     // Services des packs supprimés (packs incomplets)
     print('⚠️ ISBEService et OpenBibleThemesService supprimés (packs incomplets)');

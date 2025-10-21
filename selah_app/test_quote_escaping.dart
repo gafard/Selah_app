@@ -5,7 +5,7 @@ void main() {
   final preprocessor = LooseJsonPreprocessor();
   
   // Test case: chaîne avec guillemet interne
-  final testInput = '{"Text":"Dieu dit encore: "Qu\'il y ait une voûte, pour séparer les eaux en deux masses!""}';
+  const testInput = '{"Text":"Dieu dit encore: "Qu\'il y ait une voûte, pour séparer les eaux en deux masses!""}';
   
   print('Input: $testInput');
   
@@ -20,6 +20,7 @@ void main() {
     print('❌ Parsing failed: $e');
   }
 }
+
 
 
 

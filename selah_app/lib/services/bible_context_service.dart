@@ -1,7 +1,10 @@
 import 'package:hive/hive.dart';
+import 'package:flutter/services.dart';
+import 'dart:convert';
 import 'semantic_passage_boundary_service.dart';
 // Service supprimé (packs incomplets)
 import 'biblical_timeline_service.dart';
+import 'matthew_henry_service.dart';
 
 /// 🧠 PROPHÈTE - Service de contexte biblique avec intelligence sémantique
 /// 
@@ -50,10 +53,100 @@ class BibleContextService {
   /// Retourne : Contexte culturel ou null
   static Future<String?> cultural(String id) async {
     try {
+      // 1. Essayer d'abord les données de base
       final data = _contextBox?.get('cultural_$id');
-      return data as String?;
+      if (data != null) {
+        return data as String?;
+      }
+      
+      // 2. Si pas de données de base, utiliser les données BSB riches
+      return await _getBSBCulturalContext(id);
     } catch (e) {
       print('⚠️ Erreur cultural($id): $e');
+      return null;
+    }
+  }
+  
+  /// Récupère le contexte culturel depuis les données BSB et Matthew Henry
+  static Future<String?> _getBSBCulturalContext(String id) async {
+    try {
+      final contextParts = <String>[];
+      
+      // 1. Ajouter les thèmes BSB si disponibles
+      final bsbThemes = await _getBSBThemesForVerse(id);
+      if (bsbThemes.isNotEmpty) {
+        contextParts.add('**Thèmes BSB:** ${bsbThemes.join(', ')}');
+      }
+      
+      // 2. Ajouter le commentaire Matthew Henry
+      final matthewHenryCommentary = await _getMatthewHenryCommentary(id);
+      if (matthewHenryCommentary != null) {
+        contextParts.add('**Commentaire Matthew Henry:**\n$matthewHenryCommentary');
+      }
+      
+      if (contextParts.isNotEmpty) {
+        return contextParts.join('\n\n');
+      }
+      
+      return null;
+    } catch (e) {
+      print('⚠️ Erreur BSB cultural context: $e');
+      return null;
+    }
+  }
+  
+  /// Récupère les thèmes BSB pour un verset
+  static Future<List<String>> _getBSBThemesForVerse(String id) async {
+    try {
+      // Charger les données BSB
+      final String jsonString = await rootBundle.loadString('assets/data/bsb_topical_index_optimized.json');
+      final Map<String, dynamic> bsbData = json.decode(jsonString);
+      
+      final themes = <String>[];
+      
+      // Chercher les thèmes qui contiennent ce verset
+      for (final entry in bsbData.entries) {
+        final themeData = entry.value as Map<String, dynamic>;
+        final references = themeData['references'] as List<dynamic>? ?? [];
+        
+        for (final ref in references) {
+          if (ref.toString().contains(id.replaceAll('.', ' '))) {
+            themes.add(entry.key);
+            break;
+          }
+        }
+      }
+      
+      return themes;
+    } catch (e) {
+      print('⚠️ Erreur chargement thèmes BSB: $e');
+      return [];
+    }
+  }
+  
+  /// Récupère le commentaire Matthew Henry pour un verset
+  static Future<String?> _getMatthewHenryCommentary(String id) async {
+    try {
+      // Extraire le livre et chapitre depuis l'ID (ex: "1 Pierre.3.1" → "1 Pierre", 3)
+      final parts = id.split('.');
+      if (parts.length < 2) return null;
+      
+      final book = parts[0];
+      final chapter = int.tryParse(parts[1]);
+      if (chapter == null) return null;
+      
+      // Récupérer le commentaire Matthew Henry
+      final commentary = await MatthewHenryService.getCommentary(book, chapter);
+      if (commentary == null || commentary.isEmpty) return null;
+      
+      // Limiter la longueur pour éviter un texte trop long
+      if (commentary.length > 1000) {
+        return '${commentary.substring(0, 1000)}...';
+      }
+      
+      return commentary;
+    } catch (e) {
+      print('⚠️ Erreur chargement commentaire Matthew Henry: $e');
       return null;
     }
   }

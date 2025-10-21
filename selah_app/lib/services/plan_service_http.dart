@@ -211,12 +211,12 @@ class PlanServiceHttp implements PlanService {
     final key = 'days:$planId:${fromDay ?? 1}:${toDay ?? 0}';
     final altKey = 'days:$planId'; // ancien format
 
-    List _readFromCache(String cacheKey) {
+    List readFromCache(String cacheKey) {
       final cached = cachePlanDays.get(cacheKey);
       return (cached is List) ? cached : const [];
     }
 
-    List<PlanDay> _parse(List data) {
+    List<PlanDay> parse(List data) {
       final days = <PlanDay>[];
       for (final e in data) {
         try {
@@ -230,13 +230,13 @@ class PlanServiceHttp implements PlanService {
     }
 
     // 1) cache direct
-    final cached = _readFromCache(key);
-    if (cached.isNotEmpty) return _parse(cached);
+    final cached = readFromCache(key);
+    if (cached.isNotEmpty) return parse(cached);
 
     // 2) alt cache
-    final alt = _readFromCache(altKey);
+    final alt = readFromCache(altKey);
     if (alt.isNotEmpty) {
-      final parsed = _parse(alt);
+      final parsed = parse(alt);
 
       // 🔧 auto-migration: re-écrire au bon key (et formats normalisés via toJson)
       await cachePlanDays.put(key, parsed.map((d) => d.toJson()).toList());
@@ -258,10 +258,10 @@ class PlanServiceHttp implements PlanService {
         );
         
         // Retry après génération
-        final regenerated = _readFromCache(key);
+        final regenerated = readFromCache(key);
         if (regenerated.isNotEmpty) {
           print('✅ Jours régénérés avec succès (${regenerated.length} jours)');
-          return _parse(regenerated);
+          return parse(regenerated);
         }
       } catch (e) {
         print('❌ Erreur auto-régénération: $e');
@@ -281,7 +281,7 @@ class PlanServiceHttp implements PlanService {
     final List data = jsonDecode(r.body);
 
     // 🧹 normaliser & stocker
-    final parsed = _parse(data);
+    final parsed = parse(data);
     await cachePlanDays.put(key, parsed.map((d) => d.toJson()).toList());
 
     return parsed;
@@ -295,6 +295,7 @@ class PlanServiceHttp implements PlanService {
   }
 
   /// 🔧 Force la régénération des jours du plan actuel
+  @override
   Future<void> regenerateCurrentPlanDays() async {
     final activePlan = await getActivePlan();
     if (activePlan == null) {
@@ -319,6 +320,7 @@ class PlanServiceHttp implements PlanService {
   }
 
   /// 🐛 DEBUG: Vérifie l'état complet du plan actuel
+  @override
   Future<void> debugPlanStatus() async {
     print('🐛 === DEBUG PLAN STATUS ===');
     
@@ -841,7 +843,7 @@ class PlanServiceHttp implements PlanService {
         }
         
         // 🚀 FALCON X v2 - Utiliser le service sémantique directement
-        final passage = _generateIntelligentPassageWithSemanticService(
+        final passage = await _generateIntelligentPassageWithSemanticService(
           books, // Passer la chaîne complète
           day + 1,
           userProfile,
@@ -936,7 +938,7 @@ class PlanServiceHttp implements PlanService {
   }
   
   /// 🚀 FALCON X v2 - Génère un passage intelligent en utilisant le service sémantique directement
-  ReadingRef _generateIntelligentPassageWithSemanticService(String books, int day, Map<String, dynamic> userProfile) {
+  Future<ReadingRef> _generateIntelligentPassageWithSemanticService(String books, int day, Map<String, dynamic> userProfile) async {
     // Le service sémantique v2 gère toute la complexité
     // Il peut parser les livres, sélectionner intelligemment, et ajuster les passages
     
@@ -945,11 +947,11 @@ class PlanServiceHttp implements PlanService {
     final bookList = books.split(RegExp(r'[&,]')).map((b) => b.trim()).where((b) => b.isNotEmpty).toList();
     final selectedBook = bookList[day % bookList.length];
     
-    return _generateIntelligentPassageForBook(selectedBook, day, userProfile);
+    return await _generateIntelligentPassageForBook(selectedBook, day, userProfile);
   }
 
   /// Génère un passage intelligent pour un livre spécifique
-  ReadingRef _generateIntelligentPassageForBook(String book, int day, Map<String, dynamic> userProfile) {
+  Future<ReadingRef> _generateIntelligentPassageForBook(String book, int day, Map<String, dynamic> userProfile) async {
     final durationMin = userProfile['durationMin'] ?? 15;
     final meditationType = userProfile['meditation'] as String?;
     final readingLength = _calculateReadingLength(durationMin, meditationType: meditationType);
@@ -963,7 +965,7 @@ class PlanServiceHttp implements PlanService {
     
     if (prioritizedUnit != null) {
       // 2. AJUSTEMENT SÉMANTIQUE : Respecter les unités littéraires
-      final boundary = SemanticPassageBoundaryService.adjustPassageVerses(
+      final boundary = await SemanticPassageBoundaryService.adjustPassageVerses(
         book: book,
         startChapter: prioritizedUnit.startChapter,
         startVerse: prioritizedUnit.startVerse,
@@ -985,7 +987,7 @@ class PlanServiceHttp implements PlanService {
     }
     
     // 4. FALLBACK INTELLIGENT : Génération basique avec ajustement sémantique
-    final boundary = SemanticPassageBoundaryService.adjustPassageChapters(
+    final boundary = await SemanticPassageBoundaryService.adjustPassageChapters(
       book: book,
       startChapter: chapter,
       endChapter: chapter,
@@ -1292,6 +1294,7 @@ class PlanServiceHttp implements PlanService {
   }
 
   /// 🔄 Recommence le plan depuis le jour 1
+  @override
   Future<void> restartPlanFromDay1(String planId) async {
     await PlanCatchupService.restartPlanFromDay1(planId);
     
@@ -1310,6 +1313,7 @@ class PlanServiceHttp implements PlanService {
   }
 
   /// 📅 Replanifie le plan depuis aujourd'hui
+  @override
   Future<void> rescheduleFromToday(String planId) async {
     await PlanCatchupService.rescheduleFromToday(planId);
     

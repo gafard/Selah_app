@@ -3,8 +3,8 @@ import 'package:json5/json5.dart';
 import 'lib/services/simple_json_preprocessor.dart';
 
 void main() async {
-  final inPath = 'assets/bibles/Francais courant.repaired.json';
-  final outPath = 'assets/bibles/Francais courant.simple_fixed.json';
+  const inPath = 'assets/bibles/Francais courant.repaired.json';
+  const outPath = 'assets/bibles/Francais courant.simple_fixed.json';
 
   print('🧪 Test du SimpleJsonPreprocessor...');
   

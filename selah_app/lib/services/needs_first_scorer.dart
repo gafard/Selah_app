@@ -2,6 +2,7 @@
 /// 
 /// Algorithme: need_score × doctrinal_safety × time_fit × novelty
 /// Poids: need 65%, safety 25%, time 7%, novelty 3%
+library;
 
 import '../models/plan_preset.dart';
 import 'needs_assessor.dart';

@@ -376,7 +376,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 color: const Color(0xFF1F2937),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(
+              child: const Icon(
                 Icons.close,
                 size: 16,
                 color: Color(0xFF9CA3AF),
@@ -578,7 +578,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   _notificationsEnabled = value;
                 });
               },
-              activeColor: const Color(0xFF49C98D),
+              activeThumbColor: const Color(0xFF49C98D),
             ),
           ],
         ),
@@ -620,7 +620,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   _darkModeEnabled = value;
                 });
               },
-              activeColor: const Color(0xFF49C98D),
+              activeThumbColor: const Color(0xFF49C98D),
             ),
           ],
         ),
@@ -641,7 +641,7 @@ class _SettingsPageState extends State<SettingsPage> {
       children: [
         Row(
           children: [
-            Icon(
+            const Icon(
               Icons.volume_up,
               size: 20,
               color: Color(0xFF9CA3AF),
@@ -662,7 +662,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   _audioEnabled = value;
                 });
               },
-              activeColor: const Color(0xFF49C98D),
+              activeThumbColor: const Color(0xFF49C98D),
             ),
           ],
         ),

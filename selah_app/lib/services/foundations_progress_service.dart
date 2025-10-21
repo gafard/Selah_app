@@ -49,9 +49,7 @@ class FoundationsProgressService {
 
   /// Initialise la box Hive pour les pratiques
   static Future<void> _ensureBox() async {
-    if (_box == null) {
-      _box = await Hive.openBox<Map>(_boxName);
-    }
+    _box ??= await Hive.openBox<Map>(_boxName);
   }
 
   /// Marque une fondation comme pratiquée

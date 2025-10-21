@@ -15,7 +15,7 @@ void main() async {
     final start = (1161 - 50).clamp(0, content.length);
     final end = (1161 + 50).clamp(0, content.length);
     final context = content.substring(start, end);
-    print('Position ${start}-${end}: $context');
+    print('Position $start-$end: $context');
     
     // Afficher les caractères problématiques
     print('\n🔍 Caractères autour de la position 1161:');
@@ -39,7 +39,7 @@ void main() async {
     final start = (1161 - 50).clamp(0, processed.length);
     final end = (1161 + 50).clamp(0, processed.length);
     final context = processed.substring(start, end);
-    print('Position ${start}-${end}: $context');
+    print('Position $start-$end: $context');
   }
   
   // Tester le parsing
@@ -75,6 +75,7 @@ void main() async {
     }
   }
 }
+
 
 
 

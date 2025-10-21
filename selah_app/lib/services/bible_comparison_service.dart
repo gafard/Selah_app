@@ -232,3 +232,4 @@ class BibleComparisonService {
 }
 
 
+

@@ -655,7 +655,7 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
           ),
         ),
         const SizedBox(height: 8),
-        ...versions.map((version) => _buildVersionCard(version, isDark)).toList(),
+        ...versions.map((version) => _buildVersionCard(version, isDark)),
       ],
     );
   }
@@ -730,9 +730,9 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: Text(
+              child: const Text(
                 'Télécharger',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Gilroy',
                   fontSize: 12,
                   fontWeight: FontWeight.w500,

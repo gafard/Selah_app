@@ -336,20 +336,17 @@ class BiblicalTimelineService {
     await init();
     
     if (_timelineData != null) {
-      final periods = _timelineData!['periods'] as List<dynamic>? ?? [];
+      // La structure réelle : les livres sont directement des clés
+      final bookData = _timelineData![bookName];
+      if (bookData != null) {
+        return bookData as Map<String, dynamic>;
+      }
       
-      for (final period in periods) {
-        final periodMap = period as Map<String, dynamic>;
-        final books = periodMap['books'] as List<dynamic>? ?? [];
-        
-        // Recherche exacte d'abord
-        if (books.any((book) => book.toString().toLowerCase() == bookName.toLowerCase())) {
-          return periodMap;
-        }
-        
-        // Recherche partielle
-        if (books.any((book) => book.toString().toLowerCase().contains(bookName.toLowerCase()))) {
-          return periodMap;
+      // Essayer avec des variations du nom
+      for (final key in _timelineData!.keys) {
+        if (key.toLowerCase().contains(bookName.toLowerCase()) || 
+            bookName.toLowerCase().contains(key.toLowerCase())) {
+          return _timelineData![key] as Map<String, dynamic>;
         }
       }
     }

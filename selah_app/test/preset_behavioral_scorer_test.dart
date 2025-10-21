@@ -5,7 +5,6 @@ library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:selah_app/services/preset_behavioral_scorer.dart';
-import 'package:selah_app/services/preset_behavioral_config.dart';
 import 'package:selah_app/services/preset_behavioral_integration.dart';
 
 void main() {

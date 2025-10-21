@@ -7,7 +7,7 @@ import '../services/thomson_characters_service.dart';
 import '../services/force_hydration_service.dart';
 
 class DebugServicesPage extends StatefulWidget {
-  const DebugServicesPage({Key? key}) : super(key: key);
+  const DebugServicesPage({super.key});
 
   @override
   State<DebugServicesPage> createState() => _DebugServicesPageState();
@@ -16,7 +16,7 @@ class DebugServicesPage extends StatefulWidget {
 class _DebugServicesPageState extends State<DebugServicesPage> {
   String _status = 'Initialisation...';
   Map<String, int> _stats = {};
-  List<String> _testResults = [];
+  final List<String> _testResults = [];
 
   @override
   void initState() {

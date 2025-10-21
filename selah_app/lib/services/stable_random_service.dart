@@ -486,31 +486,31 @@ class StableMessageService {
     
     if (completionRate >= 0.9) {
       messages = [
-        '🎉 Incroyable régularité !',
-        '⭐ Vous êtes un exemple !',
-        '💪 Quelle discipline !',
-        '✨ Remarquable persévérance !',
+        'Incroyable régularité !',
+        'Vous êtes un exemple !',
+        'Quelle discipline !',
+        'Remarquable persévérance !',
       ];
     } else if (completionRate >= 0.7) {
       messages = [
-        '👍 Très bon rythme !',
-        '💫 Continuez ainsi !',
-        '🌟 Belle progression !',
-        '🎯 Vous êtes sur la bonne voie !',
+        'Très bon rythme !',
+        'Continuez ainsi !',
+        'Belle progression !',
+        'Vous êtes sur la bonne voie !',
       ];
     } else if (completionRate >= 0.5) {
       messages = [
-        '💪 Accrochez-vous !',
-        '🌱 Chaque pas compte !',
-        '⏰ Il n\'est pas trop tard !',
-        '🔄 Reprenez le rythme !',
+        'Accrochez-vous !',
+        'Chaque pas compte !',
+        'Il n\'est pas trop tard !',
+        'Reprenez le rythme !',
       ];
     } else {
       messages = [
-        '🌅 Recommencez aujourd\'hui !',
-        '💝 La grâce de Dieu est nouvelle chaque matin',
-        '🔥 Rallumez la flamme !',
-        '🙏 Dieu vous attend avec patience',
+        'Recommencez aujourd\'hui !',
+        'La grâce de Dieu est nouvelle chaque matin',
+        'Rallumez la flamme !',
+        'Dieu vous attend avec patience',
       ];
     }
     

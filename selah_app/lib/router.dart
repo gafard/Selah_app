@@ -30,7 +30,6 @@ import 'package:selah_app/views/falcon_x_demo_page.dart';
 import 'package:selah_app/views/bible_versions_page.dart';
 // Page supprimée (packs incomplets)
 // Page supprimée (packs incomplets)
-import 'package:selah_app/views/advanced_bible_study_page.dart';
 import 'package:selah_app/views/profile_page.dart';
 import 'package:selah_app/views/splash_page.dart';
 import 'package:selah_app/views/pre_meditation_prayer_page.dart';
@@ -364,21 +363,7 @@ class AppRouter {
         ),
         // Route supprimée (packs incomplets)
         // Route supprimée (packs incomplets)
-        GoRoute(
-          path: '/advanced_bible_study',
-          name: 'advanced_bible_study',
-          builder: (context, state) {
-            final extra = state.extra as Map<String, dynamic>?;
-            final verseId = extra?['verseId'] as String?;
-            final initialTab = extra?['initialTab'] as int? ?? 0;
-            final passageRef = extra?['passageRef'] as String?;
-            return AdvancedBibleStudyPage(
-              verseId: verseId,
-              passageRef: passageRef,
-              initialTab: initialTab,
-            );
-          },
-        ),
+        // Route supprimée (contexte déplacé dans bottom sheet)
       
       // ─────────────────────────────────────────────────────────────────
       // Coming Soon (PROTECTED)

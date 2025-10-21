@@ -41,7 +41,7 @@ class FoundationsNotificationService {
     required SpiritualFoundation foundation,
   }) async {
     final title = 'As-tu pratiqué ${foundation.name} aujourd\'hui ?';
-    final body = 'Prends un instant pour réfléchir à ta journée spirituelle.';
+    const body = 'Prends un instant pour réfléchir à ta journée spirituelle.';
     
     await NotificationService.instance.scheduleNotification(
       id: _eveningNotificationId,

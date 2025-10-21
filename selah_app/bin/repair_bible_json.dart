@@ -3,7 +3,7 @@
 import 'dart:io';
 import 'package:json5/json5.dart';
 import 'package:path/path.dart' as p;
-import '../lib/services/bible_json_preprocessor.dart';
+import 'package:selah_app/services/bible_json_preprocessor.dart';
 
 Future<void> main(List<String> args) async {
   if (args.isEmpty) {
@@ -47,6 +47,7 @@ Future<void> main(List<String> args) async {
   await File(outPath).writeAsString(fixed);
   print('💾 Écrit: $outPath');
 }
+
 
 
 

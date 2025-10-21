@@ -7,6 +7,7 @@
 /// - SemanticPassageBoundaryService (FalconX)
 /// - SpiritualFoundation (fondation du jour)
 /// - BibleTextService (contenu du passage)
+library;
 
 import 'semantic_passage_boundary_service.dart';
 import '../models/spiritual_foundation.dart';
@@ -172,13 +173,13 @@ class ContextualPromptsService {
     switch (theme.toLowerCase()) {
       case 'incarnation':
         prompts.addAll([
-          ContextualPrompt(
+          const ContextualPrompt(
             text: 'Comment ce passage révèle-t-il l\'incarnation de Dieu ?',
             category: 'thème',
             priority: 1,
             context: 'Thème: Incarnation',
           ),
-          ContextualPrompt(
+          const ContextualPrompt(
             text: 'Qu\'est-ce que cela signifie que Dieu soit devenu homme ?',
             category: 'thème',
             priority: 2,
@@ -189,13 +190,13 @@ class ContextualPromptsService {
         
       case 'rédemption':
         prompts.addAll([
-          ContextualPrompt(
+          const ContextualPrompt(
             text: 'Comment ce passage montre-t-il l\'œuvre de rédemption ?',
             category: 'thème',
             priority: 1,
             context: 'Thème: Rédemption',
           ),
-          ContextualPrompt(
+          const ContextualPrompt(
             text: 'Qu\'est-ce que ce passage m\'apprend sur le prix de ma rédemption ?',
             category: 'thème',
             priority: 2,
@@ -206,13 +207,13 @@ class ContextualPromptsService {
         
       case 'royaume de dieu':
         prompts.addAll([
-          ContextualPrompt(
+          const ContextualPrompt(
             text: 'Comment ce passage décrit-il le Royaume de Dieu ?',
             category: 'thème',
             priority: 1,
             context: 'Thème: Royaume de Dieu',
           ),
-          ContextualPrompt(
+          const ContextualPrompt(
             text: 'Qu\'est-ce que cela signifie de vivre selon les valeurs du Royaume ?',
             category: 'thème',
             priority: 2,
@@ -223,13 +224,13 @@ class ContextualPromptsService {
         
       case 'sagesse':
         prompts.addAll([
-          ContextualPrompt(
+          const ContextualPrompt(
             text: 'Quelle sagesse pratique ce passage m\'offre-t-il ?',
             category: 'thème',
             priority: 1,
             context: 'Thème: Sagesse',
           ),
-          ContextualPrompt(
+          const ContextualPrompt(
             text: 'Comment puis-je appliquer cette sagesse dans ma vie quotidienne ?',
             category: 'thème',
             priority: 2,
@@ -256,7 +257,7 @@ class ContextualPromptsService {
     
     switch (tone.toLowerCase()) {
       case 'wonder':
-        prompts.add(ContextualPrompt(
+        prompts.add(const ContextualPrompt(
           text: 'Qu\'est-ce qui m\'émerveille dans ce passage ?',
           category: 'émotion',
           priority: 2,
@@ -265,7 +266,7 @@ class ContextualPromptsService {
         break;
         
       case 'joy':
-        prompts.add(ContextualPrompt(
+        prompts.add(const ContextualPrompt(
           text: 'Comment ce passage peut-il augmenter ma joie ?',
           category: 'émotion',
           priority: 2,
@@ -274,7 +275,7 @@ class ContextualPromptsService {
         break;
         
       case 'peace':
-        prompts.add(ContextualPrompt(
+        prompts.add(const ContextualPrompt(
           text: 'Comment ce passage m\'apporte-t-il la paix ?',
           category: 'émotion',
           priority: 2,
@@ -283,7 +284,7 @@ class ContextualPromptsService {
         break;
         
       case 'hope':
-        prompts.add(ContextualPrompt(
+        prompts.add(const ContextualPrompt(
           text: 'Quel espoir ce passage me donne-t-il ?',
           category: 'émotion',
           priority: 2,
@@ -292,7 +293,7 @@ class ContextualPromptsService {
         break;
         
       case 'sacrifice':
-        prompts.add(ContextualPrompt(
+        prompts.add(const ContextualPrompt(
           text: 'Qu\'est-ce que ce passage m\'enseigne sur le sacrifice ?',
           category: 'émotion',
           priority: 2,
@@ -301,7 +302,7 @@ class ContextualPromptsService {
         break;
         
       case 'love':
-        prompts.add(ContextualPrompt(
+        prompts.add(const ContextualPrompt(
           text: 'Comment ce passage révèle-t-il l\'amour de Dieu ?',
           category: 'émotion',
           priority: 2,
@@ -318,21 +319,21 @@ class ContextualPromptsService {
     final prompts = <ContextualPrompt>[];
     
     if (liturgicalContext.toLowerCase().contains('noël')) {
-      prompts.add(ContextualPrompt(
+      prompts.add(const ContextualPrompt(
         text: 'Comment ce passage s\'inscrit-il dans la joie de Noël ?',
         category: 'liturgie',
         priority: 1,
         context: 'Contexte: Noël',
       ));
     } else if (liturgicalContext.toLowerCase().contains('pâques')) {
-      prompts.add(ContextualPrompt(
+      prompts.add(const ContextualPrompt(
         text: 'Comment ce passage célèbre-t-il la victoire de Pâques ?',
         category: 'liturgie',
         priority: 1,
         context: 'Contexte: Pâques',
       ));
     } else if (liturgicalContext.toLowerCase().contains('carême')) {
-      prompts.add(ContextualPrompt(
+      prompts.add(const ContextualPrompt(
         text: 'Comment ce passage m\'accompagne-t-il dans le Carême ?',
         category: 'liturgie',
         priority: 1,
@@ -349,21 +350,21 @@ class ContextualPromptsService {
     
     // Extraire des mots-clés de l'annotation pour générer des prompts
     if (annotation.toLowerCase().contains('béatitudes')) {
-      prompts.add(ContextualPrompt(
+      prompts.add(const ContextualPrompt(
         text: 'Comment puis-je vivre les Béatitudes dans ma vie ?',
         category: 'annotation',
         priority: 1,
         context: 'Annotation: Béatitudes',
       ));
     } else if (annotation.toLowerCase().contains('miracles')) {
-      prompts.add(ContextualPrompt(
+      prompts.add(const ContextualPrompt(
         text: 'Quel miracle de Dieu ai-je besoin aujourd\'hui ?',
         category: 'annotation',
         priority: 2,
         context: 'Annotation: Miracles',
       ));
     } else if (annotation.toLowerCase().contains('paraboles')) {
-      prompts.add(ContextualPrompt(
+      prompts.add(const ContextualPrompt(
         text: 'Quelle leçon cette parabole m\'enseigne-t-elle ?',
         category: 'annotation',
         priority: 2,
@@ -421,19 +422,19 @@ class ContextualPromptsService {
   /// 🔄 Prompts de secours si l'analyse échoue
   static List<ContextualPrompt> _getFallbackPrompts() {
     return [
-      ContextualPrompt(
+      const ContextualPrompt(
         text: 'Qu\'est-ce que ce passage me dit aujourd\'hui ?',
         category: 'général',
         priority: 1,
         context: 'Prompts généraux',
       ),
-      ContextualPrompt(
+      const ContextualPrompt(
         text: 'Comment puis-je appliquer ce passage dans ma vie ?',
         category: 'général',
         priority: 2,
         context: 'Prompts généraux',
       ),
-      ContextualPrompt(
+      const ContextualPrompt(
         text: 'Qu\'est-ce que ce passage révèle sur le caractère de Dieu ?',
         category: 'général',
         priority: 2,

@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../models/passage_qcm_builder.dart';
 import '../models/passage_analysis.dart';
 import '../utils/prayer_subjects_mapper.dart';
-import 'prayer_carousel_page.dart';
 
 class MeditationQcmPage extends StatefulWidget {
   final String? passageRef;

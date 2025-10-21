@@ -6,7 +6,7 @@ void main() async {
   await Hive.openBox('plans');
   await Hive.openBox('plan_days');
   
-  final planId = '88b09cc8-8a59-4c88-9e95-7541ac3c997f';
+  const planId = '88b09cc8-8a59-4c88-9e95-7541ac3c997f';
   
   // Récupérer le plan actif
   final planBox = Hive.box('plans');

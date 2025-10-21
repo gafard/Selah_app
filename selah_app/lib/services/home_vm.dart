@@ -81,7 +81,7 @@ class HomeVM extends ChangeNotifier {
     String display = 'ami';
     try {
       // Récupérer le profil utilisateur complet depuis LocalStorageService
-      final localUser = await LocalStorageService.getLocalUser();
+      final localUser = LocalStorageService.getLocalUser();
       print('🔍 HomeVM - localUser: $localUser');
       
       if (localUser != null) {
@@ -163,6 +163,28 @@ class HomeVM extends ChangeNotifier {
     if (today?.today == null) return;
     final d = today!.today!;
     await planService.setDayCompleted(d.planId, d.dayIndex, !d.completed);
+    
+    // Rafraîchir les données du jour actuel
+    await _refreshTodayData();
+  }
+  
+  /// Rafraîchir les données du jour actuel
+  Future<void> _refreshTodayData() async {
+    final plan = await planService.getActivePlan();
+    if (plan != null) {
+      final now = DateTime.now();
+      final todayNormalized = DateTime(now.year, now.month, now.day);
+      final startNormalized = DateTime(plan.startDate.year, plan.startDate.month, plan.startDate.day);
+      final dayIndex = todayNormalized.difference(startNormalized).inDays + 1;
+      final days = await planService.getPlanDays(plan.id, fromDay: dayIndex, toDay: dayIndex);
+      today = TodayReading(plan: plan, today: days.isEmpty ? null : days.first);
+      notifyListeners();
+    }
+  }
+  
+  /// Rafraîchir le calendrier (pour notifier les changements visuels)
+  void refreshCalendar() {
+    notifyListeners();
   }
 
   /// 🏎️ FERRARI - Charger la progression du quiz intelligent
@@ -229,7 +251,7 @@ class HomeVM extends ChangeNotifier {
       // Récupérer les 30 derniers jours pour vérifier la série
       for (int i = 0; i < 30; i++) {
         final checkDate = today.subtract(Duration(days: i));
-        final dayIndex = checkDate.difference(DateTime.now().subtract(Duration(days: 30))).inDays + 1;
+        final dayIndex = checkDate.difference(DateTime.now().subtract(const Duration(days: 30))).inDays + 1;
         
         try {
           final days = await planService.getPlanDays(planId, fromDay: dayIndex, toDay: dayIndex);

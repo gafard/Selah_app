@@ -269,7 +269,7 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
                               child: Column(
                                 children: [
                                   _buildDurationSlider(),
-                                  SizedBox(height: 8),
+                                  const SizedBox(height: 8),
                                   // Les systèmes intelligents travaillent en arrière-plan
                                 ],
                               ),
@@ -681,7 +681,7 @@ class _CustomPlanGeneratorPageState extends State<CustomPlanGeneratorPage> {
   
   // Les systèmes intelligents travaillent en arrière-plan sans interface visible
   Widget _buildIntelligenceRecommendations() {
-    return SizedBox.shrink(); // Pas d'interface visible
+    return const SizedBox.shrink(); // Pas d'interface visible
   }
   
   /// 🎨 Couleur basée sur le niveau de confiance

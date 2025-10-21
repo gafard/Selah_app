@@ -93,9 +93,9 @@ class ThomsonCharactersService {
         // Prendre la première description comme description principale
         final mainDescription = descriptions.isNotEmpty ? descriptions.first.toString() : 'Personnage biblique';
         
-        // Créer une description courte (premiers 100 caractères)
-        final shortDescription = mainDescription.length > 100 
-            ? mainDescription.substring(0, 100) + '...' 
+        // Créer une description courte (premiers 200 caractères pour plus de détails)
+        final shortDescription = mainDescription.length > 200 
+            ? '${mainDescription.substring(0, 200)}...' 
             : mainDescription;
         
         characters.add({
@@ -128,11 +128,11 @@ class ThomsonCharactersService {
         
         if (characterName.toLowerCase() == name.toLowerCase()) {
           final mainDescription = descriptions.isNotEmpty ? descriptions.first.toString() : 'Personnage biblique';
-          final shortDescription = mainDescription.length > 100 
-              ? mainDescription.substring(0, 100) + '...' 
+          final shortDescription = mainDescription.length > 200 
+              ? '${mainDescription.substring(0, 200)}...' 
               : mainDescription;
           
-          print('🔍 Personnage trouvé: $characterName - Description: ${shortDescription}');
+          print('🔍 Personnage trouvé: $characterName - Description: $shortDescription');
           return {
             'name': characterName,
             'description': mainDescription,
@@ -163,8 +163,8 @@ class ThomsonCharactersService {
         
         if (characterName.toLowerCase().contains(partialName.toLowerCase())) {
           final mainDescription = descriptions.isNotEmpty ? descriptions.first.toString() : 'Personnage biblique';
-          final shortDescription = mainDescription.length > 100 
-              ? mainDescription.substring(0, 100) + '...' 
+          final shortDescription = mainDescription.length > 200 
+              ? '${mainDescription.substring(0, 200)}...' 
               : mainDescription;
           
           matchingCharacters.add({

@@ -29,6 +29,7 @@ import '../services/thomson_characters_service.dart';
 import '../services/bsb_topical_service.dart';
 import '../services/mirror_verse_service.dart';
 import '../services/treasury_crossref_service.dart';
+import '../services/bsb_book_outlines_service.dart';
 // Services supprimés (packs incomplets)
 import '../services/foundations_progress_service.dart';
 import '../services/reading_memory_service.dart';
@@ -627,7 +628,7 @@ class _ReaderPageModernState extends State<ReaderPageModern>
       final endVerse = verseParts.length > 1 ? int.tryParse(verseParts[1]) ?? startVerse : startVerse;
       
       // Utiliser le service sémantique pour ajuster le passage
-      final adjusted = SemanticPassageBoundaryService.adjustPassageVerses(
+      final adjusted = await SemanticPassageBoundaryService.adjustPassageVerses(
         book: book,
         startChapter: chapter,
         startVerse: startVerse,
@@ -1287,13 +1288,13 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
             builder: (context, scrollController) {
               return Container(
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1F1B3B) : theme.colorScheme.surface,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  color: isDark ? const Color(0xFF1C1E26) : const Color(0xFFF8F9FA),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, -2),
+                      color: isDark ? Colors.black.withOpacity(0.4) : Colors.black.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, -4),
                     ),
                   ],
                 ),
@@ -1500,7 +1501,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                 
                 // Titre
                 Text(
-                  'Contexte enrichi - $reference',
+                  'Contexte - $reference',
                   style: GoogleFonts.inter(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
@@ -2358,8 +2359,17 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                       Icons.help_outline,
                       'Contexte',
                       'Contexte historique et culturel',
-                      Colors.blue,
-                      () => _goToAdvancedStudyTab(0), // Onglet 0 = Contexte
+                      isDark ? const Color(0xFF6B8AFF) : const Color(0xFF5B7FE5),
+                      () => _showContextBottomSheet(),
+                      isDark,
+                    ),
+                    const SizedBox(width: 6),
+                    _buildStudyAction(
+                      Icons.link_outlined,
+                      'Références',
+                      'Références croisées',
+                      isDark ? const Color(0xFF7FE5CC) : const Color(0xFF6BD5BC),
+                      () => _showCrossReferencesBottomSheet(),
                       isDark,
                     ),
                     const SizedBox(width: 6),
@@ -2367,7 +2377,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                       Icons.label_outline,
                       'Thèmes',
                       'Thèmes bibliques et doctrines',
-                      Colors.purple,
+                      isDark ? const Color(0xFFB4A3FF) : const Color(0xFF9B88E5),
                       () => _showThemesBottomSheet(),
                       isDark,
                     ),
@@ -2376,7 +2386,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                       Icons.person_outline,
                       'Personnages',
                       'Personnages bibliques',
-                      Colors.green,
+                      isDark ? const Color(0xFF7FD89E) : const Color(0xFF6BC98D),
                       () => _showCharactersBottomSheet(),
                       isDark,
                     ),
@@ -2385,17 +2395,8 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                       Icons.sync_alt,
                       'Miroir',
                       'Verset miroir typologique',
-                      Colors.orange,
+                      isDark ? const Color(0xFFFFB86C) : const Color(0xFFFF9F5C),
                       () => _showMirrorBottomSheet(),
-                      isDark,
-                    ),
-                    const SizedBox(width: 6),
-                    _buildStudyAction(
-                      Icons.link_outlined,
-                      'Références',
-                      'Références croisées',
-                      Colors.teal,
-                      () => _showCrossReferencesBottomSheet(),
                       isDark,
                     ),
                   ],
@@ -2413,10 +2414,15 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
   /// Extrait le nom du livre d'une référence biblique
   String _extractBookFromReference(String reference) {
     final parts = reference.split(' ');
-    if (parts.isNotEmpty) {
-      return parts[0];
+    if (parts.isEmpty) return '';
+    
+    // Si le premier élément est un chiffre (livres comme "1 Pierre", "2 Corinthiens")
+    if (parts.length >= 2 && RegExp(r'^\d+$').hasMatch(parts[0])) {
+      return '${parts[0]} ${parts[1]}';
     }
-    return '';
+    
+    // Sinon, prendre le premier élément
+    return parts[0];
   }
 
   Widget _buildStudyAction(IconData icon, String title, String subtitle, Color color, VoidCallback onTap, bool isDark) {
@@ -2425,28 +2431,22 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
         HapticFeedback.mediumImpact();
         onTap();
       },
-      child: Container(
-        width: 100,
-        padding: const EdgeInsets.all(8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 110,
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              color.withOpacity(0.15),
-              color.withOpacity(0.08),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(16),
+          color: isDark ? const Color(0xFF2A2D3A) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: color.withOpacity(0.3),
-            width: 1.5,
+            color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06),
+            width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+              color: isDark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -2454,73 +2454,53 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Icône et titre
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Icon(
-                    icon,
-                    color: color,
-                    size: 14,
-                  ),
+            // Icône avec fond circulaire
+            Center(
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontFamily: 'Gilroy',
-                      color: isDark ? Colors.white : Colors.black87,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                child: Icon(
+                  icon,
+                  color: color,
+                  size: 16,
                 ),
-              ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            
+            // Titre centré
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Gilroy',
+                color: isDark ? Colors.white : const Color(0xFF1C1E26),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                height: 1.2,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 4),
             
-            // Description
+            // Description centrée
             Text(
               subtitle,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'Gilroy',
-                color: isDark ? Colors.white70 : Colors.grey.shade600,
-                fontSize: 8,
-                fontWeight: FontWeight.w500,
-                height: 1.1,
+                color: isDark ? Colors.white.withOpacity(0.6) : const Color(0xFF1C1E26).withOpacity(0.6),
+                fontSize: 9,
+                fontWeight: FontWeight.w400,
+                height: 1.3,
               ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-            ),
-            
-            const SizedBox(height: 4),
-            
-            // Indicateur d'action
-            Row(
-              children: [
-                Icon(
-                  Icons.arrow_forward_ios,
-                  color: color,
-                  size: 10,
-                ),
-                const SizedBox(width: 2),
-                Text(
-                  'Explorer',
-                  style: TextStyle(
-                    fontFamily: 'Gilroy',
-                    color: color,
-                    fontSize: 8,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
             ),
           ],
         ),
@@ -2564,20 +2544,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
       'passageRef': passageRef, // Référence complète pour l'affichage
     });
   }
-  
-  /// Navigue vers la page d'étude biblique avancée avec un onglet spécifique
-  void _goToAdvancedStudyTab(int tabIndex) {
-    final passageRef = _readingSession?.currentPassage?.reference ?? 'Jean 14:1-19';
-    final verseId = _extractVerseIdFromReference(passageRef);
-    
-    HapticFeedback.mediumImpact();
-    context.push('/advanced_bible_study', extra: {
-      'verseId': verseId,
-      'initialTab': tabIndex,
-      'passageRef': passageRef, // Référence complète pour l'affichage
-    });
-  }
-  
+
   /// Extrait un ID de verset depuis une référence biblique
   String _extractVerseIdFromReference(String reference) {
     try {
@@ -2791,13 +2758,13 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
             builder: (context, scrollController) {
               return Container(
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1F1B3B) : theme.colorScheme.surface,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  color: isDark ? const Color(0xFF1C1E26) : const Color(0xFFF8F9FA),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, -2),
+                      color: isDark ? Colors.black.withOpacity(0.4) : Colors.black.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, -4),
                     ),
                   ],
                 ),
@@ -2805,12 +2772,12 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                   children: [
                     // Handle bar
                     Container(
-                      width: 40,
-                      height: 4,
+                      width: 50,
+                      height: 5,
                       margin: const EdgeInsets.only(top: 12),
                       decoration: BoxDecoration(
                         color: isDark ? Colors.white.withOpacity(0.3) : Colors.black.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(2),
+                        borderRadius: BorderRadius.circular(3),
                       ),
                     ),
                     
@@ -2822,7 +2789,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.label_outline, color: Colors.purple, size: 24),
+                              Icon(Icons.label_outline, color: isDark ? const Color(0xFFB4A3FF) : const Color(0xFF9B88E5), size: 24),
                               const SizedBox(width: 8),
                               Text(
                                 'Thèmes bibliques',
@@ -2830,7 +2797,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                                   fontFamily: 'Gilroy',
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                                  color: isDark ? Colors.white : const Color(0xFF1C1E26),
                                 ),
                               ),
                             ],
@@ -2841,7 +2808,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                             style: TextStyle(
                               fontFamily: 'Gilroy',
                               fontSize: 14,
-                              color: isDark ? Colors.white.withOpacity(0.7) : theme.colorScheme.onSurface.withOpacity(0.7),
+                                  color: isDark ? Colors.white.withOpacity(0.7) : const Color(0xFF1C1E26).withOpacity(0.6),
                             ),
                           ),
                         ],
@@ -2938,13 +2905,13 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
             builder: (context, scrollController) {
               return Container(
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1F1B3B) : theme.colorScheme.surface,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  color: isDark ? const Color(0xFF1C1E26) : const Color(0xFFF8F9FA),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, -2),
+                      color: isDark ? Colors.black.withOpacity(0.4) : Colors.black.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, -4),
                     ),
                   ],
                 ),
@@ -2952,12 +2919,12 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                   children: [
                     // Handle bar
                     Container(
-                      width: 40,
-                      height: 4,
+                      width: 50,
+                      height: 5,
                       margin: const EdgeInsets.only(top: 12),
                       decoration: BoxDecoration(
                         color: isDark ? Colors.white.withOpacity(0.3) : Colors.black.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(2),
+                        borderRadius: BorderRadius.circular(3),
                       ),
                     ),
                     
@@ -2969,7 +2936,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.person_outline, color: Colors.green, size: 24),
+                              Icon(Icons.person_outline, color: isDark ? const Color(0xFF7FD89E) : const Color(0xFF6BC98D), size: 24),
                               const SizedBox(width: 8),
                               Text(
                                 'Personnages bibliques',
@@ -2977,7 +2944,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                                   fontFamily: 'Gilroy',
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                                  color: isDark ? Colors.white : const Color(0xFF1C1E26),
                                 ),
                               ),
                             ],
@@ -2988,7 +2955,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                             style: TextStyle(
                               fontFamily: 'Gilroy',
                               fontSize: 14,
-                              color: isDark ? Colors.white.withOpacity(0.7) : theme.colorScheme.onSurface.withOpacity(0.7),
+                                  color: isDark ? Colors.white.withOpacity(0.7) : const Color(0xFF1C1E26).withOpacity(0.6),
                             ),
                           ),
                         ],
@@ -3363,13 +3330,13 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
             builder: (context, scrollController) {
               return Container(
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1F1B3B) : theme.colorScheme.surface,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  color: isDark ? const Color(0xFF1C1E26) : const Color(0xFFF8F9FA),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, -2),
+                      color: isDark ? Colors.black.withOpacity(0.4) : Colors.black.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, -4),
                     ),
                   ],
                 ),
@@ -3377,12 +3344,12 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                   children: [
                     // Handle bar
                     Container(
-                      width: 40,
-                      height: 4,
+                      width: 50,
+                      height: 5,
                       margin: const EdgeInsets.only(top: 12),
                       decoration: BoxDecoration(
                         color: isDark ? Colors.white.withOpacity(0.3) : Colors.black.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(2),
+                        borderRadius: BorderRadius.circular(3),
                       ),
                     ),
                     
@@ -3394,7 +3361,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.sync_alt, color: Colors.orange, size: 24),
+                              Icon(Icons.sync_alt, color: isDark ? const Color(0xFFFFB86C) : const Color(0xFFFF9F5C), size: 24),
                               const SizedBox(width: 8),
                               Text(
                                 'Verset miroir typologique',
@@ -3778,13 +3745,13 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
             builder: (context, scrollController) {
               return Container(
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1F1B3B) : theme.colorScheme.surface,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  color: isDark ? const Color(0xFF1C1E26) : const Color(0xFFF8F9FA),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, -2),
+                      color: isDark ? Colors.black.withOpacity(0.4) : Colors.black.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, -4),
                     ),
                   ],
                 ),
@@ -3792,12 +3759,12 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                   children: [
                     // Handle bar
                     Container(
-                      width: 40,
-                      height: 4,
+                      width: 50,
+                      height: 5,
                       margin: const EdgeInsets.only(top: 12),
                       decoration: BoxDecoration(
                         color: isDark ? Colors.white.withOpacity(0.3) : Colors.black.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(2),
+                        borderRadius: BorderRadius.circular(3),
                       ),
                     ),
                     
@@ -3809,7 +3776,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.link_outlined, color: Colors.teal, size: 24),
+                              Icon(Icons.link_outlined, color: isDark ? const Color(0xFF7FE5CC) : const Color(0xFF6BD5BC), size: 24),
                               const SizedBox(width: 8),
                               Text(
                                 'Références croisées',
@@ -3937,6 +3904,13 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
       // Récupérer le texte complet de chaque référence
       for (final crossRef in crossRefs) {
         final refString = crossRef['reference'] as String? ?? '';
+        final numericRef = crossRef['numericRef'] as String? ?? '';
+        
+        // Vérifier que la référence est valide
+        if (refString.isEmpty || refString.contains('-')) {
+          print('⚠️ Référence invalide ignorée: $refString');
+          continue;
+        }
         
         // Récupérer le texte du verset via BibleTextService
         String verseText = '';
@@ -3953,6 +3927,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
           'bookNumber': crossRef['bookNumber'] as int? ?? 0,
           'chapter': crossRef['chapter'] as int? ?? 0,
           'verse': crossRef['verse'] as int? ?? 0,
+          'relevance': crossRef['relevanceScore'] != null ? (crossRef['relevanceScore'] as int) / 100.0 : 0.0,
         });
       }
       
@@ -4034,6 +4009,541 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                 height: 1.4,
               ),
             ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Affiche le contexte enrichi dans un bottom sheet
+  void _showContextBottomSheet() {
+    final reference = _readingSession?.currentPassage?.reference ?? 'Jean 14:1-19';
+    final verseId = _extractVerseIdFromReference(reference);
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Consumer<ReaderSettingsService>(
+        builder: (context, settings, child) {
+          final isDark = settings.effectiveTheme == 'dark';
+          final theme = Theme.of(context);
+          final responsivePadding = _getResponsivePadding(context);
+          
+          return DraggableScrollableSheet(
+            initialChildSize: 0.7,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
+            builder: (context, scrollController) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1C1E26) : const Color(0xFFF8F9FA),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isDark ? Colors.black.withOpacity(0.4) : Colors.black.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // Handle bar
+                    Container(
+                      width: 50,
+                      height: 5,
+                      margin: const EdgeInsets.only(top: 12),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white.withOpacity(0.3) : Colors.black.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                    
+                    // Header (non-scrollable)
+                    Padding(
+                      padding: responsivePadding,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.info_outline, color: isDark ? const Color(0xFF6B8AFF) : const Color(0xFF5B7FE5), size: 24),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Contexte',
+                                style: GoogleFonts.inter(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark ? Colors.white : Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Contexte historique, culturel, auteur, sémantique',
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              color: isDark ? Colors.white.withOpacity(0.7) : Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    // Content (scrollable)
+                    Expanded(
+                      child: ListView(
+                        controller: scrollController,
+                        padding: EdgeInsets.symmetric(horizontal: responsivePadding.left),
+                        children: [
+                          FutureBuilder<Map<String, dynamic>>(
+                            future: _loadContextData(reference, verseId),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                return const Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(32),
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                );
+                              }
+                              
+                              if (snapshot.hasError) {
+                                return Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(32),
+                                    child: Text(
+                                      'Erreur de chargement: ${snapshot.error}',
+                                      style: GoogleFonts.inter(color: Colors.red),
+                                    ),
+                                  ),
+                                );
+                              }
+                              
+                              final contextData = snapshot.data ?? {};
+                              
+                              if (contextData.isEmpty) {
+                                return Container(
+                                  padding: const EdgeInsets.all(32),
+                                  child: Column(
+                                    children: [
+                                      Icon(
+                                        Icons.info_outline,
+                                        size: 48,
+                                        color: isDark ? Colors.white54 : Colors.grey[400],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        'Aucun contexte disponible pour ce passage',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 16,
+                                          color: isDark ? Colors.white70 : Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }
+                              
+                              return Column(
+                                children: [
+                                  // Contexte historique
+                                  if (contextData['historical'] != null)
+                                    _buildContextCard(
+                                      'Contexte Historique',
+                                      Icons.history,
+                                      contextData['historical'],
+                                      Colors.blue,
+                                      isDark,
+                                    ),
+                                  
+                                  // Contexte culturel
+                                  if (contextData['cultural'] != null)
+                                    _buildContextCard(
+                                      'Contexte Culturel',
+                                      Icons.public,
+                                      contextData['cultural'],
+                                      Colors.green,
+                                      isDark,
+                                    ),
+                                  
+                                  // Période historique
+                                  if (contextData['period'] != null)
+                                    _buildPeriodCard(contextData['period'], isDark),
+                                  
+                                  // Contexte littéraire
+                                  if (contextData['literary'] != null)
+                                    _buildLiteraryContextCard(contextData['literary'], isDark),
+                                  
+                                  // Plan du livre
+                                  if (contextData['bookOutline'] != null)
+                                    _buildBookOutlineCard(contextData['bookOutline'], isDark),
+                                  
+                                  const SizedBox(height: 20),
+                                ],
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  /// Charge les données de contexte enrichi
+  Future<Map<String, dynamic>> _loadContextData(String reference, String verseId) async {
+    final contextData = <String, dynamic>{};
+    
+    try {
+      print('🔍 === DÉBUT CHARGEMENT CONTEXTE POUR: $reference ===');
+      
+      // Initialiser tous les services
+      await Future.wait([
+        BibleContextService.init(),
+        ThomsonService.init(),
+        BiblicalTimelineService.init(),
+        SemanticPassageBoundaryService.init(),
+        BSBBookOutlinesService.init(),
+      ]);
+      
+      // 1. Charger le contexte historique via ThomsonService
+      final thomsonContext = await ThomsonService.getContext(verseId);
+      if (thomsonContext.isNotEmpty) {
+        contextData['historical'] = thomsonContext;
+      }
+      
+      // 2. Charger le contexte culturel via BibleContextService
+      final culturalContext = await BibleContextService.cultural(verseId);
+      if (culturalContext != null && culturalContext.isNotEmpty) {
+        contextData['cultural'] = culturalContext;
+      }
+      
+      // 3. Charger la période historique via BiblicalTimelineService
+      final bookName = _extractBookFromReference(reference);
+      print('🔍 Nom du livre extrait: "$bookName"');
+      if (bookName.isNotEmpty) {
+        print('🔍 Recherche période pour: $bookName');
+        final period = await BiblicalTimelineService.getPeriodForBook(bookName);
+        print('🔍 Période trouvée: ${period != null ? "OUI" : "NON"}');
+        if (period != null) {
+          contextData['period'] = period;
+          print('🔍 Période ajoutée: ${period.keys.join(', ')}');
+        }
+      }
+      
+      // 4. Charger le contexte littéraire via SemanticPassageBoundaryService
+      if (bookName.isNotEmpty) {
+        print('🔍 Recherche unités littéraires pour: $bookName');
+        final units = SemanticPassageBoundaryService.getUnitsForBook(bookName);
+        print('🔍 Unités trouvées: ${units.length}');
+        if (units.isNotEmpty) {
+          contextData['literary'] = {
+            'name': units.first.name,
+            'description': units.first.description ?? '',
+          };
+          print('🔍 Contexte littéraire ajouté: ${units.first.name}');
+        }
+      }
+      
+      // 5. Charger le plan du livre via BSBBookOutlinesService
+      if (bookName.isNotEmpty) {
+        print('🔍 Recherche plan du livre pour: $bookName');
+        final bookOutline = await BSBBookOutlinesService.getBookOutline(bookName);
+        print('🔍 Plan trouvé: ${bookOutline != null ? "OUI" : "NON"}');
+        if (bookOutline != null) {
+          contextData['bookOutline'] = bookOutline;
+          print('🔍 Plan du livre ajouté: ${bookOutline.keys.join(', ')}');
+        }
+      }
+      
+      print('🔍 Contexte chargé: ${contextData.keys.join(', ')}');
+      print('🔍 === FIN CHARGEMENT CONTEXTE ===');
+      
+    } catch (e) {
+      print('⚠️ Erreur chargement contexte: $e');
+    }
+    
+    return contextData;
+  }
+
+  /// Construit une carte de contexte
+  Widget _buildContextCard(String title, IconData icon, String content, Color color, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            content,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              color: isDark ? Colors.white70 : Colors.black54,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Construit une carte de période historique
+  Widget _buildPeriodCard(Map<String, dynamic> period, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.schedule, color: Colors.orange, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Période Historique',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            period['name'] ?? 'Période inconnue',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+          if (period['description'] != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              period['description'],
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: isDark ? Colors.white70 : Colors.black54,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Construit une carte de contexte littéraire
+  Widget _buildLiteraryContextCard(Map<String, dynamic> literary, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.teal.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.teal.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.book, color: Colors.teal, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Contexte Littéraire',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            literary['name'] ?? 'Contexte inconnu',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+          if (literary['description'] != null && literary['description'].isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              literary['description'],
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: isDark ? Colors.white70 : Colors.black54,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Construit une carte de plan du livre
+  Widget _buildBookOutlineCard(Map<String, dynamic> bookOutline, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.indigo.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.indigo.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.book_outlined, color: Colors.indigo, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Plan du Livre',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            bookOutline['title'] ?? 'Plan non disponible',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+          if (bookOutline['description'] != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              bookOutline['description'],
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: isDark ? Colors.white70 : Colors.black54,
+                height: 1.4,
+              ),
+            ),
+          ],
+          if (bookOutline['period'] != null) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.indigo.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'Période: ${bookOutline['period']}',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.indigo[700],
+                ),
+              ),
+            ),
+          ],
+          if (bookOutline['sections'] != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Sections principales:',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: isDark ? Colors.white70 : Colors.black54,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...((bookOutline['sections'] as List<dynamic>? ?? [])
+                .take(3) // Limiter à 3 sections pour l'affichage
+                .map((section) {
+              final sectionData = section as Map<String, dynamic>;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.indigo.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.indigo.withOpacity(0.2)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      sectionData['title'] ?? 'Section',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    if (sectionData['chapters'] != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Chapitres: ${sectionData['chapters']}',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: Colors.indigo[600],
+                        ),
+                      ),
+                    ],
+                    if (sectionData['description'] != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        sectionData['description'],
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: isDark ? Colors.white70 : Colors.black54,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            }).toList()),
           ],
         ],
       ),

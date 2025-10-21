@@ -176,16 +176,124 @@ class TreasuryCrossRefService {
         }
       }
 
-      // Limiter à 5 références pour afficher les textes complets
-      final limitedRefs = crossRefs.take(5).toList();
+      // Trier par pertinence et limiter à 5 références
+      final sortedRefs = _sortByRelevance(crossRefs, verseRef);
+      final limitedRefs = sortedRefs.take(5).toList();
       
-      print('✅ ${limitedRefs.length} références croisées trouvées pour $verseRef');
+      print('✅ ${limitedRefs.length} références croisées les plus pertinentes trouvées pour $verseRef');
       return limitedRefs;
 
     } catch (e) {
       print('⚠️ Erreur getCrossReferences: $e');
       return [];
     }
+  }
+
+  /// Trie les références par pertinence
+  static List<Map<String, dynamic>> _sortByRelevance(
+    List<Map<String, dynamic>> references,
+    String originalVerse,
+  ) {
+    // Extraire le numéro du livre original pour le scoring
+    final originalBookName = _extractBookFromReference(originalVerse);
+    final originalBook = bookNumbers[originalBookName] ?? 0;
+    
+    return references.map((ref) {
+      final book = ref['bookNumber'] as int? ?? 0;
+      final chapter = ref['chapter'] as int? ?? 0;
+      final verse = ref['verse'] as int? ?? 0;
+      final reference = ref['reference'] as String? ?? '';
+      
+      // Calculer un score de pertinence
+      int score = 0;
+      
+      // 1. Priorité aux livres du même Testament
+      if (_isSameTestament(originalBook, book)) {
+        score += 100;
+      }
+      
+      // 2. Priorité aux livres proches (même auteur ou époque)
+      if (_isRelatedBook(originalBook, book)) {
+        score += 50;
+      }
+      
+      // 3. Priorité aux références dans les premiers chapitres (plus fondamentales)
+      if (chapter <= 5) {
+        score += 20;
+      }
+      
+      // 4. Priorité aux versets avec des numéros similaires (connexions thématiques)
+      final originalVerseNum = _extractVerseNumber(originalVerse);
+      if (originalVerseNum != null) {
+        final verseDiff = (verse - originalVerseNum).abs();
+        if (verseDiff <= 5) {
+          score += 30;
+        }
+      }
+      
+      // 5. Priorité aux livres majeurs (Évangiles, Épîtres de Paul, etc.)
+      if (_isMajorBook(book)) {
+        score += 15;
+      }
+      
+      // 6. Priorité aux références dans les premiers versets du chapitre
+      if (verse <= 10) {
+        score += 10;
+      }
+      
+      return {
+        ...ref,
+        'relevanceScore': score,
+      };
+    }).toList()
+      ..sort((a, b) => (b['relevanceScore'] as int).compareTo(a['relevanceScore'] as int));
+  }
+  
+  /// Extrait le livre d'une référence
+  static String _extractBookFromReference(String reference) {
+    final regex = RegExp(r'^(.+?)\s+\d+:\d+');
+    final match = regex.firstMatch(reference);
+    return match?.group(1)?.trim().toLowerCase() ?? '';
+  }
+  
+  /// Extrait le numéro de verset d'une référence
+  static int? _extractVerseNumber(String reference) {
+    final regex = RegExp(r':(\d+)(?:-\d+)?');
+    final match = regex.firstMatch(reference);
+    return int.tryParse(match?.group(1) ?? '');
+  }
+  
+  /// Vérifie si deux livres sont du même Testament
+  static bool _isSameTestament(int book1, int book2) {
+    final book1OldTestament = book1 <= 39;
+    final book2OldTestament = book2 <= 39;
+    return book1OldTestament == book2OldTestament;
+  }
+  
+  /// Vérifie si deux livres sont liés (même auteur, époque, etc.)
+  static bool _isRelatedBook(int book1, int book2) {
+    // Paul's epistles
+    final paulBooks = [45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58];
+    if (paulBooks.contains(book1) && paulBooks.contains(book2)) return true;
+    
+    // Gospels
+    final gospels = [40, 41, 42, 43];
+    if (gospels.contains(book1) && gospels.contains(book2)) return true;
+    
+    // Peter's epistles
+    if ((book1 == 60 || book1 == 61) && (book2 == 60 || book2 == 61)) return true;
+    
+    // John's writings
+    final johnBooks = [43, 62, 63, 64, 66];
+    if (johnBooks.contains(book1) && johnBooks.contains(book2)) return true;
+    
+    return false;
+  }
+  
+  /// Vérifie si un livre est majeur (plus important théologiquement)
+  static bool _isMajorBook(int book) {
+    // Gospels, Paul's epistles, Hebrews, Revelation
+    return book >= 40 && book <= 66;
   }
 
   /// Récupère les statistiques du service

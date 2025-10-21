@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:json5/json5.dart';
-import '../lib/services/bible_json_preprocessor.dart';
+import 'package:selah_app/services/bible_json_preprocessor.dart';
 
 /// Usage :
 /// dart run bin/fix_bible_json.dart "chemin/vers/Francais courant.json"
@@ -57,6 +57,7 @@ Future<void> main(List<String> args) async {
   print('\n💾 Fichier réparé écrit: $output');
   print('✅ Statut: ${valid ? 'Valide ✅' : 'Toujours invalide ⚠️'}');
 }
+
 
 
 

@@ -323,13 +323,11 @@ class _ActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(22, 0, 22, 0),
-      child: Container(
+    return Container(
         constraints: const BoxConstraints(
-        minHeight: 200,
-        maxHeight: 300,
-      ),
+          minHeight: 200,
+          maxHeight: 300,
+        ),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
@@ -362,13 +360,14 @@ class _ActivityCard extends StatelessWidget {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Colors.transparent,
+                        Colors.black.withOpacity(0.3),
+                        Colors.black.withOpacity(0.15),
                         Colors.transparent,
                         Colors.black.withOpacity(0.05),
                         Colors.black.withOpacity(0.2),
                         Colors.black.withOpacity(0.4),
                       ],
-                      stops: const [0.0, 0.3, 0.6, 0.8, 1.0],
+                      stops: const [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
                     ),
                   ),
                 ),
@@ -414,6 +413,18 @@ class _ActivityCard extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                           height: 1.2,
+                          shadows: [
+                            Shadow(
+                              offset: Offset(0, 1),
+                              blurRadius: 3,
+                              color: Colors.black54,
+                            ),
+                            Shadow(
+                              offset: Offset(0, 2),
+                              blurRadius: 6,
+                              color: Colors.black26,
+                            ),
+                          ],
                         ),
                       ),
                       
@@ -440,6 +451,13 @@ class _ActivityCard extends StatelessWidget {
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white,
+                                shadows: [
+                                  Shadow(
+                                    offset: Offset(0, 1),
+                                    blurRadius: 2,
+                                    color: Colors.black54,
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -454,6 +472,13 @@ class _ActivityCard extends StatelessWidget {
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                               color: Colors.white,
+                              shadows: [
+                                Shadow(
+                                  offset: Offset(0, 1),
+                                  blurRadius: 2,
+                                  color: Colors.black54,
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -469,6 +494,13 @@ class _ActivityCard extends StatelessWidget {
                           fontSize: 14,
                           color: Colors.white.withOpacity(0.9),
                           height: 1.3,
+                          shadows: const [
+                            Shadow(
+                              offset: Offset(0, 1),
+                              blurRadius: 2,
+                              color: Colors.black54,
+                            ),
+                          ],
                         ),
                       ),
                       
@@ -491,14 +523,21 @@ class _ActivityCard extends StatelessWidget {
                           child: InkWell(
                             onTap: () => _handleActivityTap(context),
                             borderRadius: BorderRadius.circular(22),
-                            child: Center(
+                            child: const Center(
                               child: Text(
                                 'Commencer',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontFamily: 'Gilroy',
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
+                                  shadows: [
+                                    Shadow(
+                                      offset: Offset(0, 1),
+                                      blurRadius: 2,
+                                      color: Colors.black54,
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
@@ -512,21 +551,24 @@ class _ActivityCard extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 
-  /// Image de fond pour chaque activité
+  /// Image de fond pour chaque activité - évite les doublons
   String _getActivityImage(_Activity activity) {
+    // Attribution directe d'images uniques pour chaque activité
     switch (activity.name) {
       case 'Affermir ma foi':
-        return 'assets/images/shepherd_lamb.png'; // Berger et agneau - parfait pour affermir la foi
+        return 'assets/images/shepherd_lamb.jpg';
       case 'Partager la lumière':
-        return 'assets/images/jesus_cross.png'; // Jésus sur la croix - parfait pour partager la lumière
+        return 'assets/images/355c44bd5772246e2ee5167158dfbb2a.jpg';
+      case 'Étude thématique':
+        return 'assets/images/7f327ee3b2d9139dba52d8aeeac615b5.jpg';
       default:
-        return 'assets/images/miraculous_catch.png';
+        return 'assets/images/21b1298f86e169728b67a700d9f4268e.jpg';
     }
   }
+  
 
   /// Gradient de couleur pour chaque activité
   List<Color> _getActivityGradient(_Activity activity) {
@@ -544,7 +586,7 @@ class _ActivityCard extends StatelessWidget {
   String _getActivityTitle(_Activity activity) {
     switch (activity.name) {
       case 'Affermir ma foi':
-        return 'Quiz Apôtre\nIntelligence Divine';
+        return 'Quiz Biblique';
       case 'Partager la lumière':
         return 'Partager la lumière\navec la communauté';
       default:
@@ -556,7 +598,7 @@ class _ActivityCard extends StatelessWidget {
   String _getActivityBadge(_Activity activity) {
     switch (activity.name) {
       case 'Affermir ma foi':
-        return 'APÔTRE';
+        return 'QUIZ';
       case 'Partager la lumière':
         return 'PARTAGE';
       default:
@@ -568,7 +610,7 @@ class _ActivityCard extends StatelessWidget {
   String _getActivityDuration(_Activity activity) {
     switch (activity.name) {
       case 'Affermir ma foi':
-        return '27 livres';
+        return '5-10 min';
       case 'Partager la lumière':
         return '∞ temps';
       default:
@@ -580,7 +622,7 @@ class _ActivityCard extends StatelessWidget {
   String _getActivityDescription(_Activity activity) {
     switch (activity.name) {
       case 'Affermir ma foi':
-        return 'Quiz intelligent couvrant les 27 livres du Nouveau Testament avec sagesse divine.';
+        return 'Quiz biblique pour tester et approfondir vos connaissances.';
       case 'Partager la lumière':
         return 'Communauté de croyants pour partager, encourager et grandir ensemble.';
       default:

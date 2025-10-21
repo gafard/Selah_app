@@ -1,5 +1,5 @@
 import 'package:json5/json5.dart';
-import '../lib/services/bible_json_preprocessor.dart';
+import 'package:selah_app/services/bible_json_preprocessor.dart';
 
 void main() {
   const raw = '''
@@ -24,6 +24,7 @@ void main() {
     print('❌ JSON5.parse() échoue: $e');
   }
 }
+
 
 
 

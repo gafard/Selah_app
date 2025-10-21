@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:json5/json5.dart';
-import '../lib/services/bible_json_preprocessor.dart';
+import 'package:selah_app/services/bible_json_preprocessor.dart';
 
 void main() {
   test('vérifie que les guillemets typographiques ne sont pas altérés', () {

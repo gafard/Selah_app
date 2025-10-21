@@ -281,7 +281,7 @@ class MirrorVerseExtendedService {
     if (_extendedMirrorsBox == null) return {};
     
     final stats = <String, int>{
-      'total_connections': _extendedMirrorsBox!.length,
+      'totalConnections': _extendedMirrorsBox!.length,
       'prophetic': 0,
       'typological': 0,
       'thematic': 0,
