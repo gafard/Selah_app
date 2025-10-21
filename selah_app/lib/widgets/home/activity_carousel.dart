@@ -354,7 +354,7 @@ class _ActivityCard extends StatelessWidget {
                 ),
               ),
               
-              // Effet de flou dégradé du bas vers le haut
+              // Gradient léger pour la lisibilité du texte
               Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
@@ -364,64 +364,17 @@ class _ActivityCard extends StatelessWidget {
                       colors: [
                         Colors.transparent,
                         Colors.transparent,
-                        Colors.black.withOpacity(0.1),
-                        Colors.black.withOpacity(0.3),
-                        Colors.black.withOpacity(0.6),
+                        Colors.black.withOpacity(0.05),
+                        Colors.black.withOpacity(0.2),
+                        Colors.black.withOpacity(0.4),
                       ],
-                      stops: const [0.0, 0.2, 0.5, 0.8, 1.0],
+                      stops: const [0.0, 0.3, 0.6, 0.8, 1.0],
                     ),
                   ),
                 ),
               ),
               
-              // Couche de flou uniquement sur la partie basse
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: 120, // Hauteur de la zone floue
-                child: ImageFiltered(
-                  imageFilter: ImageFilter.blur(sigmaX: 0, sigmaY: 2),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withOpacity(0.2),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              
-              // Effet Glassmorphism par-dessus l'image
-              Positioned.fill(
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.white.withOpacity(0.04),
-                          Colors.white.withOpacity(0.02),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.12),
-                        width: 1.0,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              
-              // Gradient overlay pour le texte
+              // Gradient overlay pour le texte - renforcé pour la lisibilité
               Positioned(
                 bottom: 0,
                 left: 0,
@@ -434,8 +387,8 @@ class _ActivityCard extends StatelessWidget {
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.transparent,
-                        _getActivityGradient(activity).first.withOpacity(0.8),
-                        _getActivityGradient(activity).last.withOpacity(0.95),
+                        _getActivityGradient(activity).first.withOpacity(0.9),
+                        _getActivityGradient(activity).last.withOpacity(0.98),
                       ],
                     ),
                   ),

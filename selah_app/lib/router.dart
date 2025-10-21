@@ -1,5 +1,4 @@
 // lib/router.dart - Router Unifié avec GoRouter et Guards Auth
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:selah_app/views/welcome_page.dart';
 import 'package:selah_app/views/auth_page.dart';
@@ -29,8 +28,8 @@ import 'package:selah_app/views/scan_bible_page.dart';
 import 'package:selah_app/views/advanced_scan_bible_page.dart';
 import 'package:selah_app/views/falcon_x_demo_page.dart';
 import 'package:selah_app/views/bible_versions_page.dart';
-import 'package:selah_app/views/bible_packs_page.dart';
-import 'package:selah_app/views/bible_pack_test_page.dart';
+// Page supprimée (packs incomplets)
+// Page supprimée (packs incomplets)
 import 'package:selah_app/views/advanced_bible_study_page.dart';
 import 'package:selah_app/views/profile_page.dart';
 import 'package:selah_app/views/splash_page.dart';
@@ -38,6 +37,7 @@ import 'package:selah_app/views/pre_meditation_prayer_page.dart';
 import 'package:selah_app/views/onboarding_dynamic_page.dart';
 import 'package:selah_app/views/congrats_discipline_page.dart';
 import 'package:selah_app/views/my_plan_page_modern.dart';
+import 'package:selah_app/views/alarm_screen_page.dart';
 import 'package:selah_app/repositories/user_repository.dart';
 
 class AppRouter {
@@ -167,6 +167,11 @@ class AppRouter {
         path: '/complete_profile',
         name: 'complete_profile',
         builder: (context, state) => const CompleteProfilePage(),
+      ),
+      GoRoute(
+        path: '/alarm',
+        name: 'alarm',
+        builder: (context, state) => const AlarmScreenPage(),
       ),
       GoRoute(
         path: '/goals',
@@ -357,25 +362,19 @@ class AppRouter {
           name: 'bible_versions',
           builder: (context, state) => const BibleVersionsPage(),
         ),
-        GoRoute(
-          path: '/bible_packs',
-          name: 'bible_packs',
-          builder: (context, state) => const BiblePacksPage(),
-        ),
-        GoRoute(
-          path: '/bible_pack_test',
-          name: 'bible_pack_test',
-          builder: (context, state) => const BiblePackTestPage(),
-        ),
+        // Route supprimée (packs incomplets)
+        // Route supprimée (packs incomplets)
         GoRoute(
           path: '/advanced_bible_study',
           name: 'advanced_bible_study',
           builder: (context, state) {
-            final verseId = state.uri.queryParameters['verseId'];
             final extra = state.extra as Map<String, dynamic>?;
+            final verseId = extra?['verseId'] as String?;
             final initialTab = extra?['initialTab'] as int? ?? 0;
+            final passageRef = extra?['passageRef'] as String?;
             return AdvancedBibleStudyPage(
               verseId: verseId,
+              passageRef: passageRef,
               initialTab: initialTab,
             );
           },

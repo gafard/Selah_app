@@ -42,5 +42,149 @@
         }
       }
     }
+  },
+  "Colossiens": {
+    "chapters": {
+      "2": {
+        "1": {
+          "themes": ["Combat spirituel", "Prière", "Église", "Ministère"],
+          "characters": ["Paul", "Colossiens", "Laodicéens"]
+        },
+        "2": {
+          "themes": ["Combat spirituel", "Prière", "Église", "Ministère"],
+          "characters": ["Paul", "Colossiens", "Laodicéens"]
+        },
+        "3": {
+          "themes": ["Combat spirituel", "Prière", "Église", "Ministère"],
+          "characters": ["Paul", "Colossiens", "Laodicéens"]
+        },
+        "4": {
+          "themes": ["Combat spirituel", "Prière", "Église", "Ministère"],
+          "characters": ["Paul", "Colossiens", "Laodicéens"]
+        },
+        "5": {
+          "themes": ["Combat spirituel", "Prière", "Église", "Ministère"],
+          "characters": ["Paul", "Colossiens", "Laodicéens"]
+        },
+        "6": {
+          "themes": ["Combat spirituel", "Prière", "Église", "Ministère"],
+          "characters": ["Paul", "Colossiens", "Laodicéens"]
+        },
+        "7": {
+          "themes": ["Combat spirituel", "Prière", "Église", "Ministère"],
+          "characters": ["Paul", "Colossiens", "Laodicéens"]
+        },
+        "8": {
+          "themes": ["Combat spirituel", "Prière", "Église", "Ministère"],
+          "characters": ["Paul", "Colossiens", "Laodicéens"]
+        },
+        "9": {
+          "themes": ["Combat spirituel", "Prière", "Église", "Ministère"],
+          "characters": ["Paul", "Colossiens", "Laodicéens"]
+        },
+        "10": {
+          "themes": ["Combat spirituel", "Prière", "Église", "Ministère"],
+          "characters": ["Paul", "Colossiens", "Laodicéens"]
+        },
+        "11": {
+          "themes": ["Combat spirituel", "Prière", "Église", "Ministère"],
+          "characters": ["Paul", "Colossiens", "Laodicéens"]
+        },
+        "12": {
+          "themes": ["Combat spirituel", "Prière", "Église", "Ministère"],
+          "characters": ["Paul", "Colossiens", "Laodicéens"]
+        },
+        "13": {
+          "themes": ["Combat spirituel", "Prière", "Église", "Ministère"],
+          "characters": ["Paul", "Colossiens", "Laodicéens"]
+        },
+        "14": {
+          "themes": ["Combat spirituel", "Prière", "Église", "Ministère"],
+          "characters": ["Paul", "Colossiens", "Laodicéens"]
+        },
+        "15": {
+          "themes": ["Combat spirituel", "Prière", "Église", "Ministère"],
+          "characters": ["Paul", "Colossiens", "Laodicéens"]
+        }
+      }
+    }
+  },
+  "1 Pierre": {
+    "chapters": {
+      "3": {
+        "1": {
+          "themes": ["Soumission", "Évangélisation", "Témoignage", "Famille chrétienne"],
+          "characters": ["Pierre", "Femmes chrétiennes", "Maris non-croyants"]
+        },
+        "2": {
+          "themes": ["Crainte", "Pureté", "Espérance", "Soumission"],
+          "characters": ["Pierre", "Femmes chrétiennes", "Sara"]
+        },
+        "3": {
+          "themes": ["Beauté intérieure", "Esprit doux", "Espérance", "Femmes saintes"],
+          "characters": ["Pierre", "Femmes chrétiennes", "Sara"]
+        },
+        "4": {
+          "themes": ["Soumission", "Évangélisation", "Témoignage", "Famille chrétienne"],
+          "characters": ["Pierre", "Femmes chrétiennes", "Maris non-croyants"]
+        },
+        "5": {
+          "themes": ["Soumission", "Évangélisation", "Témoignage", "Famille chrétienne"],
+          "characters": ["Pierre", "Femmes chrétiennes", "Maris non-croyants"]
+        },
+        "6": {
+          "themes": ["Soumission", "Évangélisation", "Témoignage", "Famille chrétienne"],
+          "characters": ["Pierre", "Femmes chrétiennes", "Maris non-croyants"]
+        },
+        "7": {
+          "themes": ["Soumission", "Évangélisation", "Témoignage", "Famille chrétienne"],
+          "characters": ["Pierre", "Femmes chrétiennes", "Maris non-croyants"]
+        },
+        "8": {
+          "themes": ["Soumission", "Évangélisation", "Témoignage", "Famille chrétienne"],
+          "characters": ["Pierre", "Femmes chrétiennes", "Maris non-croyants"]
+        },
+        "9": {
+          "themes": ["Soumission", "Évangélisation", "Témoignage", "Famille chrétienne"],
+          "characters": ["Pierre", "Femmes chrétiennes", "Maris non-croyants"]
+        },
+        "10": {
+          "themes": ["Soumission", "Évangélisation", "Témoignage", "Famille chrétienne"],
+          "characters": ["Pierre", "Femmes chrétiennes", "Maris non-croyants"]
+        },
+        "11": {
+          "themes": ["Soumission", "Évangélisation", "Témoignage", "Famille chrétienne"],
+          "characters": ["Pierre", "Femmes chrétiennes", "Maris non-croyants"]
+        },
+        "12": {
+          "themes": ["Soumission", "Évangélisation", "Témoignage", "Famille chrétienne"],
+          "characters": ["Pierre", "Femmes chrétiennes", "Maris non-croyants"]
+        },
+        "13": {
+          "themes": ["Soumission", "Évangélisation", "Témoignage", "Famille chrétienne"],
+          "characters": ["Pierre", "Femmes chrétiennes", "Maris non-croyants"]
+        },
+        "14": {
+          "themes": ["Soumission", "Évangélisation", "Témoignage", "Famille chrétienne"],
+          "characters": ["Pierre", "Femmes chrétiennes", "Maris non-croyants"]
+        },
+        "15": {
+          "themes": ["Soumission", "Évangélisation", "Témoignage", "Famille chrétienne"],
+          "characters": ["Pierre", "Femmes chrétiennes", "Maris non-croyants"]
+        },
+        "16": {
+          "themes": ["Soumission", "Évangélisation", "Témoignage", "Famille chrétienne"],
+          "characters": ["Pierre", "Femmes chrétiennes", "Maris non-croyants"]
+        },
+        "17": {
+          "themes": ["Soumission", "Évangélisation", "Témoignage", "Famille chrétienne"],
+          "characters": ["Pierre", "Femmes chrétiennes", "Maris non-croyants"]
+        },
+        "18": {
+          "themes": ["Soumission", "Évangélisation", "Témoignage", "Famille chrétienne"],
+          "characters": ["Pierre", "Femmes chrétiennes", "Maris non-croyants"]
+        }
+      }
+    }
   }
 }

@@ -12,6 +12,7 @@ import '../services/local_storage_service.dart';
 import '../services/intentions_service.dart';
 import '../services/version_change_notifier.dart';
 import '../widgets/bible_version_selector.dart';
+import '../debug/debug_services_page.dart';
 
 /// Page épurée des paramètres selon la spécification
 class ProfileSettingsPage extends StatefulWidget {
@@ -572,7 +573,15 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-            child: _buildSaveButton(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Section de diagnostic
+                _buildDiagnosticSection(),
+                const SizedBox(height: 16),
+                _buildSaveButton(),
+              ],
+            ),
           ),
         ),
       ),
@@ -1669,6 +1678,71 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDiagnosticSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.bug_report,
+                color: Colors.orange,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Diagnostic',
+                style: TextStyle(
+                  fontFamily: 'Gilroy',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Vérifier l\'état des services bibliques',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 12,
+              color: Colors.white.withOpacity(0.7),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const DebugServicesPage(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.analytics, size: 16),
+              label: const Text('Ouvrir le diagnostic'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.orange,
+                side: BorderSide(color: Colors.orange.withOpacity(0.5)),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

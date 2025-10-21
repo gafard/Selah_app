@@ -15,13 +15,15 @@ import 'services/connectivity_service.dart';
 import 'services/bible_text_service.dart';
 import 'services/bible_study_hydrator.dart';
 import 'services/bible_context_service.dart';
-import 'services/cross_ref_service.dart';
-import 'services/lexicon_service.dart';
+// Services supprimés (packs incomplets)
 import 'services/themes_service.dart';
 import 'services/mirror_verse_service.dart';
-import 'services/bible_pack_manager.dart';
-import 'services/isbe_service.dart';
-import 'services/openbible_themes_service.dart';
+// Services supprimés (packs incomplets)
+import 'dart:io';
+import 'services/intelligent_alarm_service.dart';
+import 'services/fullscreen_notification_service.dart';
+import 'services/app_lifecycle_tracker.dart';
+import 'services/ios_alarm_service.dart';
 import 'bootstrap_plans.dart';
 
 late SyncQueueHive syncQueue;
@@ -99,7 +101,32 @@ Future<void> appBootstrap() async {
     telemetry: telemetry,
   );
 
-  // Workmanager et android_alarm_manager_plus supprimés pour éviter les problèmes de compatibilité
+  // Initialiser les services d'alarme intelligente
+  await _initializeAlarmServices();
+}
+
+/// Initialise les services d'alarme intelligente
+Future<void> _initializeAlarmServices() async {
+  print('🔔 Initialisation des services d\'alarme...');
+  
+  try {
+    if (Platform.isAndroid) {
+      // Système Android existant
+      await IntelligentAlarmService.instance.initialize();
+      await FullScreenNotificationService.initialize();
+    } else if (Platform.isIOS) {
+      // Nouveau système iOS
+      await IOSAlarmService.instance.initialize();
+    }
+    
+    // Commun aux deux plateformes
+    await AppLifecycleTracker.instance.initialize();
+    
+    print('✅ Services d\'alarme initialisés');
+  } catch (e) {
+    print('⚠️ Erreur initialisation services d\'alarme: $e');
+    // Continuer même en cas d'erreur pour ne pas bloquer l'app
+  }
 }
 
 /// Initialise tous les services bibliques et hydrate les données
@@ -109,14 +136,13 @@ Future<void> _initializeBibleServices() async {
   try {
     // 1. Initialiser tous les services
     await BibleContextService.init();
-    await CrossRefService.init();
-    await LexiconService.init();
+    // Services supprimés (packs incomplets)
+    print('⚠️ CrossRefService et LexiconService supprimés (packs incomplets)');
     await ThemesService.init();
     await MirrorVerseService.init();
     
-    // 1.5. Initialiser les services des packs
-    await ISBEService.init();
-    await OpenBibleThemesService.init();
+    // Services des packs supprimés (packs incomplets)
+    print('⚠️ ISBEService et OpenBibleThemesService supprimés (packs incomplets)');
     
     // 2. Vérifier si l'hydratation est nécessaire
     final needsHydration = await BibleStudyHydrator.needsHydration();
@@ -168,26 +194,7 @@ Future<void> _populateSqliteIfNeeded() async {
 /// Extrait les packs bibliques si nécessaire
 Future<void> _extractBiblePacksIfNeeded() async {
   try {
-    print('📦 Vérification des packs bibliques...');
-    
-    // Extraire tous les packs
-    final results = await BiblePackManager.extractAllPacks();
-    
-    int extracted = 0;
-    for (final entry in results.entries) {
-      if (entry.value) {
-        extracted++;
-        print('✅ Pack ${entry.key} extrait');
-      } else {
-        print('❌ Échec extraction pack ${entry.key}');
-      }
-    }
-    
-    print('📊 Packs extraits: $extracted/${results.length}');
-    
-    // Afficher les statistiques
-    final stats = await BiblePackManager.getPackStats();
-    print('📈 Statistiques packs: ${stats['extracted']}/${stats['total']} extraits');
+    print('⚠️ Packs bibliques supprimés (données incomplètes)');
     
   } catch (e) {
     print('⚠️ Erreur extraction packs: $e');

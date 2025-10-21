@@ -116,15 +116,23 @@ class BibleTextService {
         sv = 1; ev = maxV ?? 999; // safe
       }
 
+      print('🔍 BibleTextService.getPassageText:');
+      print('   - Reference: $reference');
+      print('   - Book: $book');
+      print('   - Start: ch$sc:v$sv');
+      print('   - End: ch$ec:v$ev');
+      
       final rows = await _database!.rawQuery('''
         SELECT text FROM verses
-        WHERE version = ? AND book = ? AND (
-          (chapter = ? AND verse >= ?) OR
-          (chapter > ? AND chapter < ?) OR
-          (chapter = ? AND verse <= ?)
-        )
-        ORDER BY chapter, verse
-      ''', [version, book, sc, sv, sc, ec, ec, ev]);
+        WHERE version = ? AND book = ? AND chapter = ? AND verse >= ? AND verse <= ?
+        ORDER BY verse
+      ''', [version, book, sc, sv, ev]);
+      
+      print('   - Rows found: ${rows.length}');
+      if (rows.isNotEmpty) {
+        print('   - First verse: ${rows.first}');
+        print('   - Last verse: ${rows.last}');
+      }
 
       if (rows.isEmpty) {
         // essai fallback pour les livres numérotés ("1 Jean", etc.)
@@ -132,13 +140,9 @@ class BibleTextService {
         if (alt != book) {
           final rows2 = await _database!.rawQuery('''
             SELECT text FROM verses
-            WHERE version = ? AND book = ? AND (
-              (chapter = ? AND verse >= ?) OR
-              (chapter > ? AND chapter < ?) OR
-              (chapter = ? AND verse <= ?)
-            )
-            ORDER BY chapter, verse
-          ''', [version, alt, sc, sv, sc, ec, ec, ev]);
+            WHERE version = ? AND book = ? AND chapter = ? AND verse >= ? AND verse <= ?
+            ORDER BY verse
+          ''', [version, alt, sc, sv, ev]);
           if (rows2.isNotEmpty) {
             return rows2.map((r) => r['text'] as String).join('\n\n');
           }

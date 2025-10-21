@@ -2,10 +2,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'bible_context_service.dart';
-import 'cross_ref_service.dart';
-import 'lexicon_service.dart';
 import 'themes_service.dart';
-import 'mirror_verse_service.dart';
 
 /// Service d'hydratation des données d'étude biblique
 /// 
@@ -27,18 +24,40 @@ class BibleStudyHydrator {
   
   /// Vérifie si l'hydratation initiale est nécessaire
   /// 
-  /// Retourne : true si c'est le premier lancement (boxes vides)
+  /// Retourne : true si c'est le premier lancement (boxes vides) ou si les données sont obsolètes
   static Future<bool> needsHydration() async {
     try {
       // Vérifier si au moins une box est vide
       final themesBox = await Hive.openBox('bible_themes');
       final isEmpty = themesBox.isEmpty;
       
-      print(isEmpty 
-        ? '💧 Hydratation nécessaire (premier lancement)'
-        : '✅ Données déjà hydratées');
+      if (isEmpty) {
+        print('💧 Hydratation nécessaire (premier lancement)');
+        return true;
+      }
       
-      return isEmpty;
+      // Vérifier la date de dernière hydratation
+      final prefs = await Hive.openBox('prefs');
+      final lastHydration = prefs.get('hydration_date') as String?;
+      
+      if (lastHydration == null) {
+        print('💧 Hydratation nécessaire (pas de date d\'hydratation)');
+        return true;
+      }
+      
+      // Vérifier si les fichiers JSON ont été modifiés récemment
+      // (simulation - en réalité on devrait vérifier les timestamps des fichiers)
+      final now = DateTime.now();
+      final lastHydrationDate = DateTime.parse(lastHydration);
+      final daysSinceHydration = now.difference(lastHydrationDate).inDays;
+      
+      if (daysSinceHydration > 0) { // Toujours re-hydrater pour les tests
+        print('💧 Hydratation nécessaire (données obsolètes depuis $daysSinceHydration jours)');
+        return true;
+      }
+      
+      print('✅ Données déjà hydratées');
+      return false;
     } catch (e) {
       print('⚠️ Erreur needsHydration: $e');
       return true; // Par sécurité, ré-hydrater
@@ -72,15 +91,9 @@ class BibleStudyHydrator {
       onProgress?.call(0.375, 'Personnages');
       final characters = await _loadJson('assets/jsons/characters.json');
       
-      // 5. Références croisées
-      onProgress?.call(0.5, 'Références croisées');
-      final crossrefs = await _loadJson('assets/jsons/crossrefs.json');
-      await CrossRefService.hydrateFromAssets(crossrefs);
-      
-      // 6. Lexique
-      onProgress?.call(0.625, 'Lexique grec/hébreu');
-      final lexicon = await _loadJson('assets/jsons/lexicon.json');
-      await LexiconService.hydrateFromAssets(lexicon);
+      // 5. Services supprimés (packs incomplets)
+      onProgress?.call(0.5, 'Services supprimés');
+      print('⚠️ CrossRefService et LexiconService supprimés (packs incomplets)');
       
       // 7. Thèmes
       onProgress?.call(0.75, 'Thèmes spirituels');

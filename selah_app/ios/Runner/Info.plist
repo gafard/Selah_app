@@ -51,10 +51,15 @@
 	<array>
 		<string>processing</string>
 		<string>fetch</string>
+		<string>remote-notification</string>
 	</array>
 	
 	<!-- Permissions pour les notifications -->
 	<key>NSUserNotificationUsageDescription</key>
 	<string>Selah utilise des notifications pour te rappeler la méditation quotidienne.</string>
+	
+	<!-- Style d'alerte pour les notifications -->
+	<key>NSUserNotificationAlertStyle</key>
+	<string>alert</string>
 </dict>
 </plist>

@@ -131,7 +131,7 @@ class _GoalsPageState extends State<GoalsPage> {
     
     try {
       // Utiliser le générateur enrichi avec apprentissage et adaptation émotionnelle
-      final enrichedPresets = IntelligentLocalPresetGenerator.generateEnrichedPresets(_userProfile ?? {});
+      final enrichedPresets = await IntelligentLocalPresetGenerator.generateEnrichedPresets(_userProfile ?? {});
       
       if (enrichedPresets.isNotEmpty) {
         print('✅ ${enrichedPresets.length} presets enrichis générés avec adaptation émotionnelle');
@@ -214,7 +214,7 @@ class _GoalsPageState extends State<GoalsPage> {
           );
         }).toList();
         
-        return finalPresets;
+        return finalPresets.cast<PlanPreset>();
       }
       
       // Fallback: générer des presets dynamiques si pas de profil
@@ -1951,6 +1951,15 @@ class _GoalsPageState extends State<GoalsPage> {
       score += 2;
     } else if (goal.contains('caractère') && (name.contains('proverbes') || name.contains('galates'))) {
       score += 2;
+    }
+    
+    // 🎯 NOUVEAUX OBJECTIFS DE TÉMOIGNAGE - Score élevé
+    else if (goal.contains('Partager ma foi') && (name.contains('témoignage') || name.contains('audace') || name.contains('mission'))) {
+      score += 3;
+    } else if (goal.contains('Témoigner avec audace') && (name.contains('audace') || name.contains('témoignage') || name.contains('formation'))) {
+      score += 3;
+    } else if (goal.contains('Évangéliser en ligne') && (name.contains('numérique') || name.contains('en ligne') || name.contains('médias'))) {
+      score += 3;
     }
     
     // 💎 POSTURE DU CŒUR - Bonus

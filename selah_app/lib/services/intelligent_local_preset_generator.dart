@@ -2024,7 +2024,7 @@ class IntelligentLocalPresetGenerator {
   }
 
   /// Génération enrichie avec tous les facteurs d'apprentissage
-  static List<PlanPreset> generateEnrichedPresets(Map<String, dynamic>? profile) {
+  static Future<List<PlanPreset>> generateEnrichedPresets(Map<String, dynamic>? profile) async {
     final level = profile?['level'] as String? ?? 'Fidèle régulier';
     final goal = profile?['goal'] as String? ?? 'Discipline quotidienne';
     final meditationType = profile?['meditation'] as String? ?? 'Méditation biblique';
@@ -2037,6 +2037,11 @@ class IntelligentLocalPresetGenerator {
     print('🧠 Génération enrichie pour: $level | $goal | ${durationMin}min/jour');
     if (heartPosture != null) print('💎 Posture du cœur: $heartPosture');
     if (motivation != null) print('🔥 Motivation: $motivation');
+    
+    // ═══ NOUVEAU ! Initialisation BSB Topical Service ⭐ ═══
+    BSBTopicalService.init().then((_) {
+      print('🎨 BSB Topical Service initialisé avec ${BSBTopicalService.themeCount} thèmes');
+    });
     
     // 1. Calculer la durée optimale basée sur la science comportementale et témoignages chrétiens
     final durationCalculation = IntelligentDurationCalculator.calculateOptimalDuration(
@@ -2061,7 +2066,7 @@ class IntelligentLocalPresetGenerator {
     if (isFirstConfiguration) {
       // ═══ PREMIÈRE CONFIGURATION : Basé uniquement sur CompleteProfilePage ═══
       print('🎯 Mode première configuration - Génération basée sur les choix du profil');
-      basePresets = _generateFirstConfigurationPresets(goal, level, durationMin, heartPosture, motivation, profile);
+      basePresets = await _generateFirstConfigurationPresets(goal, level, durationMin, heartPosture, motivation, profile);
     } else {
       // ═══ CONFIGURATION SUIVANTE : Utiliser le système needs-first complet ═══
       print('🎯 Mode configuration suivante - Système needs-first avec quiz et historique');
@@ -2478,16 +2483,20 @@ class IntelligentLocalPresetGenerator {
   }
   
   /// Génère des presets pour la première configuration basés uniquement sur CompleteProfilePage
-  static List<PlanPreset> _generateFirstConfigurationPresets(
+  static Future<List<PlanPreset>> _generateFirstConfigurationPresets(
     String goal,
     String level,
     int durationMin,
     String? heartPosture,
     String? motivation,
     Map<String, dynamic>? profile,
-  ) {
+  ) async {
     final presets = <PlanPreset>[];
     final timestamp = DateTime.now().millisecondsSinceEpoch;
+    
+    // ═══ NOUVEAU ! Récupérer les thèmes BSB pour l'objectif ⭐ ═══
+    final relevantThemes = await BSBTopicalService.getThemesForGoal(goal);
+    print('🎨 Thèmes BSB pertinents pour "$goal": ${relevantThemes.take(5).join(', ')}');
     
     // ═══ MAPPING : Objectif → Thèmes spécifiques ═══
     final goalToThemes = {
@@ -2594,14 +2603,14 @@ class IntelligentLocalPresetGenerator {
       final theme = themes[i];
       final books = theme.split(' & ');
       
-      // ═══ NOM : Basé sur l'objectif et la posture du cœur ═══
-      String presetName = _generateFirstConfigName(goal, heartPosture, motivation, i);
+      // ═══ NOM : Basé sur l'objectif, la posture du cœur et les thèmes BSB ═══
+      String presetName = await _generateFirstConfigName(goal, heartPosture, motivation, i, relevantThemes);
       
       // ═══ DURÉE : Basée sur le niveau et l'objectif ═══
       int duration = _calculateFirstConfigDuration(level, goal, durationMin);
       
-      // ═══ DESCRIPTION : Basée sur l'objectif et la motivation ═══
-      String description = _generateFirstConfigDescription(goal, heartPosture, motivation);
+      // ═══ DESCRIPTION : Basée sur l'objectif, la motivation et les thèmes BSB ═══
+      String description = await _generateFirstConfigDescription(goal, heartPosture, motivation, relevantThemes);
       
       final preset = PlanPreset(
         slug: 'first_config_${goal.toLowerCase().replaceAll(' ', '_')}_${timestamp}_$i',
@@ -2624,7 +2633,7 @@ class IntelligentLocalPresetGenerator {
   }
   
   /// Génère un nom pour la première configuration
-  static String _generateFirstConfigName(String goal, String? heartPosture, String? motivation, int index) {
+  static Future<String> _generateFirstConfigName(String goal, String? heartPosture, String? motivation, int index, List<String> bsbThemes) async {
     final nameVariations = {
       'Rencontrer Jésus dans la Parole': ['L\'Évangile au centre', 'Jésus dans les Écritures', 'La Parole vivante'],
       'Voir Jésus dans chaque livre': ['Jésus révélé', 'Le Christ dans toute la Bible', 'Jésus partout'],
@@ -2637,8 +2646,20 @@ class IntelligentLocalPresetGenerator {
       'Marcher par l\'Esprit': ['Marche spirituelle', 'Guidé par l\'Esprit', 'Vie dans l\'Esprit'],
     };
     
-    final variations = nameVariations[goal] ?? ['Plan spirituel', 'Parcours biblique', 'Découverte divine'];
-    return variations[index % variations.length].toUpperCase();
+    // ═══ NOUVEAU ! Enrichir avec les thèmes BSB ⭐ ═══
+    String baseName = nameVariations[goal]?[index % (nameVariations[goal]?.length ?? 1)] ?? 
+                     ['Plan spirituel', 'Parcours biblique', 'Découverte divine'][index % 3];
+    
+    // Enrichir avec les thèmes BSB si disponibles
+    if (bsbThemes.isNotEmpty && index < bsbThemes.length) {
+      final bsbTheme = bsbThemes[index];
+      print('🎨 Enrichissement du nom avec le thème BSB: $bsbTheme');
+      
+      // Ajouter le thème BSB au nom
+      baseName = '$baseName • $bsbTheme';
+    }
+    
+    return baseName.toUpperCase();
   }
   
   /// Calcule la durée pour la première configuration
@@ -2684,7 +2705,7 @@ class IntelligentLocalPresetGenerator {
   }
   
   /// Génère une description pour la première configuration
-  static String _generateFirstConfigDescription(String goal, String? heartPosture, String? motivation) {
+  static Future<String> _generateFirstConfigDescription(String goal, String? heartPosture, String? motivation, List<String> bsbThemes) async {
     final descriptions = {
       'Rencontrer Jésus dans la Parole': 'Découvrez Jésus-Christ à travers les Écritures. Un parcours pour rencontrer le Sauveur dans chaque page de la Bible.',
       'Voir Jésus dans chaque livre': 'Explorez comment Jésus est révélé dans tous les livres de la Bible. De l\'Ancien au Nouveau Testament.',
@@ -2697,7 +2718,16 @@ class IntelligentLocalPresetGenerator {
       'Marcher par l\'Esprit': 'Apprenez à vivre guidé par le Saint-Esprit dans tous les aspects de votre vie.',
     };
     
-    return descriptions[goal] ?? 'Un parcours biblique personnalisé pour grandir dans votre foi et votre relation avec Dieu.';
+    String baseDescription = descriptions[goal] ?? 'Un parcours biblique personnalisé pour grandir dans votre foi et votre relation avec Dieu.';
+    
+    // ═══ NOUVEAU ! Enrichir avec les thèmes BSB ⭐ ═══
+    if (bsbThemes.isNotEmpty) {
+      final themeText = bsbThemes.take(3).join(', ');
+      baseDescription = '$baseDescription Thèmes abordés: $themeText.';
+      print('🎨 Description enrichie avec les thèmes BSB: $themeText');
+    }
+    
+    return baseDescription;
   }
   
   /// Retourne les versets spécifiques pour un objectif
@@ -2839,9 +2869,10 @@ class IntelligentLocalPresetGenerator {
     String? heartPosture,         // optionnel
     List<String> doctrinalBadges = const [], // ex: ['christ','gospel','scripture']
     int? uniqueSeed,              // ✅ NOUVEAU : seed unique pour éviter les doublons
+    List<String> bsbThemes = const [], // ✅ NOUVEAU : thèmes BSB pour enrichir
   }) {
     final books = p.books.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
-    final hook = _pickHook(p, books, uniqueSeed: uniqueSeed);  // ✅ Utiliser le seed unique
+    final hook = _pickHook(p, books, uniqueSeed: uniqueSeed, bsbThemes: bsbThemes);  // ✅ Utiliser les thèmes BSB
     final focus = _inferFocus(p);                      // phrase courte orientée besoin
     final tempo = '${p.durationDays} j';               // compact
     final badges = _renderDoctrinalBadges(doctrinalBadges);
@@ -2857,8 +2888,169 @@ class IntelligentLocalPresetGenerator {
   }
   
   /// Sélectionne un hook accrocheur selon le thème et les livres
-  static String _pickHook(PlanPreset p, List<String> books, {int? uniqueSeed}) {
+  static String _pickHook(PlanPreset p, List<String> books, {int? uniqueSeed, List<String> bsbThemes = const []}) {
     final themeGuess = _guessThemeFromSlugOrDesc(p);
+    
+    // ═══ NOUVEAU ! Enrichir avec les thèmes BSB ⭐ ═══
+    if (bsbThemes.isNotEmpty) {
+      final bsbTheme = bsbThemes.first.toLowerCase();
+      print('🎨 Utilisation du thème BSB: $bsbTheme');
+      
+      // Hooks spécifiques basés sur les thèmes BSB
+      final bsbHooks = <String>[];
+      if (bsbTheme.contains('love') || bsbTheme.contains('amour')) {
+        bsbHooks.addAll(['L\'amour qui transforme', 'Aimer comme Jésus', 'Le cœur qui aime']);
+      }
+      if (bsbTheme.contains('faith') || bsbTheme.contains('foi')) {
+        bsbHooks.addAll(['La foi qui déplace les montagnes', 'Croire sans voir', 'L\'assurance de la foi']);
+      }
+      if (bsbTheme.contains('hope') || bsbTheme.contains('espérance')) {
+        bsbHooks.addAll(['L\'espérance qui ne déçoit pas', 'L\'ancre de l\'âme', 'Renaître dans l\'espérance']);
+      }
+      if (bsbTheme.contains('grace') || bsbTheme.contains('grâce')) {
+        bsbHooks.addAll(['La grâce qui sauve', 'Libre par la grâce', 'La grâce qui transforme']);
+      }
+      if (bsbTheme.contains('peace') || bsbTheme.contains('paix')) {
+        bsbHooks.addAll(['La paix qui surpasse tout', 'Trouver la sérénité', 'Le repos de l\'âme']);
+      }
+      if (bsbTheme.contains('joy') || bsbTheme.contains('joie')) {
+        bsbHooks.addAll(['La joie du Seigneur', 'Réjouir dans l\'épreuve', 'L\'allégresse divine']);
+      }
+      if (bsbTheme.contains('wisdom') || bsbTheme.contains('sagesse')) {
+        bsbHooks.addAll(['La sagesse d\'en haut', 'Comprendre avec le cœur', 'Le discernement divin']);
+      }
+      if (bsbTheme.contains('prayer') || bsbTheme.contains('prière')) {
+        bsbHooks.addAll(['Prier sans cesse', 'L\'intimité de la prière', 'Dialoguer avec le Père']);
+      }
+      if (bsbTheme.contains('worship') || bsbTheme.contains('adoration')) {
+        bsbHooks.addAll(['Adorer en esprit', 'La louange qui élève', 'Célébrer sa grandeur']);
+      }
+      if (bsbTheme.contains('salvation') || bsbTheme.contains('salut')) {
+        bsbHooks.addAll(['Le salut par grâce', 'Rachetés par le sang', 'La rédemption parfaite']);
+      }
+      if (bsbTheme.contains('redemption') || bsbTheme.contains('rédemption')) {
+        bsbHooks.addAll(['Rachetés à grand prix', 'La libération divine', 'L\'affranchissement spirituel']);
+      }
+      if (bsbTheme.contains('forgiveness') || bsbTheme.contains('pardon')) {
+        bsbHooks.addAll(['Pardonné pour pardonner', 'La grâce du pardon', 'Libéré de la culpabilité']);
+      }
+      if (bsbTheme.contains('healing') || bsbTheme.contains('guérison')) {
+        bsbHooks.addAll(['Guéri par ses meurtrissures', 'La restauration divine', 'Renaître de ses blessures']);
+      }
+      if (bsbTheme.contains('strength') || bsbTheme.contains('force')) {
+        bsbHooks.addAll(['Fort dans la faiblesse', 'La force qui vient d\'en haut', 'Résistant dans l\'épreuve']);
+      }
+      if (bsbTheme.contains('courage') || bsbTheme.contains('courage')) {
+        bsbHooks.addAll(['Courageux pour Christ', 'L\'audace de la foi', 'Bold dans le témoignage']);
+      }
+      if (bsbTheme.contains('patience') || bsbTheme.contains('patience')) {
+        bsbHooks.addAll(['Patient dans l\'attente', 'L\'endurance spirituelle', 'Persévérer avec douceur']);
+      }
+      if (bsbTheme.contains('kindness') || bsbTheme.contains('bonté')) {
+        bsbHooks.addAll(['La bonté qui attire', 'Aimer avec douceur', 'Le cœur compatissant']);
+      }
+      if (bsbTheme.contains('goodness') || bsbTheme.contains('bienveillance')) {
+        bsbHooks.addAll(['La bienveillance divine', 'Faire le bien autour', 'L\'influence positive']);
+      }
+      if (bsbTheme.contains('faithfulness') || bsbTheme.contains('fidélité')) {
+        bsbHooks.addAll(['Fidèle jusqu\'au bout', 'La loyauté divine', 'Tenir ses engagements']);
+      }
+      if (bsbTheme.contains('gentleness') || bsbTheme.contains('douceur')) {
+        bsbHooks.addAll(['La douceur qui conquiert', 'Humble et doux', 'L\'humilité qui élève']);
+      }
+      if (bsbTheme.contains('self-control') || bsbTheme.contains('maîtrise')) {
+        bsbHooks.addAll(['Maîtriser ses passions', 'La discipline de l\'esprit', 'Contrôler ses impulsions']);
+      }
+      if (bsbTheme.contains('righteousness') || bsbTheme.contains('justice')) {
+        bsbHooks.addAll(['La justice de Dieu', 'Marcher dans l\'intégrité', 'Être juste comme Lui']);
+      }
+      if (bsbTheme.contains('holiness') || bsbTheme.contains('sainteté')) {
+        bsbHooks.addAll(['Saints comme Lui', 'La séparation divine', 'Consacrés à Dieu']);
+      }
+      if (bsbTheme.contains('purity') || bsbTheme.contains('pureté')) {
+        bsbHooks.addAll(['Le cœur pur', 'La pureté qui élève', 'Garder son cœur']);
+      }
+      if (bsbTheme.contains('service') || bsbTheme.contains('service')) {
+        bsbHooks.addAll(['Servir avec amour', 'Le service désintéressé', 'Donner sa vie pour les autres']);
+      }
+      if (bsbTheme.contains('ministry') || bsbTheme.contains('ministère')) {
+        bsbHooks.addAll(['Le ministère de la réconciliation', 'Servir dans l\'Église', 'L\'appel à servir']);
+      }
+      if (bsbTheme.contains('calling') || bsbTheme.contains('appel')) {
+        bsbHooks.addAll(['Répondre à l\'appel', 'La vocation divine', 'Suivre sa destinée']);
+      }
+      if (bsbTheme.contains('mission') || bsbTheme.contains('mission')) {
+        bsbHooks.addAll(['La mission divine', 'Être envoyé', 'Proclamer la bonne nouvelle']);
+      }
+      if (bsbTheme.contains('witness') || bsbTheme.contains('témoignage')) {
+        bsbHooks.addAll(['Témoigner avec audace', 'Être témoin de Christ', 'Partager sa foi']);
+      }
+      if (bsbTheme.contains('testimony') || bsbTheme.contains('témoignage')) {
+        bsbHooks.addAll(['Le témoignage vivant', 'Raconter ses miracles', 'Partager son histoire']);
+      }
+      if (bsbTheme.contains('fellowship') || bsbTheme.contains('communion')) {
+        bsbHooks.addAll(['La communion fraternelle', 'Vivre ensemble', 'L\'unité dans l\'amour']);
+      }
+      if (bsbTheme.contains('community') || bsbTheme.contains('communauté')) {
+        bsbHooks.addAll(['La communauté de foi', 'Vivre en Église', 'L\'assemblée des saints']);
+      }
+      if (bsbTheme.contains('church') || bsbTheme.contains('église')) {
+        bsbHooks.addAll(['L\'Église, corps de Christ', 'Bâtir l\'Église', 'L\'assemblée des croyants']);
+      }
+      if (bsbTheme.contains('body') || bsbTheme.contains('corps')) {
+        bsbHooks.addAll(['Un seul corps, un seul esprit', 'L\'unité du corps', 'Chaque membre compte']);
+      }
+      if (bsbTheme.contains('unity') || bsbTheme.contains('unité')) {
+        bsbHooks.addAll(['L\'unité dans la diversité', 'Un seul cœur, une seule âme', 'Vivre l\'harmonie']);
+      }
+      if (bsbTheme.contains('harmony') || bsbTheme.contains('harmonie')) {
+        bsbHooks.addAll(['L\'harmonie divine', 'Vivre en paix', 'L\'accord parfait']);
+      }
+      if (bsbTheme.contains('truth') || bsbTheme.contains('vérité')) {
+        bsbHooks.addAll(['La vérité qui libère', 'Marcher dans la vérité', 'Connaître la vérité']);
+      }
+      if (bsbTheme.contains('light') || bsbTheme.contains('lumière')) {
+        bsbHooks.addAll(['Être lumière du monde', 'Illuminer les ténèbres', 'Briller pour Christ']);
+      }
+      if (bsbTheme.contains('darkness') || bsbTheme.contains('ténèbres')) {
+        bsbHooks.addAll(['Surmonter les ténèbres', 'La lumière dans l\'obscurité', 'Vaincre le mal']);
+      }
+      if (bsbTheme.contains('sin') || bsbTheme.contains('péché')) {
+        bsbHooks.addAll(['Vaincre le péché', 'La victoire sur le mal', 'Libéré de l\'esclavage']);
+      }
+      if (bsbTheme.contains('repentance') || bsbTheme.contains('repentance')) {
+        bsbHooks.addAll(['Se repentir et croire', 'Le changement de cœur', 'Tourner vers Dieu']);
+      }
+      if (bsbTheme.contains('conversion') || bsbTheme.contains('conversion')) {
+        bsbHooks.addAll(['La conversion du cœur', 'Renaître de nouveau', 'Le changement radical']);
+      }
+      if (bsbTheme.contains('kingdom') || bsbTheme.contains('royaume')) {
+        bsbHooks.addAll(['Le royaume de Dieu', 'Chercher le royaume', 'Vivre en citoyen du ciel']);
+      }
+      if (bsbTheme.contains('eternity') || bsbTheme.contains('éternité')) {
+        bsbHooks.addAll(['L\'éternité dans le cœur', 'Vivre pour l\'éternité', 'L\'espérance éternelle']);
+      }
+      if (bsbTheme.contains('heaven') || bsbTheme.contains('ciel')) {
+        bsbHooks.addAll(['Les trésors du ciel', 'Vivre pour le ciel', 'L\'héritage céleste']);
+      }
+      if (bsbTheme.contains('judgment') || bsbTheme.contains('jugement')) {
+        bsbHooks.addAll(['Le jour du jugement', 'Être prêt', 'Rendre compte']);
+      }
+      if (bsbTheme.contains('blessing') || bsbTheme.contains('bénédiction')) {
+        bsbHooks.addAll(['Béni pour bénir', 'Les bénédictions divines', 'Être une bénédiction']);
+      }
+      if (bsbTheme.contains('promise') || bsbTheme.contains('promesse')) {
+        bsbHooks.addAll(['Les promesses de Dieu', 'Tenir les promesses', 'L\'espérance des promesses']);
+      }
+      
+      if (bsbHooks.isNotEmpty) {
+        final baseSeed = uniqueSeed ?? (p.slug.hashCode.abs() + p.durationDays + books.length);
+        final timeSeed = DateTime.now().millisecondsSinceEpoch % 1000;
+        final combinedSeed = baseSeed + timeSeed;
+        final idx = combinedSeed % bsbHooks.length;
+        return bsbHooks[idx];
+      }
+    }
     
     // ✅ BANQUE ÉTENDUE avec plus de variété et de personnalisation
     final bank = <String, List<String>>{
@@ -3205,6 +3397,194 @@ class IntelligentLocalPresetGenerator {
         'Essayez des plans plus courts et plus accessibles',
         'Consultez des passages d\'encouragement'
       ];
+    }
+  }
+
+  /// ═══════════════════════════════════════════════════════════
+  /// 🎨 NOUVEAU ! Scoring thématique BSB ⭐
+  /// ═══════════════════════════════════════════════════════════
+
+  /// Calcule la pertinence thématique d'un preset pour un objectif
+  static Future<double> calculateThematicRelevance(
+    PlanPreset preset, 
+    String goal
+  ) async {
+    try {
+      // Récupérer les thèmes BSB pour l'objectif
+      final goalThemes = await BSBTopicalService.getThemesForGoal(goal);
+      if (goalThemes.isEmpty) return 0.5; // Score neutre si pas de thèmes
+      
+      // Analyser le preset pour détecter les thèmes
+      final presetThemes = _extractThemesFromPreset(preset);
+      if (presetThemes.isEmpty) return 0.3; // Score faible si pas de thèmes détectés
+      
+      // Calculer la correspondance
+      int matches = 0;
+      for (final presetTheme in presetThemes) {
+        for (final goalTheme in goalThemes) {
+          if (_themesMatch(presetTheme, goalTheme)) {
+            matches++;
+            break;
+          }
+        }
+      }
+      
+      final relevance = matches / goalThemes.length;
+      print('🎨 Pertinence thématique pour "$goal": ${(relevance * 100).round()}%');
+      return relevance;
+    } catch (e) {
+      print('⚠️ Erreur calcul pertinence thématique: $e');
+      return 0.5; // Score neutre en cas d'erreur
+    }
+  }
+
+  /// Extrait les thèmes d'un preset basé sur son contenu
+  static List<String> _extractThemesFromPreset(PlanPreset preset) {
+    final themes = <String>[];
+    final content = '${preset.name} ${preset.description ?? ''} ${preset.books}'.toLowerCase();
+    
+    // Mots-clés thématiques
+    final themeKeywords = {
+      'love': ['amour', 'aimer', 'charité'],
+      'faith': ['foi', 'croire', 'confiance'],
+      'hope': ['espérance', 'espérer', 'attendre'],
+      'grace': ['grâce', 'gracieux', 'faveur'],
+      'peace': ['paix', 'sérénité', 'tranquillité'],
+      'joy': ['joie', 'réjouir', 'allégresse'],
+      'wisdom': ['sagesse', 'sage', 'discernement'],
+      'prayer': ['prière', 'prier', 'supplication'],
+      'worship': ['adoration', 'adorer', 'louange'],
+      'salvation': ['salut', 'sauver', 'rédemption'],
+      'forgiveness': ['pardon', 'pardonner', 'remise'],
+      'healing': ['guérison', 'guérir', 'restauration'],
+      'strength': ['force', 'fort', 'puissance'],
+      'courage': ['courage', 'audace', 'bravoure'],
+      'patience': ['patience', 'patient', 'endurance'],
+      'kindness': ['bonté', 'bon', 'gentillesse'],
+      'goodness': ['bienveillance', 'bien', 'vertu'],
+      'faithfulness': ['fidélité', 'fidèle', 'loyauté'],
+      'gentleness': ['douceur', 'doux', 'humilité'],
+      'self-control': ['maîtrise', 'contrôle', 'tempérance'],
+      'righteousness': ['justice', 'juste', 'droiture'],
+      'holiness': ['sainteté', 'saint', 'consacré'],
+      'purity': ['pureté', 'pur', 'innocence'],
+      'service': ['service', 'servir', 'ministère'],
+      'ministry': ['ministère', 'servir', 'appel'],
+      'calling': ['appel', 'vocation', 'mission'],
+      'mission': ['mission', 'envoyé', 'témoignage'],
+      'witness': ['témoignage', 'témoin', 'témoigner'],
+      'testimony': ['témoignage', 'témoin', 'histoire'],
+      'fellowship': ['communion', 'communauté', 'fraternité'],
+      'community': ['communauté', 'assemblée', 'église'],
+      'church': ['église', 'assemblée', 'corps'],
+      'unity': ['unité', 'unir', 'harmonie'],
+      'truth': ['vérité', 'vrai', 'authentique'],
+      'light': ['lumière', 'éclairer', 'briller'],
+      'kingdom': ['royaume', 'roi', 'règne'],
+      'eternity': ['éternité', 'éternel', 'permanent'],
+      'heaven': ['ciel', 'céleste', 'paradis'],
+      'blessing': ['bénédiction', 'bénir', 'faveur'],
+      'promise': ['promesse', 'promettre', 'engagement'],
+    };
+    
+    for (final entry in themeKeywords.entries) {
+      final theme = entry.key;
+      final keywords = entry.value;
+      
+      for (final keyword in keywords) {
+        if (content.contains(keyword)) {
+          themes.add(theme);
+          break;
+        }
+      }
+    }
+    
+    return themes.toSet().toList(); // Supprimer les doublons
+  }
+
+  /// Vérifie si deux thèmes correspondent
+  static bool _themesMatch(String theme1, String theme2) {
+    final t1 = theme1.toLowerCase();
+    final t2 = theme2.toLowerCase();
+    
+    // Correspondance exacte
+    if (t1 == t2) return true;
+    
+    // Correspondance partielle
+    if (t1.contains(t2) || t2.contains(t1)) return true;
+    
+    // Correspondances sémantiques
+    final semanticMatches = {
+      'love': ['amour', 'charité', 'affection'],
+      'faith': ['foi', 'confiance', 'croyance'],
+      'hope': ['espérance', 'attente', 'optimisme'],
+      'grace': ['grâce', 'faveur', 'miséricorde'],
+      'peace': ['paix', 'sérénité', 'tranquillité'],
+      'joy': ['joie', 'allégresse', 'bonheur'],
+      'wisdom': ['sagesse', 'intelligence', 'discernement'],
+      'prayer': ['prière', 'supplication', 'intercession'],
+      'worship': ['adoration', 'louange', 'honneur'],
+      'salvation': ['salut', 'rédemption', 'délivrance'],
+      'forgiveness': ['pardon', 'remise', 'absolution'],
+      'healing': ['guérison', 'restauration', 'rétablissement'],
+      'strength': ['force', 'puissance', 'vigueur'],
+      'courage': ['courage', 'audace', 'bravoure'],
+      'patience': ['patience', 'endurance', 'persévérance'],
+      'kindness': ['bonté', 'gentillesse', 'bienveillance'],
+      'goodness': ['bienveillance', 'vertu', 'bonté'],
+      'faithfulness': ['fidélité', 'loyauté', 'constance'],
+      'gentleness': ['douceur', 'humilité', 'tendresse'],
+      'self-control': ['maîtrise', 'tempérance', 'discipline'],
+      'righteousness': ['justice', 'droiture', 'intégrité'],
+      'holiness': ['sainteté', 'consécration', 'pureté'],
+      'purity': ['pureté', 'innocence', 'chasteté'],
+      'service': ['service', 'ministère', 'aide'],
+      'ministry': ['ministère', 'service', 'appel'],
+      'calling': ['appel', 'vocation', 'mission'],
+      'mission': ['mission', 'témoignage', 'évangélisation'],
+      'witness': ['témoignage', 'témoin', 'témoigner'],
+      'testimony': ['témoignage', 'témoin', 'récit'],
+      'fellowship': ['communion', 'fraternité', 'communauté'],
+      'community': ['communauté', 'assemblée', 'groupe'],
+      'church': ['église', 'assemblée', 'corps'],
+      'unity': ['unité', 'harmonie', 'concorde'],
+      'truth': ['vérité', 'authenticité', 'sincérité'],
+      'light': ['lumière', 'éclat', 'brillance'],
+      'kingdom': ['royaume', 'règne', 'domination'],
+      'eternity': ['éternité', 'permanence', 'immortalité'],
+      'heaven': ['ciel', 'paradis', 'céleste'],
+      'blessing': ['bénédiction', 'faveur', 'grâce'],
+      'promise': ['promesse', 'engagement', 'alliance'],
+    };
+    
+    final t1Synonyms = semanticMatches[theme1] ?? [];
+    final t2Synonyms = semanticMatches[theme2] ?? [];
+    
+    for (final synonym in t1Synonyms) {
+      if (t2Synonyms.contains(synonym)) return true;
+    }
+    
+    return false;
+  }
+
+  /// Enrichit un preset avec un score thématique
+  static Future<PlanPreset> enrichPresetWithThematicScore(
+    PlanPreset preset, 
+    String goal
+  ) async {
+    try {
+      final thematicRelevance = await calculateThematicRelevance(preset, goal);
+      
+      // Ajouter le score thématique à la description
+      final enhancedDescription = '${preset.description ?? ''} (Pertinence thématique: ${(thematicRelevance * 100).round()}%)';
+      
+      return preset.copyWith(
+        description: enhancedDescription,
+        // Note: On pourrait ajouter un champ score dans le modèle PlanPreset si nécessaire
+      );
+    } catch (e) {
+      print('⚠️ Erreur enrichissement thématique: $e');
+      return preset;
     }
   }
 }

@@ -21,6 +21,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _isLoading = false;
   bool _notificationsEnabled = true;
   bool _darkModeEnabled = false;
+  bool _audioEnabled = true;
   String _selectedLanguage = 'Français';
   double _fontSize = 16.0;
 
@@ -297,35 +298,44 @@ class _SettingsPageState extends State<SettingsPage> {
                   const SizedBox(height: 16),
                   
                   // Notifications
-                  _buildSettingCard(
-                    icon: Icons.notifications,
-                    title: 'Notifications',
-                    child: _buildNotificationContent(),
-                  ),
+        _buildSettingCard(
+          icon: Icons.notifications,
+          title: 'Notifications',
+          child: _buildNotificationContent(),
+        ),
                   
                   const SizedBox(height: 16),
                   
                   // Apparence
-                  _buildSettingCard(
-                    icon: Icons.palette,
-                    title: 'Apparence',
-                    child: _buildAppearanceContent(),
-                  ),
+        _buildSettingCard(
+          icon: Icons.palette,
+          title: 'Apparence',
+          child: _buildAppearanceContent(),
+        ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Audio
+        _buildSettingCard(
+          icon: Icons.volume_up,
+          title: 'Audio',
+          child: _buildAudioContent(),
+        ),
                   
                   const SizedBox(height: 16),
                   
                   // Langue
-                  _buildSettingCard(
-                    icon: Icons.language,
-                    title: 'Langue',
-                    child: _buildLanguageContent(),
-                  ),
+        _buildSettingCard(
+          icon: Icons.language,
+          title: 'Langue',
+          child: _buildLanguageContent(),
+        ),
                   
                   const SizedBox(height: 16),
                   
                   // Taille de police
                   _buildSettingCard(
-                    icon: Icons.text_fields,
+                    icon: Icons.edit,
                     title: 'Taille de police',
                     child: _buildFontSizeContent(),
                   ),
@@ -366,7 +376,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 color: const Color(0xFF1F2937),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.close,
                 size: 16,
                 color: Color(0xFF9CA3AF),
@@ -568,10 +578,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   _notificationsEnabled = value;
                 });
               },
-              activeThumbColor: const Color(0xFF3B82F6),
-              activeTrackColor: const Color(0xFF3B82F6).withOpacity(0.3),
-              inactiveThumbColor: const Color(0xFF9CA3AF),
-              inactiveTrackColor: const Color(0xFF374151),
+              activeColor: const Color(0xFF49C98D),
             ),
           ],
         ),
@@ -613,16 +620,55 @@ class _SettingsPageState extends State<SettingsPage> {
                   _darkModeEnabled = value;
                 });
               },
-              activeThumbColor: const Color(0xFF3B82F6),
-              activeTrackColor: const Color(0xFF3B82F6).withOpacity(0.3),
-              inactiveThumbColor: const Color(0xFF9CA3AF),
-              inactiveTrackColor: const Color(0xFF374151),
+              activeColor: const Color(0xFF49C98D),
             ),
           ],
         ),
         const SizedBox(height: 12),
         Text(
           'Activer le mode sombre pour une expérience plus confortable',
+          style: GoogleFonts.inter(
+            color: const Color(0xFF9CA3AF),
+            fontSize: 14,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAudioContent() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.volume_up,
+              size: 20,
+              color: Color(0xFF9CA3AF),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Audio',
+              style: GoogleFonts.inter(
+                color: const Color(0xFF9CA3AF),
+                fontSize: 16,
+              ),
+            ),
+            const Spacer(),
+            Switch(
+              value: _audioEnabled,
+              onChanged: (value) {
+                setState(() {
+                  _audioEnabled = value;
+                });
+              },
+              activeColor: const Color(0xFF49C98D),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Activer ou désactiver l\'audio pour les méditations et lectures',
           style: GoogleFonts.inter(
             color: const Color(0xFF9CA3AF),
             fontSize: 14,

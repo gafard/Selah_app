@@ -1,8 +1,6 @@
 import 'package:hive/hive.dart';
-import 'openbible_themes_service.dart';
+// Service supprimé (packs incomplets)
 import 'semantic_passage_boundary_service.dart';
-import 'thompson_plan_service.dart';
-import 'bible_context_service.dart';
 
 /// 🔧 PASTEUR - Service de thèmes spirituels avec adaptation contextuelle
 /// 
@@ -66,26 +64,9 @@ class ThemesService {
     }
   }
 
-  /// 🔥 PRIORITÉ 1: Récupère les thèmes OpenBible pour un verset
+  /// Service supprimé (packs incomplets)
   static Future<List<String>> _getOpenBibleThemes(String id) async {
-    try {
-      if (!OpenBibleThemesService.isAvailable) return [];
-      
-      // Extraire des mots-clés de l'ID
-      final parts = id.split('.');
-      if (parts.isEmpty) return [];
-      
-      final book = parts[0];
-      
-      // Rechercher des thèmes OpenBible correspondants
-      final themes = await OpenBibleThemesService.searchThemes(book);
-      
-      // Extraire les noms des thèmes
-      return themes.map((theme) => theme['name'] as String? ?? '').where((name) => name.isNotEmpty).toList();
-    } catch (e) {
-      print('⚠️ Erreur thèmes OpenBible: $e');
-      return [];
-    }
+    return [];
   }
 
   /// 🧠 Enrichit les thèmes avec le contexte sémantique

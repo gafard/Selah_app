@@ -36,6 +36,10 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
   int _currentStep = 0;
   final int _totalSteps = 4;
   SpiritualFoundation? _foundationOfDay;
+  
+  // États pour les contrôles audio
+  bool _isPlaying = false;
+  bool _isMuted = false;
 
   // Controllers pour les champs de texte
   final _charactersList = TextEditingController();
@@ -140,6 +144,38 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
       _currentStep = index;
     });
     _progressController.animateTo((index + 1) / _totalSteps);
+  }
+
+  void _togglePlayPause() {
+    setState(() {
+      _isPlaying = !_isPlaying;
+    });
+    
+    HapticFeedback.lightImpact();
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_isPlaying ? 'Lecture démarrée' : 'Lecture en pause'),
+        backgroundColor: const Color(0xFF2B1E75),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
+  void _toggleMute() {
+    setState(() {
+      _isMuted = !_isMuted;
+    });
+    
+    HapticFeedback.lightImpact();
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_isMuted ? 'Audio coupé' : 'Audio activé'),
+        backgroundColor: const Color(0xFF49C98D),
+        duration: const Duration(seconds: 1),
+      ),
+    );
   }
 
   // Route finale vers le carrousel (mets le bon path selon ton app)
@@ -330,7 +366,7 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
         children: [
           IconButton(
             onPressed: () => context.pop(),
-            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+            icon: Icon(Icons.arrow_back, color: Colors.white),
           ),
           Expanded(
             child: Text(
@@ -343,7 +379,28 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
               ),
             ),
           ),
-          const SizedBox(width: 48), // Pour centrer le titre
+          // Contrôles audio
+          Row(
+            children: [
+              IconButton(
+                onPressed: _togglePlayPause,
+                icon: Icon(
+                  _isPlaying ? Icons.pause_circle : Icons.play_circle,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: _toggleMute,
+                icon: Icon(
+                  _isMuted ? Icons.volume_off : Icons.volume_up,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

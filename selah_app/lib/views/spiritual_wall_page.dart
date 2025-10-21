@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:circle_nav_bar/circle_nav_bar.dart';
 import 'package:go_router/go_router.dart';
 import '../services/meditation_journal_service.dart';
 import '../models/meditation_journal_entry.dart';
@@ -319,8 +318,8 @@ class _SpiritualWallPageState extends State<SpiritualWallPage> {
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
-                  Icons.analytics,
+                child: Icon(
+                  Icons.favorite,
                   color: Colors.white,
                   size: 20,
                 ),
@@ -342,7 +341,7 @@ class _SpiritualWallPageState extends State<SpiritualWallPage> {
           Row(
             children: [
               Expanded(
-                child: _buildStatItem('Total', totalEntries.toString(), Icons.auto_stories),
+                child: _buildStatItem('Total', totalEntries.toString(), Icons.book),
               ),
               Expanded(
                 child: _buildStatItem('Cette semaine', thisWeek.toString(), Icons.calendar_today),

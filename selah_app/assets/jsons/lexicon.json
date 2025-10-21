@@ -44,6 +44,19 @@
     {"lemma": "bārāʾ", "lang": "heb", "gloss": "créer", "strongs": "H1254"},
     {"lemma": "ṭāhôr", "lang": "heb", "gloss": "pur, propre", "strongs": "H2889"},
     {"lemma": "lēḇ", "lang": "heb", "gloss": "cœur", "strongs": "H3820"}
+  ],
+  
+  "Colossiens.2.1": [
+    {"lemma": "thelo", "lang": "grc", "gloss": "vouloir, désirer", "strongs": "G2309"},
+    {"lemma": "ginōskō", "lang": "grc", "gloss": "connaître, savoir", "strongs": "G1097"},
+    {"lemma": "agōn", "lang": "grc", "gloss": "combat, lutte", "strongs": "G73"},
+    {"lemma": "echeō", "lang": "grc", "gloss": "avoir, posséder", "strongs": "G2192"},
+    {"lemma": "hupēr", "lang": "grc", "gloss": "pour, en faveur de", "strongs": "G5228"},
+    {"lemma": "adelphos", "lang": "grc", "gloss": "frère", "strongs": "G80"},
+    {"lemma": "Laodikeia", "lang": "grc", "gloss": "Laodicée", "strongs": "G2993"},
+    {"lemma": "eidō", "lang": "grc", "gloss": "voir, connaître", "strongs": "G1492"},
+    {"lemma": "prosōpon", "lang": "grc", "gloss": "visage, face", "strongs": "G4383"},
+    {"lemma": "sarx", "lang": "grc", "gloss": "chair, corps", "strongs": "G4561"}
   ]
 }
 

@@ -1,12 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 import '../services/notification_service.dart';
 import '../services/daily_scheduler.dart';
-import '../services/user_prefs.dart';
+import '../services/cross_platform_alarm_service.dart';
 import '../services/user_prefs_sync.dart'; // ✅ UserPrefs ESSENTIEL (offline-first)
-import '../services/user_prefs_hive.dart';
 import '../services/version_change_notifier.dart';
 import '../bootstrap.dart' as bootstrap;
 import '../services/intelligent_duration_calculator.dart'; // 🧠 IntelligentDurationCalculator
@@ -26,9 +24,9 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
   String? selectedBibleVersion;
   int durationMin = 15;
   TimeOfDay reminder = const TimeOfDay(hour: 7, minute: 0);
-  String goal = '✨ Rencontrer Jésus dans la Parole';
+  String goal = 'Rencontrer Jésus dans la Parole';
   String level = 'Fidèle régulier';
-  String meditation = 'Méditation biblique';
+  String meditation = 'Méditation profonde : Temps de réflexion entre les versets';
   bool autoReminder = true;
   bool isLoading = false; // ← Indicateur de chargement
   
@@ -36,13 +34,10 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
   String heartPosture = 'Écouter la voix de Dieu';
   String motivation = 'Recherche de direction';
   
-  // 🧠 Variables pour les recommandations intelligentes
-  List<Map<String, dynamic>> _durationRecommendations = [];
-  bool _isCalculatingRecommendations = false;
 
   final goals = const [
     // ═══ Objectifs Christ-centrés (Jean 5:40) ═══
-    '✨ Rencontrer Jésus dans la Parole',
+    'Rencontrer Jésus dans la Parole',
     'Voir Jésus dans chaque livre',
     'Être transformé à son image',
     'Développer l\'intimité avec Dieu',
@@ -61,6 +56,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     'Trouver de l\'encouragement',
     'Expérimenter la guérison',
     'Partager ma foi',
+    'Témoigner avec audace',
+    'Évangéliser en ligne',
     'Mieux prier',
     'Sagesse',
   ];
@@ -74,10 +71,10 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
   ];
   
   final meditations = const [
-    'Méditation biblique',
-    'Lectio Divina',
-    'Contemplation',
-    'Prière silencieuse',
+    'Méditation profonde : Temps de réflexion entre les versets',
+    'Prière : Pauses pour prier',
+    'Application : Temps pour réfléchir à l\'application',
+    'Mémorisation : Répétition des versets clés',
   ];
   
   // ═══ Posture du cœur (Jean 5:40) ═══
@@ -97,7 +94,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     'Obéissance joyeuse',
     'Désir de connaître Dieu',
     'Besoin de transformation',
-    '🙏 Recherche de direction',
+    'Recherche de direction',
     'Discipline spirituelle',
   ];
 
@@ -111,42 +108,19 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
   
   /// 🧠 Calcule les recommandations de durée pour différents objectifs
   Future<void> _calculateDurationRecommendations() async {
-    if (_isCalculatingRecommendations) return;
-    
-    setState(() {
-      _isCalculatingRecommendations = true;
-    });
-    
+    // Calcul silencieux en arrière-plan pour les systèmes intelligents
     try {
-      final recommendations = <Map<String, dynamic>>[];
-      
-      // Calculer pour chaque objectif
       for (final goalOption in goals) {
-        final calculation = IntelligentDurationCalculator.calculateOptimalDuration(
+        IntelligentDurationCalculator.calculateOptimalDuration(
           goal: goalOption,
           level: level,
           dailyMinutes: durationMin,
           meditationType: meditation,
         );
-        
-        recommendations.add({
-          'goal': goalOption,
-          'calculation': calculation,
-          'isCurrentGoal': goalOption == goal,
-        });
       }
-      
-      setState(() {
-        _durationRecommendations = recommendations;
-        _isCalculatingRecommendations = false;
-      });
-      
-      print('🧠 ${recommendations.length} recommandations de durée calculées');
+      print('🧠 Recommandations calculées en arrière-plan');
     } catch (e) {
       print('❌ Erreur calcul recommandations: $e');
-      setState(() {
-        _isCalculatingRecommendations = false;
-      });
     }
   }
   
@@ -176,11 +150,13 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
         reminder = TimeOfDay(hour: reminderHour, minute: reminderMinute);
         
         autoReminder = profile['autoReminder'] as bool? ?? true;
-        goal = profile['goal'] as String? ?? '✨ Rencontrer Jésus dans la Parole';
+        goal = profile['goal'] as String? ?? 'Rencontrer Jésus dans la Parole';
         final rawLevel = profile['level'] as String? ?? 'Fidèle régulier';
         // ✅ Corriger l'incohérence "Rétrogarde" vs "Rétrograde"
         level = rawLevel == 'Rétrogarde' ? 'Rétrograde' : rawLevel;
-        meditation = profile['meditation'] as String? ?? 'Méditation biblique';
+        // ✅ Corriger les anciennes valeurs de méditation vers les nouvelles
+        final rawMeditation = profile['meditation'] as String? ?? 'Méditation profonde : Temps de réflexion entre les versets';
+        meditation = _normalizeMeditationType(rawMeditation);
         
         // ✅ Charger les nouveaux champs (Générateur Ultime)
         heartPosture = profile['heartPosture'] as String? ?? 'Écouter la voix de Dieu';
@@ -403,7 +379,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
 
         const SizedBox(height: 16),
 
-        // ═══ NOUVEAU ! Posture du cœur (Jean 5:40) ⭐ ═══
+        // ═══ NOUVEAU ! Posture du cœur (Jean 5:40) ═══
         _buildField(
           label: 'Posture du cœur (Jean 5:40)',
           icon: Icons.favorite_rounded,
@@ -416,7 +392,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
 
         const SizedBox(height: 16),
 
-        // ═══ NOUVEAU ! Motivation spirituelle ⭐ ═══
+        // ═══ NOUVEAU ! Motivation spirituelle ═══
         _buildField(
           label: 'Motivation spirituelle',
           icon: Icons.local_fire_department_rounded,
@@ -559,267 +535,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
   // Les systèmes intelligents travaillent en arrière-plan sans interface visible
   Widget _buildIntelligenceRecommendations() {
     return SizedBox.shrink(); // Pas d'interface visible
-    
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue.withOpacity(0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.psychology, color: Colors.blue, size: 20),
-              SizedBox(width: 8),
-              Text(
-                'Recommandations Spirituelles',
-                style: TextStyle(
-                  color: Colors.blue,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 12),
-          Text(
-            'Durées optimales pour vos objectifs spirituels :',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 12,
-            ),
-          ),
-          SizedBox(height: 8),
-          ..._durationRecommendations.take(3).map((rec) => _buildRecommendationCard(rec)).toList(),
-          if (_durationRecommendations.length > 3) ...[
-            SizedBox(height: 8),
-            TextButton(
-              onPressed: () => _showAllRecommendations(),
-              child: Text(
-                'Voir toutes les recommandations',
-                style: TextStyle(
-                  color: Colors.blue,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
   }
   
-  /// 🧠 Widget pour une carte de recommandation
-  Widget _buildRecommendationCard(Map<String, dynamic> recommendation) {
-    final goal = recommendation['goal'] as String;
-    final calculation = recommendation['calculation'] as DurationCalculation;
-    final isCurrentGoal = recommendation['isCurrentGoal'] as bool;
-    
-    return Container(
-      margin: EdgeInsets.only(bottom: 6),
-      padding: EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: isCurrentGoal 
-            ? Colors.green.withOpacity(0.1)
-            : Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isCurrentGoal 
-              ? Colors.green.withOpacity(0.3)
-              : Colors.white.withOpacity(0.1),
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  goal,
-                  style: TextStyle(
-                    color: isCurrentGoal ? Colors.green : Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Text(
-                  '${calculation.optimalDays} jours recommandés',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 10,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: _getConfidenceColor(calculation.confidence).withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              '${(calculation.confidence * 100).round()}%',
-              style: TextStyle(
-                fontSize: 9,
-                color: _getConfidenceColor(calculation.confidence),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-  
-  /// 🎨 Couleur basée sur le niveau de confiance
-  Color _getConfidenceColor(double confidence) {
-    if (confidence >= 0.8) return Colors.green;
-    if (confidence >= 0.6) return Colors.orange;
-    return Colors.red;
-  }
-  
-  /// 🧠 Affiche toutes les recommandations dans un dialog
-  Future<void> _showAllRecommendations() async {
-    return showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1D29),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.psychology, color: Colors.blue, size: 24),
-            SizedBox(width: 8),
-            Text(
-              'Toutes les Recommandations Spirituelles',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Durées optimales basées sur votre profil :',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                ),
-              ),
-              SizedBox(height: 16),
-              ..._durationRecommendations.map((rec) => _buildDetailedRecommendationCard(rec)).toList(),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'Fermer',
-              style: TextStyle(
-                color: Colors.blue,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-  
-  /// 🧠 Widget pour une carte de recommandation détaillée
-  Widget _buildDetailedRecommendationCard(Map<String, dynamic> recommendation) {
-    final goal = recommendation['goal'] as String;
-    final calculation = recommendation['calculation'] as DurationCalculation;
-    final isCurrentGoal = recommendation['isCurrentGoal'] as bool;
-    
-    return Container(
-      margin: EdgeInsets.only(bottom: 12),
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isCurrentGoal 
-            ? Colors.green.withOpacity(0.1)
-            : Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isCurrentGoal 
-              ? Colors.green.withOpacity(0.3)
-              : Colors.white.withOpacity(0.1),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  goal,
-                  style: TextStyle(
-                    color: isCurrentGoal ? Colors.green : Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _getConfidenceColor(calculation.confidence).withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '${(calculation.confidence * 100).round()}%',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: _getConfidenceColor(calculation.confidence),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Durée recommandée: ${calculation.optimalDays} jours',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          Text(
-            'Intensité: ${calculation.intensity.name}',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 12,
-            ),
-          ),
-          if (calculation.warnings.isNotEmpty) ...[
-            SizedBox(height: 4),
-            Text(
-              '⚠️ ${calculation.warnings.first}',
-              style: TextStyle(
-                color: Colors.orange,
-                fontSize: 10,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
   
   Widget _buildSwitchTile() {
     return Container(
@@ -1037,7 +754,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
         'level': correctedLevel,           // ✅ niveau corrigé
         'meditation': meditation,
         
-        // ═══ NOUVEAU ! Générateur Ultime (Jean 5:40) ⭐ ═══
+        // ═══ NOUVEAU ! Générateur Ultime (Jean 5:40) ═══
         'heartPosture': heartPosture,
         'motivation': motivation,
         
@@ -1068,15 +785,15 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
       _downloadBibleInBackground(bibleVersionCode);
       print('✅ Téléchargement lancé');
 
-      // 4) Configuration des rappels quotidiens
-      print('🔔 Configuration rappels...');
+      // 4) Configuration des rappels quotidiens avec alarme intelligente
+      print('🔔 Configuration alarme intelligente...');
       if (autoReminder) {
         try {
-          await DailyScheduler.scheduleDaily(reminder);
+          await CrossPlatformAlarmService.scheduleAlarm(reminder);
           // Notification immédiate (feedback)
           await NotificationService.instance.showNow(
-            title: 'Rappel configuré',
-            body: 'Tu recevras un rappel chaque jour à ${_fmt(reminder)}.',
+            title: 'Alarme configurée',
+            body: 'Tu recevras une alarme chaque jour à ${_fmt(reminder)} avec rappel automatique.',
           );
           print('✅ Rappels configurés');
         } catch (e) {
@@ -1122,6 +839,28 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     final hh = t.hour.toString().padLeft(2, '0');
     final mm = t.minute.toString().padLeft(2, '0');
     return '$hh:$mm';
+  }
+  
+  /// Normalise les anciennes valeurs de méditation vers les nouvelles
+  String _normalizeMeditationType(String rawMeditation) {
+    // Correspondance des anciennes valeurs vers les nouvelles
+    switch (rawMeditation) {
+      case 'Lectio Divina':
+        return 'Méditation profonde : Temps de réflexion entre les versets';
+      case 'Contemplation':
+        return 'Méditation profonde : Temps de réflexion entre les versets';
+      case 'Prière silencieuse':
+        return 'Prière : Pauses pour prier';
+      case 'Méditation biblique':
+        return 'Méditation profonde : Temps de réflexion entre les versets';
+      default:
+        // Si c'est déjà une nouvelle valeur, la garder
+        if (meditations.contains(rawMeditation)) {
+          return rawMeditation;
+        }
+        // Sinon, utiliser la valeur par défaut
+        return 'Méditation profonde : Temps de réflexion entre les versets';
+    }
   }
 
   /// ═══════════════════════════════════════════════════════════

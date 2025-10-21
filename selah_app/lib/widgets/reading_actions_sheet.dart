@@ -263,7 +263,7 @@ class ReadingActionSheet extends StatelessWidget {
                 ),
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: fg),
+            Icon(Icons.chevron_right, color: fg),
           ],
         ),
       ),

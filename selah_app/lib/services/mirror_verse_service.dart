@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'mirror_verse_extended_service.dart';
 
 /// Service offline pour les versets miroirs (typologie biblique)
 /// 
@@ -21,27 +22,51 @@ class MirrorVerseService {
   /// Initialise la box Hive
   static Future<void> init() async {
     _mirrorsBox = await Hive.openBox('bible_mirrors');
-    print('✅ MirrorVerseService initialisé (${_mirrorsBox?.length ?? 0} entrées)');
+    print('📦 Box Hive de base ouverte: ${_mirrorsBox?.length ?? 0} entrées');
+    
+    // Initialiser aussi le service etendu
+    try {
+      print('🔄 Tentative d\'initialisation du service etendu...');
+      await MirrorVerseExtendedService.init();
+      print('✅ Service etendu initialise avec succes');
+    } catch (e) {
+      print('⚠️ Erreur initialisation service etendu: $e');
+    }
+    
+    // Recuperer le nombre total d'entrees (base + etendues)
+    final baseCount = _mirrorsBox?.length ?? 0;
+    try {
+      final extendedCount = await MirrorVerseExtendedService.getExtendedStats();
+      final totalCount = baseCount + (extendedCount['totalConnections'] ?? 0);
+      print('✅ MirrorVerseService initialise ($baseCount entrees de base + ${extendedCount['totalConnections'] ?? 0} etendues = $totalCount total)');
+    } catch (e) {
+      print('⚠️ Erreur recuperation stats etendues: $e');
+      print('✅ MirrorVerseService initialise ($baseCount entrees de base + 0 etendues = $baseCount total)');
+    }
   }
   
   /// Récupère le verset miroir d'un verset
-  /// 
+  ///
   /// [id] : ID du verset (ex: "Genèse.22.8")
-  /// 
+  ///
   /// Retourne : ID du verset miroir ou null
   static Future<String?> mirrorOf(String id) async {
     try {
-      // Chercher dans les deux sens (AT → NT et NT → AT)
+      // Chercher d'abord dans les donnees etendues
+      final extendedMirror = await MirrorVerseExtendedService.extendedMirrorOf(id);
+      if (extendedMirror != null) return extendedMirror;
+      
+      // Chercher dans les donnees de base
       final forward = _mirrorsBox?.get(id) as String?;
       if (forward != null) return forward;
-      
-      // Chercher en sens inverse
+
+      // Chercher en sens inverse dans les donnees de base
       final allKeys = _mirrorsBox?.keys ?? [];
       for (final key in allKeys) {
         final value = _mirrorsBox?.get(key) as String?;
         if (value == id) return key as String;
       }
-      
+
       return null;
     } catch (e) {
       print('⚠️ Erreur mirrorOf($id): $e');
@@ -50,22 +75,30 @@ class MirrorVerseService {
   }
   
   /// Récupère le verset miroir enrichi avec texte et explication
-  /// 
+  ///
   /// [id] : ID du verset
   /// [getVerseText] : Fonction pour récupérer le texte
-  /// 
+  ///
   /// Retourne : MirrorVerse enrichi ou null
   static Future<MirrorVerse?> enrichedMirror(
     String id, {
     required Future<String?> Function(String verseId) getVerseText,
   }) async {
+    // Essayer d'abord le service etendu
+    final extendedMirror = await MirrorVerseExtendedService.enrichedExtendedMirror(
+      id,
+      getVerseText: getVerseText,
+    );
+    if (extendedMirror != null) return extendedMirror;
+    
+    // Fallback sur le service de base
     final mirrorId = await mirrorOf(id);
     if (mirrorId == null) return null;
-    
+
     final originalText = await getVerseText(id);
     final mirrorText = await getVerseText(mirrorId);
     final connection = _getConnectionType(id, mirrorId);
-    
+
     return MirrorVerse(
       originalId: id,
       mirrorId: mirrorId,
@@ -211,6 +244,29 @@ class MirrorVerse {
       case ConnectionType.echo:
         return '🔊';
     }
+  }
+}
+
+/// Methodes etendues pour MirrorVerseService
+extension MirrorVerseServiceExtended on MirrorVerseService {
+  /// Recherche etendue par theme
+  static Future<List<Map<String, String>>> searchByTheme(String theme) async {
+    return await MirrorVerseExtendedService.searchByTheme(theme);
+  }
+
+  /// Recherche etendue par livre
+  static Future<List<Map<String, String>>> searchByBook(String book) async {
+    return await MirrorVerseExtendedService.searchByBook(book);
+  }
+
+  /// Statistiques etendues
+  static Future<Map<String, int>> getExtendedStats() async {
+    return await MirrorVerseExtendedService.getExtendedStats();
+  }
+
+  /// Reinitialise les donnees etendues
+  static Future<void> resetExtendedData() async {
+    return await MirrorVerseExtendedService.resetExtendedData();
   }
 }
 

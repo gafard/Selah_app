@@ -15,6 +15,7 @@
 
 import 'dart:math';
 import 'package:hive/hive.dart';
+import 'biblical_timeline_service.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// MODELS
@@ -153,14 +154,14 @@ class PassageBoundary {
       }
       return '$book $startChapter:$startVerse-$endVerse';
     }
-    return '$book $startChapter:$startVerse–$endChapter:$endVerse';
+    return '$book $startChapter:$startVerse-$endChapter:$endVerse';
   }
 
   String get shortReference {
     if (startChapter == endChapter) {
       return '$book $startChapter';
     }
-    return '$book $startChapter–$endChapter';
+    return '$book $startChapter-$endChapter';
   }
 }
 
@@ -296,6 +297,908 @@ class SemanticPassageBoundaryService {
   /// ═══════════════════════════════════════════════════════════════════════
 
   static final Map<String, List<LiteraryUnit>> _literaryUnits = {
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ANCIEN TESTAMENT
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    'Genèse': [
+      LiteraryUnit(
+        name: 'Création',
+        book: 'Genèse',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 2,
+        endVerse: 25,
+        type: UnitType.narrative,
+        priority: UnitPriority.critical,
+        description: 'Récit de la création',
+      ),
+      LiteraryUnit(
+        name: 'Chute de l\'homme',
+        book: 'Genèse',
+        startChapter: 3,
+        startVerse: 1,
+        endChapter: 3,
+        endVerse: 24,
+        type: UnitType.narrative,
+        priority: UnitPriority.critical,
+      ),
+      LiteraryUnit(
+        name: 'Déluge',
+        book: 'Genèse',
+        startChapter: 6,
+        startVerse: 1,
+        endChapter: 9,
+        endVerse: 29,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Tour de Babel',
+        book: 'Genèse',
+        startChapter: 11,
+        startVerse: 1,
+        endChapter: 11,
+        endVerse: 9,
+        type: UnitType.narrative,
+        priority: UnitPriority.medium,
+      ),
+      LiteraryUnit(
+        name: 'Appel d\'Abraham',
+        book: 'Genèse',
+        startChapter: 12,
+        startVerse: 1,
+        endChapter: 12,
+        endVerse: 20,
+        type: UnitType.narrative,
+        priority: UnitPriority.critical,
+      ),
+      LiteraryUnit(
+        name: 'Sacrifice d\'Isaac',
+        book: 'Genèse',
+        startChapter: 22,
+        startVerse: 1,
+        endChapter: 22,
+        endVerse: 19,
+        type: UnitType.narrative,
+        priority: UnitPriority.critical,
+      ),
+    ],
+    
+    'Exode': [
+      LiteraryUnit(
+        name: 'Appel de Moïse',
+        book: 'Exode',
+        startChapter: 3,
+        startVerse: 1,
+        endChapter: 4,
+        endVerse: 31,
+        type: UnitType.narrative,
+        priority: UnitPriority.critical,
+      ),
+      LiteraryUnit(
+        name: 'Dix plaies',
+        book: 'Exode',
+        startChapter: 7,
+        startVerse: 8,
+        endChapter: 12,
+        endVerse: 36,
+        type: UnitType.narrative,
+        priority: UnitPriority.critical,
+      ),
+      LiteraryUnit(
+        name: 'Traversée de la mer Rouge',
+        book: 'Exode',
+        startChapter: 14,
+        startVerse: 1,
+        endChapter: 15,
+        endVerse: 21,
+        type: UnitType.narrative,
+        priority: UnitPriority.critical,
+      ),
+      LiteraryUnit(
+        name: 'Dix commandements',
+        book: 'Exode',
+        startChapter: 20,
+        startVerse: 1,
+        endChapter: 20,
+        endVerse: 17,
+        type: UnitType.discourse,
+        priority: UnitPriority.critical,
+      ),
+      LiteraryUnit(
+        name: 'Veau d\'or',
+        book: 'Exode',
+        startChapter: 32,
+        startVerse: 1,
+        endChapter: 32,
+        endVerse: 35,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+      ),
+    ],
+    
+    'Lévitique': [
+      LiteraryUnit(
+        name: 'Lois sur les sacrifices',
+        book: 'Lévitique',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 7,
+        endVerse: 38,
+        type: UnitType.discourse,
+        priority: UnitPriority.medium,
+      ),
+      LiteraryUnit(
+        name: 'Jour des expiations',
+        book: 'Lévitique',
+        startChapter: 16,
+        startVerse: 1,
+        endChapter: 16,
+        endVerse: 34,
+        type: UnitType.discourse,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Loi de sainteté',
+        book: 'Lévitique',
+        startChapter: 19,
+        startVerse: 1,
+        endChapter: 20,
+        endVerse: 27,
+        type: UnitType.discourse,
+        priority: UnitPriority.high,
+      ),
+    ],
+    
+    'Nombres': [
+      LiteraryUnit(
+        name: 'Murmures dans le désert',
+        book: 'Nombres',
+        startChapter: 11,
+        startVerse: 1,
+        endChapter: 12,
+        endVerse: 16,
+        type: UnitType.narrative,
+        priority: UnitPriority.medium,
+      ),
+      LiteraryUnit(
+        name: 'Espionnage de Canaan',
+        book: 'Nombres',
+        startChapter: 13,
+        startVerse: 1,
+        endChapter: 14,
+        endVerse: 45,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Révolte de Koré',
+        book: 'Nombres',
+        startChapter: 16,
+        startVerse: 1,
+        endChapter: 17,
+        endVerse: 13,
+        type: UnitType.narrative,
+        priority: UnitPriority.medium,
+      ),
+    ],
+    
+    'Deutéronome': [
+      LiteraryUnit(
+        name: 'Premier discours de Moïse',
+        book: 'Deutéronome',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 4,
+        endVerse: 43,
+        type: UnitType.discourse,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Deuxième discours de Moïse',
+        book: 'Deutéronome',
+        startChapter: 5,
+        startVerse: 1,
+        endChapter: 26,
+        endVerse: 19,
+        type: UnitType.discourse,
+        priority: UnitPriority.critical,
+      ),
+      LiteraryUnit(
+        name: 'Bénédictions et malédictions',
+        book: 'Deutéronome',
+        startChapter: 27,
+        startVerse: 1,
+        endChapter: 28,
+        endVerse: 68,
+        type: UnitType.discourse,
+        priority: UnitPriority.high,
+      ),
+    ],
+    
+    'Josué': [
+      LiteraryUnit(
+        name: 'Conquête de Jéricho',
+        book: 'Josué',
+        startChapter: 6,
+        startVerse: 1,
+        endChapter: 6,
+        endVerse: 27,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Partage du pays',
+        book: 'Josué',
+        startChapter: 13,
+        startVerse: 1,
+        endChapter: 21,
+        endVerse: 45,
+        type: UnitType.narrative,
+        priority: UnitPriority.medium,
+      ),
+    ],
+    
+    'Juges': [
+      LiteraryUnit(
+        name: 'Cycle des juges',
+        book: 'Juges',
+        startChapter: 2,
+        startVerse: 6,
+        endChapter: 16,
+        endVerse: 31,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Gédéon',
+        book: 'Juges',
+        startChapter: 6,
+        startVerse: 1,
+        endChapter: 8,
+        endVerse: 35,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Samson',
+        book: 'Juges',
+        startChapter: 13,
+        startVerse: 1,
+        endChapter: 16,
+        endVerse: 31,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+      ),
+    ],
+    
+    'Ruth': [
+      LiteraryUnit(
+        name: 'Livre de Ruth',
+        book: 'Ruth',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 4,
+        endVerse: 22,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+        description: 'Récit complet de Ruth',
+      ),
+    ],
+    
+    '1 Samuel': [
+      LiteraryUnit(
+        name: 'Appel de Samuel',
+        book: '1 Samuel',
+        startChapter: 3,
+        startVerse: 1,
+        endChapter: 3,
+        endVerse: 21,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Onction de David',
+        book: '1 Samuel',
+        startChapter: 16,
+        startVerse: 1,
+        endChapter: 16,
+        endVerse: 13,
+        type: UnitType.narrative,
+        priority: UnitPriority.critical,
+      ),
+      LiteraryUnit(
+        name: 'David et Goliath',
+        book: '1 Samuel',
+        startChapter: 17,
+        startVerse: 1,
+        endChapter: 17,
+        endVerse: 58,
+        type: UnitType.narrative,
+        priority: UnitPriority.critical,
+      ),
+    ],
+    
+    '2 Samuel': [
+      LiteraryUnit(
+        name: 'Règne de David',
+        book: '2 Samuel',
+        startChapter: 5,
+        startVerse: 1,
+        endChapter: 8,
+        endVerse: 18,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Péché de David',
+        book: '2 Samuel',
+        startChapter: 11,
+        startVerse: 1,
+        endChapter: 12,
+        endVerse: 31,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+      ),
+    ],
+    
+    '1 Rois': [
+      LiteraryUnit(
+        name: 'Sagesse de Salomon',
+        book: '1 Rois',
+        startChapter: 3,
+        startVerse: 1,
+        endChapter: 4,
+        endVerse: 34,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Construction du temple',
+        book: '1 Rois',
+        startChapter: 6,
+        startVerse: 1,
+        endChapter: 7,
+        endVerse: 51,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Élie et les prophètes de Baal',
+        book: '1 Rois',
+        startChapter: 18,
+        startVerse: 1,
+        endChapter: 18,
+        endVerse: 46,
+        type: UnitType.narrative,
+        priority: UnitPriority.critical,
+      ),
+    ],
+    
+    '2 Rois': [
+      LiteraryUnit(
+        name: 'Élie enlevé au ciel',
+        book: '2 Rois',
+        startChapter: 2,
+        startVerse: 1,
+        endChapter: 2,
+        endVerse: 12,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Élisée',
+        book: '2 Rois',
+        startChapter: 2,
+        startVerse: 13,
+        endChapter: 13,
+        endVerse: 21,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+      ),
+    ],
+    
+    '1 Chroniques': [
+      LiteraryUnit(
+        name: 'Généalogies',
+        book: '1 Chroniques',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 9,
+        endVerse: 44,
+        type: UnitType.genealogy,
+        priority: UnitPriority.low,
+      ),
+      LiteraryUnit(
+        name: 'Règne de David',
+        book: '1 Chroniques',
+        startChapter: 11,
+        startVerse: 1,
+        endChapter: 29,
+        endVerse: 30,
+        type: UnitType.narrative,
+        priority: UnitPriority.medium,
+      ),
+    ],
+    
+    '2 Chroniques': [
+      LiteraryUnit(
+        name: 'Règne de Salomon',
+        book: '2 Chroniques',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 9,
+        endVerse: 31,
+        type: UnitType.narrative,
+        priority: UnitPriority.medium,
+      ),
+      LiteraryUnit(
+        name: 'Réforme de Josias',
+        book: '2 Chroniques',
+        startChapter: 34,
+        startVerse: 1,
+        endChapter: 35,
+        endVerse: 27,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+      ),
+    ],
+    
+    'Esdras': [
+      LiteraryUnit(
+        name: 'Retour d\'exil',
+        book: 'Esdras',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 2,
+        endVerse: 70,
+        type: UnitType.narrative,
+        priority: UnitPriority.medium,
+      ),
+      LiteraryUnit(
+        name: 'Reconstruction du temple',
+        book: 'Esdras',
+        startChapter: 3,
+        startVerse: 1,
+        endChapter: 6,
+        endVerse: 22,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+      ),
+    ],
+    
+    'Néhémie': [
+      LiteraryUnit(
+        name: 'Reconstruction des murailles',
+        book: 'Néhémie',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 7,
+        endVerse: 73,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Réforme de Néhémie',
+        book: 'Néhémie',
+        startChapter: 8,
+        startVerse: 1,
+        endChapter: 13,
+        endVerse: 31,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+      ),
+    ],
+    
+    'Esther': [
+      LiteraryUnit(
+        name: 'Livre d\'Esther',
+        book: 'Esther',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 10,
+        endVerse: 3,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+        description: 'Récit complet d\'Esther',
+      ),
+    ],
+    
+    'Job': [
+      LiteraryUnit(
+        name: 'Prologue',
+        book: 'Job',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 2,
+        endVerse: 13,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Dialogues',
+        book: 'Job',
+        startChapter: 3,
+        startVerse: 1,
+        endChapter: 31,
+        endVerse: 40,
+        type: UnitType.poetry,
+        priority: UnitPriority.critical,
+      ),
+      LiteraryUnit(
+        name: 'Discours de Dieu',
+        book: 'Job',
+        startChapter: 38,
+        startVerse: 1,
+        endChapter: 42,
+        endVerse: 6,
+        type: UnitType.poetry,
+        priority: UnitPriority.critical,
+      ),
+    ],
+    
+    'Psaumes': [
+      LiteraryUnit(
+        name: 'Psaumes de louange',
+        book: 'Psaumes',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 50,
+        endVerse: 23,
+        type: UnitType.poetry,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Psaumes royaux',
+        book: 'Psaumes',
+        startChapter: 2,
+        startVerse: 1,
+        endChapter: 110,
+        endVerse: 7,
+        type: UnitType.poetry,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Psaumes de lamentation',
+        book: 'Psaumes',
+        startChapter: 22,
+        startVerse: 1,
+        endChapter: 88,
+        endVerse: 18,
+        type: UnitType.poetry,
+        priority: UnitPriority.high,
+      ),
+    ],
+    
+    'Proverbes': [
+      LiteraryUnit(
+        name: 'Proverbes de Salomon',
+        book: 'Proverbes',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 9,
+        endVerse: 18,
+        type: UnitType.poetry,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Collection de proverbes',
+        book: 'Proverbes',
+        startChapter: 10,
+        startVerse: 1,
+        endChapter: 29,
+        endVerse: 27,
+        type: UnitType.poetry,
+        priority: UnitPriority.medium,
+      ),
+    ],
+    
+    'Ecclésiaste': [
+      LiteraryUnit(
+        name: 'Vanité des vanités',
+        book: 'Ecclésiaste',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 12,
+        endVerse: 14,
+        type: UnitType.poetry,
+        priority: UnitPriority.high,
+        description: 'Réflexions sur la vie',
+      ),
+    ],
+    
+    'Cantique des Cantiques': [
+      LiteraryUnit(
+        name: 'Cantique des Cantiques',
+        book: 'Cantique des Cantiques',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 8,
+        endVerse: 14,
+        type: UnitType.poetry,
+        priority: UnitPriority.high,
+        description: 'Poème d\'amour',
+      ),
+    ],
+    
+    'Ésaïe': [
+      LiteraryUnit(
+        name: 'Prophéties messianiques',
+        book: 'Ésaïe',
+        startChapter: 7,
+        startVerse: 1,
+        endChapter: 12,
+        endVerse: 6,
+        type: UnitType.prophecy,
+        priority: UnitPriority.critical,
+      ),
+      LiteraryUnit(
+        name: 'Serviteur souffrant',
+        book: 'Ésaïe',
+        startChapter: 52,
+        startVerse: 13,
+        endChapter: 53,
+        endVerse: 12,
+        type: UnitType.prophecy,
+        priority: UnitPriority.critical,
+      ),
+      LiteraryUnit(
+        name: 'Nouvelle création',
+        book: 'Ésaïe',
+        startChapter: 65,
+        startVerse: 1,
+        endChapter: 66,
+        endVerse: 24,
+        type: UnitType.prophecy,
+        priority: UnitPriority.high,
+      ),
+    ],
+    
+    'Jérémie': [
+      LiteraryUnit(
+        name: 'Appel de Jérémie',
+        book: 'Jérémie',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 1,
+        endVerse: 19,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Nouvelle alliance',
+        book: 'Jérémie',
+        startChapter: 31,
+        startVerse: 1,
+        endChapter: 31,
+        endVerse: 40,
+        type: UnitType.prophecy,
+        priority: UnitPriority.critical,
+      ),
+    ],
+    
+    'Lamentations': [
+      LiteraryUnit(
+        name: 'Lamentations',
+        book: 'Lamentations',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 5,
+        endVerse: 22,
+        type: UnitType.poetry,
+        priority: UnitPriority.high,
+        description: 'Lamentations sur Jérusalem',
+      ),
+    ],
+    
+    'Ézéchiel': [
+      LiteraryUnit(
+        name: 'Vision des ossements',
+        book: 'Ézéchiel',
+        startChapter: 37,
+        startVerse: 1,
+        endChapter: 37,
+        endVerse: 14,
+        type: UnitType.prophecy,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Nouveau temple',
+        book: 'Ézéchiel',
+        startChapter: 40,
+        startVerse: 1,
+        endChapter: 48,
+        endVerse: 35,
+        type: UnitType.prophecy,
+        priority: UnitPriority.medium,
+      ),
+    ],
+    
+    'Daniel': [
+      LiteraryUnit(
+        name: 'Daniel dans la fosse aux lions',
+        book: 'Daniel',
+        startChapter: 6,
+        startVerse: 1,
+        endChapter: 6,
+        endVerse: 28,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Vision des quatre bêtes',
+        book: 'Daniel',
+        startChapter: 7,
+        startVerse: 1,
+        endChapter: 7,
+        endVerse: 28,
+        type: UnitType.prophecy,
+        priority: UnitPriority.high,
+      ),
+    ],
+    
+    'Osée': [
+      LiteraryUnit(
+        name: 'Mariage symbolique',
+        book: 'Osée',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 3,
+        endVerse: 5,
+        type: UnitType.prophecy,
+        priority: UnitPriority.high,
+      ),
+    ],
+    
+    'Joël': [
+      LiteraryUnit(
+        name: 'Jour de l\'Éternel',
+        book: 'Joël',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 3,
+        endVerse: 21,
+        type: UnitType.prophecy,
+        priority: UnitPriority.high,
+      ),
+    ],
+    
+    'Amos': [
+      LiteraryUnit(
+        name: 'Prophéties contre les nations',
+        book: 'Amos',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 2,
+        endVerse: 16,
+        type: UnitType.prophecy,
+        priority: UnitPriority.medium,
+      ),
+    ],
+    
+    'Abdias': [
+      LiteraryUnit(
+        name: 'Prophétie contre Édom',
+        book: 'Abdias',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 1,
+        endVerse: 21,
+        type: UnitType.prophecy,
+        priority: UnitPriority.medium,
+      ),
+    ],
+    
+    'Jonas': [
+      LiteraryUnit(
+        name: 'Jonas et le grand poisson',
+        book: 'Jonas',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 4,
+        endVerse: 11,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+        description: 'Récit complet de Jonas',
+      ),
+    ],
+    
+    'Michée': [
+      LiteraryUnit(
+        name: 'Prophétie messianique',
+        book: 'Michée',
+        startChapter: 5,
+        startVerse: 1,
+        endChapter: 5,
+        endVerse: 15,
+        type: UnitType.prophecy,
+        priority: UnitPriority.high,
+      ),
+    ],
+    
+    'Nahum': [
+      LiteraryUnit(
+        name: 'Prophétie contre Ninive',
+        book: 'Nahum',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 3,
+        endVerse: 19,
+        type: UnitType.prophecy,
+        priority: UnitPriority.medium,
+      ),
+    ],
+    
+    'Habakuk': [
+      LiteraryUnit(
+        name: 'Dialogue avec Dieu',
+        book: 'Habakuk',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 3,
+        endVerse: 19,
+        type: UnitType.prophecy,
+        priority: UnitPriority.medium,
+      ),
+    ],
+    
+    'Sophonie': [
+      LiteraryUnit(
+        name: 'Jour de l\'Éternel',
+        book: 'Sophonie',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 3,
+        endVerse: 20,
+        type: UnitType.prophecy,
+        priority: UnitPriority.medium,
+      ),
+    ],
+    
+    'Aggée': [
+      LiteraryUnit(
+        name: 'Reconstruction du temple',
+        book: 'Aggée',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 2,
+        endVerse: 23,
+        type: UnitType.prophecy,
+        priority: UnitPriority.medium,
+      ),
+    ],
+    
+    'Zacharie': [
+      LiteraryUnit(
+        name: 'Vision du grand prêtre',
+        book: 'Zacharie',
+        startChapter: 3,
+        startVerse: 1,
+        endChapter: 3,
+        endVerse: 10,
+        type: UnitType.prophecy,
+        priority: UnitPriority.high,
+      ),
+    ],
+    
+    'Malachie': [
+      LiteraryUnit(
+        name: 'Prophétie finale',
+        book: 'Malachie',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 4,
+        endVerse: 6,
+        type: UnitType.prophecy,
+        priority: UnitPriority.high,
+      ),
+    ],
+    
+    // ═══════════════════════════════════════════════════════════════════════════
+    // NOUVEAU TESTAMENT
+    // ═══════════════════════════════════════════════════════════════════════════
+    
     'Matthieu': [
       LiteraryUnit(
         name: 'Sermon sur la montagne',
@@ -350,7 +1253,51 @@ class SemanticPassageBoundaryService {
         priority: UnitPriority.critical,
       ),
     ],
+    
+    'Marc': [
+      LiteraryUnit(
+        name: 'Ministère en Galilée',
+        book: 'Marc',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 8,
+        endVerse: 30,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Chemin vers Jérusalem',
+        book: 'Marc',
+        startChapter: 8,
+        startVerse: 31,
+        endChapter: 10,
+        endVerse: 52,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Semaine de la passion',
+        book: 'Marc',
+        startChapter: 11,
+        startVerse: 1,
+        endChapter: 16,
+        endVerse: 20,
+        type: UnitType.narrative,
+        priority: UnitPriority.critical,
+      ),
+    ],
+    
     'Luc': [
+      LiteraryUnit(
+        name: 'Enfance de Jésus',
+        book: 'Luc',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 2,
+        endVerse: 52,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+      ),
       LiteraryUnit(
         name: 'Collection de paraboles (Luc 15)',
         book: 'Luc',
@@ -393,7 +1340,18 @@ class SemanticPassageBoundaryService {
         priority: UnitPriority.critical,
       ),
     ],
+    
     'Jean': [
+      LiteraryUnit(
+        name: 'Prologue',
+        book: 'Jean',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 1,
+        endVerse: 18,
+        type: UnitType.poetry,
+        priority: UnitPriority.critical,
+      ),
       LiteraryUnit(
         name: 'Discours du pain de vie',
         book: 'Jean',
@@ -426,6 +1384,40 @@ class SemanticPassageBoundaryService {
         description: 'Cep, haine, Esprit, prière sacerdotale',
       ),
     ],
+    
+    'Actes': [
+      LiteraryUnit(
+        name: 'Pentecôte',
+        book: 'Actes',
+        startChapter: 2,
+        startVerse: 1,
+        endChapter: 2,
+        endVerse: 47,
+        type: UnitType.narrative,
+        priority: UnitPriority.critical,
+      ),
+      LiteraryUnit(
+        name: 'Conversion de Paul',
+        book: 'Actes',
+        startChapter: 9,
+        startVerse: 1,
+        endChapter: 9,
+        endVerse: 31,
+        type: UnitType.narrative,
+        priority: UnitPriority.critical,
+      ),
+      LiteraryUnit(
+        name: 'Conseil de Jérusalem',
+        book: 'Actes',
+        startChapter: 15,
+        startVerse: 1,
+        endChapter: 15,
+        endVerse: 35,
+        type: UnitType.narrative,
+        priority: UnitPriority.high,
+      ),
+    ],
+    
     'Romains': [
       LiteraryUnit(
         name: 'Argument sur la justification',
@@ -445,6 +1437,416 @@ class SemanticPassageBoundaryService {
         endChapter: 8,
         endVerse: 39,
         type: UnitType.argument,
+        priority: UnitPriority.critical,
+      ),
+      LiteraryUnit(
+        name: 'Élection et prédestination',
+        book: 'Romains',
+        startChapter: 9,
+        startVerse: 1,
+        endChapter: 11,
+        endVerse: 36,
+        type: UnitType.argument,
+        priority: UnitPriority.high,
+      ),
+    ],
+    
+    '1 Corinthiens': [
+      LiteraryUnit(
+        name: 'Problèmes de l\'Église',
+        book: '1 Corinthiens',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 4,
+        endVerse: 21,
+        type: UnitType.letter,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Chapitre de l\'amour',
+        book: '1 Corinthiens',
+        startChapter: 13,
+        startVerse: 1,
+        endChapter: 13,
+        endVerse: 13,
+        type: UnitType.poetry,
+        priority: UnitPriority.critical,
+      ),
+      LiteraryUnit(
+        name: 'Résurrection',
+        book: '1 Corinthiens',
+        startChapter: 15,
+        startVerse: 1,
+        endChapter: 15,
+        endVerse: 58,
+        type: UnitType.argument,
+        priority: UnitPriority.critical,
+      ),
+    ],
+    
+    '2 Corinthiens': [
+      LiteraryUnit(
+        name: 'Ministère de la réconciliation',
+        book: '2 Corinthiens',
+        startChapter: 5,
+        startVerse: 1,
+        endChapter: 5,
+        endVerse: 21,
+        type: UnitType.argument,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Collection pour Jérusalem',
+        book: '2 Corinthiens',
+        startChapter: 8,
+        startVerse: 1,
+        endChapter: 9,
+        endVerse: 15,
+        type: UnitType.letter,
+        priority: UnitPriority.medium,
+      ),
+    ],
+    
+    'Galates': [
+      LiteraryUnit(
+        name: 'Justification par la foi',
+        book: 'Galates',
+        startChapter: 2,
+        startVerse: 15,
+        endChapter: 3,
+        endVerse: 29,
+        type: UnitType.argument,
+        priority: UnitPriority.critical,
+      ),
+      LiteraryUnit(
+        name: 'Liberté en Christ',
+        book: 'Galates',
+        startChapter: 5,
+        startVerse: 1,
+        endChapter: 5,
+        endVerse: 26,
+        type: UnitType.argument,
+        priority: UnitPriority.high,
+      ),
+    ],
+    
+    'Éphésiens': [
+      LiteraryUnit(
+        name: 'Bénédictions spirituelles',
+        book: 'Éphésiens',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 1,
+        endVerse: 23,
+        type: UnitType.poetry,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Unité de l\'Église',
+        book: 'Éphésiens',
+        startChapter: 4,
+        startVerse: 1,
+        endChapter: 4,
+        endVerse: 16,
+        type: UnitType.argument,
+        priority: UnitPriority.high,
+      ),
+    ],
+    
+    'Philippiens': [
+      LiteraryUnit(
+        name: 'Hymne de l\'abaissement',
+        book: 'Philippiens',
+        startChapter: 2,
+        startVerse: 5,
+        endChapter: 2,
+        endVerse: 11,
+        type: UnitType.poetry,
+        priority: UnitPriority.critical,
+      ),
+    ],
+    
+    'Colossiens': [
+      LiteraryUnit(
+        name: 'Hymne christologique',
+        book: 'Colossiens',
+        startChapter: 1,
+        startVerse: 15,
+        endChapter: 1,
+        endVerse: 20,
+        type: UnitType.poetry,
+        priority: UnitPriority.critical,
+      ),
+      LiteraryUnit(
+        name: 'Mise en garde contre les philosophies',
+        book: 'Colossiens',
+        startChapter: 2,
+        startVerse: 1,
+        endChapter: 2,
+        endVerse: 10,
+        type: UnitType.argument,
+        priority: UnitPriority.high,
+        description: 'Mise en garde contre les philosophies trompeuses et les traditions humaines',
+      ),
+      LiteraryUnit(
+        name: 'Circoncision spirituelle',
+        book: 'Colossiens',
+        startChapter: 2,
+        startVerse: 11,
+        endChapter: 2,
+        endVerse: 15,
+        type: UnitType.argument,
+        priority: UnitPriority.high,
+        description: 'Enseignement sur la circoncision spirituelle et la victoire sur les puissances',
+      ),
+      LiteraryUnit(
+        name: 'Mise en garde contre les observances',
+        book: 'Colossiens',
+        startChapter: 2,
+        startVerse: 16,
+        endChapter: 2,
+        endVerse: 23,
+        type: UnitType.argument,
+        priority: UnitPriority.medium,
+        description: 'Mise en garde contre les observances religieuses et les règles humaines',
+      ),
+    ],
+    
+    '1 Thessaloniciens': [
+      LiteraryUnit(
+        name: 'Seconde venue',
+        book: '1 Thessaloniciens',
+        startChapter: 4,
+        startVerse: 13,
+        endChapter: 5,
+        endVerse: 11,
+        type: UnitType.argument,
+        priority: UnitPriority.high,
+      ),
+    ],
+    
+    '2 Thessaloniciens': [
+      LiteraryUnit(
+        name: 'Homme de péché',
+        book: '2 Thessaloniciens',
+        startChapter: 2,
+        startVerse: 1,
+        endChapter: 2,
+        endVerse: 12,
+        type: UnitType.argument,
+        priority: UnitPriority.high,
+      ),
+    ],
+    
+    '1 Timothée': [
+      LiteraryUnit(
+        name: 'Qualifications des anciens',
+        book: '1 Timothée',
+        startChapter: 3,
+        startVerse: 1,
+        endChapter: 3,
+        endVerse: 16,
+        type: UnitType.letter,
+        priority: UnitPriority.medium,
+      ),
+    ],
+    
+    '2 Timothée': [
+      LiteraryUnit(
+        name: 'Testament spirituel',
+        book: '2 Timothée',
+        startChapter: 4,
+        startVerse: 1,
+        endChapter: 4,
+        endVerse: 22,
+        type: UnitType.letter,
+        priority: UnitPriority.high,
+      ),
+    ],
+    
+    'Tite': [
+      LiteraryUnit(
+        name: 'Instructions pour Tite',
+        book: 'Tite',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 3,
+        endVerse: 15,
+        type: UnitType.letter,
+        priority: UnitPriority.medium,
+      ),
+    ],
+    
+    'Philémon': [
+      LiteraryUnit(
+        name: 'Lettre à Philémon',
+        book: 'Philémon',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 1,
+        endVerse: 25,
+        type: UnitType.letter,
+        priority: UnitPriority.medium,
+        description: 'Lettre complète à Philémon',
+      ),
+    ],
+    
+    'Hébreux': [
+      LiteraryUnit(
+        name: 'Supériorité de Christ',
+        book: 'Hébreux',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 2,
+        endVerse: 18,
+        type: UnitType.argument,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Chapitre de la foi',
+        book: 'Hébreux',
+        startChapter: 11,
+        startVerse: 1,
+        endChapter: 11,
+        endVerse: 40,
+        type: UnitType.narrative,
+        priority: UnitPriority.critical,
+      ),
+    ],
+    
+    'Jacques': [
+      LiteraryUnit(
+        name: 'Foi et œuvres',
+        book: 'Jacques',
+        startChapter: 2,
+        startVerse: 14,
+        endChapter: 2,
+        endVerse: 26,
+        type: UnitType.argument,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Langue et sagesse',
+        book: 'Jacques',
+        startChapter: 3,
+        startVerse: 1,
+        endChapter: 3,
+        endVerse: 18,
+        type: UnitType.argument,
+        priority: UnitPriority.medium,
+      ),
+    ],
+    
+    '1 Pierre': [
+      LiteraryUnit(
+        name: 'Souffrance et gloire',
+        book: '1 Pierre',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 2,
+        endVerse: 10,
+        type: UnitType.letter,
+        priority: UnitPriority.high,
+      ),
+    ],
+    
+    '2 Pierre': [
+      LiteraryUnit(
+        name: 'Faux prophètes',
+        book: '2 Pierre',
+        startChapter: 2,
+        startVerse: 1,
+        endChapter: 2,
+        endVerse: 22,
+        type: UnitType.argument,
+        priority: UnitPriority.medium,
+      ),
+    ],
+    
+    '1 Jean': [
+      LiteraryUnit(
+        name: 'Amour de Dieu',
+        book: '1 Jean',
+        startChapter: 4,
+        startVerse: 7,
+        endChapter: 4,
+        endVerse: 21,
+        type: UnitType.argument,
+        priority: UnitPriority.high,
+      ),
+    ],
+    
+    '2 Jean': [
+      LiteraryUnit(
+        name: 'Lettre à l\'élue',
+        book: '2 Jean',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 1,
+        endVerse: 13,
+        type: UnitType.letter,
+        priority: UnitPriority.medium,
+        description: 'Lettre complète à l\'élue',
+      ),
+    ],
+    
+    '3 Jean': [
+      LiteraryUnit(
+        name: 'Lettre à Gaïus',
+        book: '3 Jean',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 1,
+        endVerse: 15,
+        type: UnitType.letter,
+        priority: UnitPriority.medium,
+        description: 'Lettre complète à Gaïus',
+      ),
+    ],
+    
+    'Jude': [
+      LiteraryUnit(
+        name: 'Contre les apostats',
+        book: 'Jude',
+        startChapter: 1,
+        startVerse: 1,
+        endChapter: 1,
+        endVerse: 25,
+        type: UnitType.argument,
+        priority: UnitPriority.medium,
+        description: 'Lettre complète de Jude',
+      ),
+    ],
+    
+    'Apocalypse': [
+      LiteraryUnit(
+        name: 'Lettres aux sept Églises',
+        book: 'Apocalypse',
+        startChapter: 2,
+        startVerse: 1,
+        endChapter: 3,
+        endVerse: 22,
+        type: UnitType.letter,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Vision du trône',
+        book: 'Apocalypse',
+        startChapter: 4,
+        startVerse: 1,
+        endChapter: 5,
+        endVerse: 14,
+        type: UnitType.prophecy,
+        priority: UnitPriority.high,
+      ),
+      LiteraryUnit(
+        name: 'Nouvelle Jérusalem',
+        book: 'Apocalypse',
+        startChapter: 21,
+        startVerse: 1,
+        endChapter: 22,
+        endVerse: 21,
+        type: UnitType.prophecy,
         priority: UnitPriority.critical,
       ),
     ],
@@ -567,7 +1969,7 @@ class SemanticPassageBoundaryService {
     required int endVerse,
   }) {
     var range = VerseRange(startChapter, startVerse, endChapter, endVerse);
-    final units = _getUnitsForBook(book);
+    final units = getUnitsForBook(book);
 
     LiteraryUnit? finalUnit;
     String reason = 'Aucune unité coupée';
@@ -747,7 +2149,7 @@ class SemanticPassageBoundaryService {
   /// ═══════════════════════════════════════════════════════════════════════
 
   /// Récupère les unités pour un livre (cache → Hive → hardcoded)
-  static List<LiteraryUnit> _getUnitsForBook(String book) {
+  static List<LiteraryUnit> getUnitsForBook(String book) {
     // 1. Essayer cache mémoire
     if (_literaryUnits.containsKey(book)) {
       return _literaryUnits[book]!;
@@ -763,6 +2165,49 @@ class SemanticPassageBoundaryService {
 
     // 3. Fallback vide
     return const [];
+  }
+
+  /// Enrichit une description d'unité littéraire avec le contexte historique
+  static Future<String> enrichDescriptionWithTimeline(String book, String? originalDescription) async {
+    try {
+      // Initialiser le service Timeline
+      await BiblicalTimelineService.init();
+      
+      // Récupérer la période historique pour ce livre
+      final period = await BiblicalTimelineService.getPeriodForBook(book);
+      
+      if (period != null) {
+        final periodName = period['name'] as String? ?? '';
+        final periodDescription = period['description'] as String? ?? '';
+        final keyEvents = period['keyEvents'] as List<dynamic>? ?? [];
+        
+        // Construire le contexte enrichi
+        String enrichedDescription = originalDescription ?? '';
+        
+        if (periodName.isNotEmpty) {
+          enrichedDescription = enrichedDescription.isEmpty 
+              ? 'Contexte: $periodName'
+              : '$enrichedDescription — Contexte: $periodName';
+        }
+        
+        if (periodDescription.isNotEmpty && enrichedDescription.length < 200) {
+          enrichedDescription += ' — $periodDescription';
+        }
+        
+        // Ajouter un événement clé pertinent si disponible
+        if (keyEvents.isNotEmpty && enrichedDescription.length < 150) {
+          final relevantEvent = keyEvents.first.toString();
+          enrichedDescription += ' — $relevantEvent';
+        }
+        
+        return enrichedDescription;
+      }
+      
+      return originalDescription ?? '';
+    } catch (e) {
+      print('⚠️ Erreur enrichissement description Timeline: $e');
+      return originalDescription ?? '';
+    }
   }
 
   /// Hydrate les unités depuis JSON
@@ -800,6 +2245,204 @@ class SemanticPassageBoundaryService {
           .where((u) => u.type == UnitType.collection)
           .length,
     };
+  }
+
+  /// ═══════════════════════════════════════════════════════════════════════
+  /// CHRONOLOGIE BIBLIQUE INTÉGRATION
+  /// ═══════════════════════════════════════════════════════════════════════
+
+  /// Enrichit une unité littéraire avec le contexte historique
+  static Future<LiteraryUnit> enrichWithHistoricalContext(LiteraryUnit unit) async {
+    try {
+      // Déterminer la période historique basée sur le livre
+      final period = await _getHistoricalPeriodForBook(unit.book);
+      
+      if (period != null) {
+        // Enrichir la description avec le contexte historique
+        final enrichedDescription = _buildEnrichedDescription(unit, period);
+        
+        return LiteraryUnit(
+          name: unit.name,
+          book: unit.book,
+          startChapter: unit.startChapter,
+          startVerse: unit.startVerse,
+          endChapter: unit.endChapter,
+          endVerse: unit.endVerse,
+          type: unit.type,
+          priority: unit.priority,
+          description: enrichedDescription,
+        );
+      }
+    } catch (e) {
+      print('⚠️ Erreur enrichissement contexte historique: $e');
+    }
+    
+    return unit;
+  }
+
+  /// Détermine la période historique pour un livre
+  static Future<Map<String, dynamic>?> _getHistoricalPeriodForBook(String book) async {
+    try {
+        final periods = await BiblicalTimelineService.getPeriods();
+      
+      for (final period in periods) {
+        final books = period['books'] as List<dynamic>? ?? [];
+        if (books.any((b) => b.toString().toLowerCase().contains(book.toLowerCase()))) {
+          return period;
+        }
+      }
+    } catch (e) {
+      print('⚠️ Erreur recherche période historique: $e');
+    }
+    
+    return null;
+  }
+
+  /// Construit une description enrichie avec le contexte historique
+  static String _buildEnrichedDescription(LiteraryUnit unit, Map<String, dynamic> period) {
+    final baseDescription = unit.description ?? '';
+    final periodName = period['name'] as String? ?? '';
+    final periodDescription = period['description'] as String? ?? '';
+    final themes = period['themes'] as List<dynamic>? ?? [];
+    final keyEvents = period['keyEvents'] as List<dynamic>? ?? [];
+    
+    final contextThemes = themes.take(3).join(', ');
+    final contextEvents = keyEvents.take(2).join(', ');
+    
+    final enrichedParts = <String>[];
+    
+    if (baseDescription.isNotEmpty) {
+      enrichedParts.add(baseDescription);
+    }
+    
+    enrichedParts.add('Contexte historique: $periodName ($periodDescription)');
+    
+    if (contextThemes.isNotEmpty) {
+      enrichedParts.add('Thèmes de l\'époque: $contextThemes');
+    }
+    
+    if (contextEvents.isNotEmpty) {
+      enrichedParts.add('Événements clés: $contextEvents');
+    }
+    
+    return enrichedParts.join(' • ');
+  }
+
+  /// Ajuste un passage avec le contexte chronologique
+  static Future<PassageBoundary> adjustPassageWithTimeline({
+    required String book,
+    required int startChapter,
+    required int startVerse,
+    required int endChapter,
+    required int endVerse,
+  }) async {
+    // Ajustement sémantique standard
+    final boundary = adjustPassageVerses(
+      book: book,
+      startChapter: startChapter,
+      startVerse: startVerse,
+      endChapter: endChapter,
+      endVerse: endVerse,
+    );
+
+    // Enrichir avec le contexte historique si une unité est incluse
+    if (boundary.includedUnit != null) {
+      try {
+        final enrichedUnit = await enrichWithHistoricalContext(boundary.includedUnit!);
+        
+        return PassageBoundary(
+          book: boundary.book,
+          startChapter: boundary.startChapter,
+          startVerse: boundary.startVerse,
+          endChapter: boundary.endChapter,
+          endVerse: boundary.endVerse,
+          adjusted: boundary.adjusted,
+          reason: '${boundary.reason} (contexte historique: ${enrichedUnit.description})',
+          includedUnit: enrichedUnit,
+          tags: boundary.tags,
+        );
+      } catch (e) {
+        print('⚠️ Erreur enrichissement contexte: $e');
+      }
+    }
+
+    return boundary;
+  }
+
+  /// Recherche des unités littéraires par période historique
+  static Future<List<LiteraryUnit>> searchUnitsByHistoricalPeriod(String periodName) async {
+    final results = <LiteraryUnit>[];
+    
+    try {
+        final periods = await BiblicalTimelineService.getPeriods();
+      final targetPeriod = periods.firstWhere(
+        (p) => p['name'].toString().toLowerCase().contains(periodName.toLowerCase()),
+        orElse: () => <String, dynamic>{},
+      );
+      
+      if (targetPeriod.isNotEmpty) {
+        final books = targetPeriod['books'] as List<dynamic>? ?? [];
+        
+        for (final book in books) {
+          final bookName = book.toString();
+          if (_literaryUnits.containsKey(bookName)) {
+            results.addAll(_literaryUnits[bookName]!);
+          }
+        }
+      }
+    } catch (e) {
+      print('⚠️ Erreur recherche par période: $e');
+    }
+    
+    return results;
+  }
+
+  /// Recherche des unités littéraires par thème historique
+  static Future<List<LiteraryUnit>> searchUnitsByHistoricalTheme(String theme) async {
+    final results = <LiteraryUnit>[];
+    
+    try {
+      final periods = await BiblicalTimelineService.searchPeriodsByTheme(theme);
+      
+      for (final period in periods) {
+        final books = period['books'] as List<dynamic>? ?? [];
+        
+        for (final book in books) {
+          final bookName = book.toString();
+          if (_literaryUnits.containsKey(bookName)) {
+            results.addAll(_literaryUnits[bookName]!);
+          }
+        }
+      }
+    } catch (e) {
+      print('⚠️ Erreur recherche par thème: $e');
+    }
+    
+    return results;
+  }
+
+  /// Recherche des unités littéraires par personnage historique
+  static Future<List<LiteraryUnit>> searchUnitsByHistoricalCharacter(String character) async {
+    final results = <LiteraryUnit>[];
+    
+    try {
+      final periods = await BiblicalTimelineService.searchPeriodsByCharacter(character);
+      
+      for (final period in periods) {
+        final books = period['books'] as List<dynamic>? ?? [];
+        
+        for (final book in books) {
+          final bookName = book.toString();
+          if (_literaryUnits.containsKey(bookName)) {
+            results.addAll(_literaryUnits[bookName]!);
+          }
+        }
+      }
+    } catch (e) {
+      print('⚠️ Erreur recherche par personnage: $e');
+    }
+    
+    return results;
   }
 }
 

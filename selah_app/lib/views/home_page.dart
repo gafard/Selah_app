@@ -13,7 +13,6 @@ import 'my_plan_page_modern.dart';
 
 // Widgets factorisés
 import '../widgets/home/header.dart';
-import '../widgets/home/daily_blessing.dart';
 import '../widgets/home/calendar_bar.dart';
 import '../widgets/home/activity_carousel.dart';
 import '../widgets/home/progress_card.dart';

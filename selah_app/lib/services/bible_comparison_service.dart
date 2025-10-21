@@ -231,3 +231,4 @@ class BibleComparisonService {
   static bool get isInitialized => _isInitialized;
 }
 
+

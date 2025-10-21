@@ -48,6 +48,9 @@ dependencies:
   http: ^1.1.0
   airplane_mode_checker: ^3.1.0
   app_settings: ^5.1.1
+  archive: ^4.0.7
+  android_alarm_manager_plus: ^5.0.0
+  timezone: ^0.9.4
 
 dev_dependencies:
   flutter_test:
@@ -98,6 +101,7 @@ flutter:
     - assets/theology/
     - assets/data/bsb_topical_index_optimized.json
     - assets/data/thomson_analysis.json
+    - assets/data/biblical_timeline.json
     - assets/data/bible_versions_metadata.json
 
   fonts:

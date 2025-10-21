@@ -1,0 +1,69 @@
+{
+  "character_descriptions": {
+    "Jésus": [
+      "Jésus-Christ est le Fils de Dieu, le Messie promis, venu sur terre pour sauver l'humanité. Il est né de la vierge Marie, a vécu une vie parfaite sans péché, a enseigné avec autorité, a accompli de nombreux miracles, et est mort sur la croix pour expier les péchés du monde. Il est ressuscité le troisième jour, prouvant sa divinité et sa victoire sur la mort. Jésus est le chemin, la vérité et la vie, et nul ne vient au Père que par lui.",
+      "Jésus est le centre de la foi chrétienne. Il est à la fois pleinement Dieu et pleinement homme. Sa vie, sa mort et sa résurrection constituent le fondement du salut. Il a enseigné l'amour, le pardon, la justice et la miséricorde. Son sacrifice volontaire sur la croix a réconcilié l'humanité avec Dieu.",
+      "Les thèmes clés de Jésus incluent le salut, l'amour, le sacrifice, la résurrection, le royaume de Dieu, la grâce, la vérité, la vie éternelle, et la réconciliation avec Dieu."
+    ],
+    "Pierre": [
+      "Pierre (Simon) était un pêcheur de Galilée, frère d'André, qui devint l'un des douze apôtres de Jésus. Il est souvent décrit comme le leader des disciples et joua un rôle central dans l'Église primitive. Jésus lui donna le nom de Pierre (Céphas), signifiant 'rocher', et lui confia la mission de fonder son Église.",
+      "Pierre fut témoin de nombreux miracles de Jésus, notamment la marche sur l'eau, la transfiguration, et la résurrection de Jésus. Après la Pentecôte, il prêcha avec puissance et fut emprisonné pour sa foi. Il écrivit deux épîtres du Nouveau Testament et fut martyrisé à Rome sous Néron.",
+      "Pierre était un homme impulsif et passionné, connu pour ses déclarations audacieuses et ses moments de doute. Il renia Jésus trois fois avant le chant du coq, mais fut restauré par Jésus après sa résurrection. Son ministère s'étendit aux Juifs et aux Gentils."
+    ],
+    "Paul": [
+      "Paul (Saül de Tarse) était un pharisien zélé qui persécutait les chrétiens avant sa conversion dramatique sur le chemin de Damas. Après avoir rencontré Jésus ressuscité, il devint l'apôtre des Gentils et l'un des plus grands missionnaires de l'histoire chrétienne.",
+      "Paul écrivit treize épîtres du Nouveau Testament, développant la théologie chrétienne et établissant des églises dans tout l'Empire romain. Il souffrit de nombreuses persécutions pour l'Évangile et fut finalement martyrisé à Rome sous Néron.",
+      "Les thèmes clés de Paul incluent la justification par la foi, la grâce, la sanctification, l'Église comme corps de Christ, la résurrection, et l'espérance de la vie éternelle."
+    ],
+    "Jean": [
+      "Jean était l'un des douze apôtres, surnommé 'le disciple que Jésus aimait'. Il était le frère de Jacques, fils de Zébédée, et faisait partie du cercle intime de Jésus avec Pierre et Jacques. Il écrivit l'Évangile de Jean, trois épîtres, et l'Apocalypse.",
+      "Jean était présent lors des moments les plus importants de la vie de Jésus : la transfiguration, l'agonie à Gethsémané, et la crucifixion. Jésus confia sa mère Marie à Jean. Il vécut plus longtemps que les autres apôtres et fut exilé à Patmos.",
+      "Les thèmes clés de Jean incluent l'amour, la lumière, la vie éternelle, la vérité, l'incarnation de Christ, et l'espérance de son retour."
+    ],
+    "Marie": [
+      "Marie était une jeune femme juive de Nazareth, fiancée à Joseph, qui fut choisie par Dieu pour être la mère de Jésus. Elle accepta humblement la mission divine malgré les difficultés qu'elle impliquait, montrant une foi exemplaire.",
+      "Marie fut présente aux moments clés de la vie de Jésus : sa naissance, ses premiers miracles, sa crucifixion, et sa résurrection. Elle devint une figure centrale de l'Église primitive et est vénérée pour sa foi et son obéissance.",
+      "Les thèmes clés de Marie incluent l'humilité, l'obéissance, la foi, la maternité spirituelle, et l'intercession."
+    ],
+    "Joseph": [
+      "Joseph était un charpentier de Nazareth, descendant de David, fiancé à Marie. Il fut choisi par Dieu pour être le père adoptif de Jésus. Malgré les difficultés initiales, il accepta sa mission avec foi et protégea sa famille.",
+      "Joseph fut un homme juste et obéissant, guidé par les anges dans ses décisions importantes. Il enseigna son métier à Jésus et fut un modèle de paternité responsable et aimante.",
+      "Les thèmes clés de Joseph incluent l'intégrité, la compassion, la fidélité, l'obéissance, et l'engagement spirituel."
+    ],
+    "Moïse": [
+      "Moïse était le libérateur d'Israël, choisi par Dieu pour sortir son peuple de l'esclavage en Égypte. Il reçut la Loi sur le mont Sinaï et guida Israël pendant quarante ans dans le désert.",
+      "Moïse fut un prophète, un législateur et un intercesseur. Malgré ses imperfections, il fut l'homme le plus humble de la terre et fut autorisé à voir Dieu. Il préfigura le ministère de Jésus comme libérateur et médiateur.",
+      "Les thèmes clés de Moïse incluent la libération, la loi, l'alliance, l'intercession, la foi, et la préfiguration du Christ."
+    ],
+    "David": [
+      "David était le deuxième roi d'Israël, un homme selon le cœur de Dieu. Il était berger, musicien, guerrier, et auteur de nombreux psaumes. Il fut oint roi par Samuel et établit Jérusalem comme capitale.",
+      "Malgré ses péchés (adultère avec Bath-Schéba, meurtre d'Urie), David se repentit sincèrement et resta dans la grâce de Dieu. Il fut un précurseur du Messie et sa lignée aboutit à Jésus-Christ.",
+      "Les thèmes clés de David incluent la royauté, l'adoration, la repentance, l'alliance, la préfiguration du Christ, et la relation personnelle avec Dieu."
+    ],
+    "Abraham": [
+      "Abraham était le père de la foi, choisi par Dieu pour être le père d'une grande nation. Il quitta sa patrie sur l'ordre de Dieu et devint le modèle de la foi et de l'obéissance.",
+      "Abraham reçut la promesse que toutes les nations seraient bénies en sa postérité, promesse accomplie en Jésus-Christ. Il fut prêt à sacrifier son fils Isaac, préfigurant le sacrifice de Christ.",
+      "Les thèmes clés d'Abraham incluent la foi, l'obéissance, la promesse, l'alliance, la bénédiction, et la préfiguration du sacrifice de Christ."
+    ],
+    "Jacques": [
+      "Jacques était le frère de Jean, fils de Zébédée, l'un des douze apôtres. Il faisait partie du cercle intime de Jésus avec Pierre et Jean. Il fut le premier apôtre martyrisé, tué par Hérode Agrippa.",
+      "Jacques était surnommé 'Boanergès' (fils du tonnerre) avec son frère Jean, à cause de leur tempérament impétueux. Il demanda à Jésus de faire descendre le feu du ciel sur un village samaritain, mais apprit l'amour et la patience.",
+      "Les thèmes clés de Jacques incluent le zèle, la transformation, le martyre, et le service pour Christ."
+    ],
+    "Matthieu": [
+      "Matthieu était un collecteur d'impôts (publicain) que Jésus appela à le suivre. Il abandonna immédiatement son métier pour devenir disciple et apôtre. Il écrivit l'Évangile de Matthieu.",
+      "Matthieu était méprisé par les Juifs à cause de sa profession, mais Jésus le choisit pour montrer que le salut est offert à tous. Il organisa un grand festin pour présenter Jésus à ses anciens collègues.",
+      "Les thèmes clés de Matthieu incluent la transformation, l'évangélisation, l'inclusion, et l'écriture inspirée."
+    ],
+    "Marc": [
+      "Marc (Jean-Marc) était un compagnon de Paul et de Pierre dans leurs voyages missionnaires. Il écrivit l'Évangile de Marc, le plus court des quatre évangiles, se concentrant sur les actions de Jésus.",
+      "Marc était le cousin de Barnabas et accompagna Paul lors de son premier voyage missionnaire, mais l'abandonna. Plus tard, il se réconcilia avec Paul et devint utile au ministère. Il fut un disciple de Pierre.",
+      "Les thèmes clés de Marc incluent le service, la réconciliation, la croissance spirituelle, et l'évangélisation."
+    ],
+    "Luc": [
+      "Luc était un médecin grec, compagnon de Paul, qui écrivit l'Évangile de Luc et les Actes des Apôtres. Il était le seul auteur non-Juif du Nouveau Testament.",
+      "Luc était un historien méticuleux qui fit des recherches approfondies avant d'écrire. Son évangile met l'accent sur la compassion de Jésus pour les marginaux et les exclus de la société.",
+      "Les thèmes clés de Luc incluent la compassion, l'inclusion, la recherche historique, et l'œuvre du Saint-Esprit."
+    ]
+  }
+}

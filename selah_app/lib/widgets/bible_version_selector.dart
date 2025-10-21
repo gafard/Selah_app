@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../services/bible_version_manager.dart';
 
 /// Widget réutilisable pour sélectionner une version de Bible
 class BibleVersionSelector extends StatefulWidget {
@@ -33,35 +32,21 @@ class _BibleVersionSelectorState extends State<BibleVersionSelector> {
 
   Future<void> _loadAvailableVersions() async {
     try {
-      // ✅ VERSIONS INTÉGRÉES (assets) - Disponibles immédiatement
-      final integratedVersions = [
+      // ✅ VERSIONS DISPONIBLES (4 versions intégrées)
+      final availableVersions = [
         {'id': 'lsg1910', 'name': 'Louis Segond 1910', 'language': 'fr', 'source': 'assets'},
         {'id': 'francais_courant', 'name': 'Français Courant', 'language': 'fr', 'source': 'assets'},
         {'id': 'semeur', 'name': 'Bible du Semeur', 'language': 'fr', 'source': 'assets'},
+        {'id': 'nouvelle_segond', 'name': 'Nouvelle Bible Segond', 'language': 'fr', 'source': 'assets'},
+        {'id': 'oecumenique', 'name': 'Œcuménique de la Bible', 'language': 'fr', 'source': 'assets'},
       ];
-      
-      // ✅ VERSIONS TÉLÉCHARGEABLES (VideoPsalm)
-      final downloadableVersions = [
-        {'id': 'colombe', 'name': 'Colombe', 'language': 'fr', 'source': 'videopsalm'},
-        {'id': 'darby', 'name': 'Darby', 'language': 'fr', 'source': 'videopsalm'},
-        {'id': 'martin1744', 'name': 'Bible Martin 1744', 'language': 'fr', 'source': 'videopsalm'},
-        {'id': 'ostervald1996', 'name': 'Bible Ostervald 1996', 'language': 'fr', 'source': 'videopsalm'},
-        {'id': 'nouvelle_bible_segond', 'name': 'Nouvelle Bible Segond', 'language': 'fr', 'source': 'videopsalm'},
-        {'id': 'neg1979', 'name': 'Nouvelle Edition de Genève 1979', 'language': 'fr', 'source': 'videopsalm'},
-        {'id': 'segond21', 'name': 'Bible Segond 21', 'language': 'fr', 'source': 'videopsalm'},
-        {'id': 'parole_de_vie', 'name': 'Parole de Vie', 'language': 'fr', 'source': 'videopsalm'},
-        {'id': 'tob', 'name': 'Traduction Œcuménique de la Bible', 'language': 'fr', 'source': 'videopsalm'},
-      ];
-      
-      // ✅ Combiner toutes les versions (intégrées en premier)
-      final allVersions = [...integratedVersions, ...downloadableVersions];
       
       setState(() {
-        _availableVersions = allVersions;
+        _availableVersions = availableVersions;
         _isLoading = false;
       });
       
-      print('✅ Versions chargées: ${integratedVersions.length} intégrées + ${downloadableVersions.length} téléchargeables');
+      print('✅ Versions chargées: ${availableVersions.length} versions disponibles');
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -91,7 +76,7 @@ class _BibleVersionSelectorState extends State<BibleVersionSelector> {
         ),
         child: Row(
           children: [
-            Icon(Icons.menu_book, size: 16, color: Colors.grey),
+            const Icon(Icons.menu_book, size: 16, color: Colors.grey),
             const SizedBox(width: 8),
             Text(
               'Aucune version disponible',
@@ -137,7 +122,7 @@ class _BibleVersionSelectorState extends State<BibleVersionSelector> {
             ),
             child: Row(
               children: [
-                Icon(
+                const Icon(
                   Icons.menu_book,
                   size: 16,
                   color: Colors.blue,
@@ -152,7 +137,7 @@ class _BibleVersionSelectorState extends State<BibleVersionSelector> {
                   ),
                 ),
                 const SizedBox(width: 4),
-                Icon(
+                const Icon(
                   Icons.keyboard_arrow_down,
                   size: 16,
                   color: Colors.blue,
@@ -289,7 +274,7 @@ class _BibleVersionSelectorState extends State<BibleVersionSelector> {
               ),
             ),
             if (isSelected)
-              Icon(
+              const Icon(
                 Icons.check_circle,
                 color: Colors.blue,
                 size: 20,

@@ -8,7 +8,6 @@ import 'package:go_router/go_router.dart';
 import '../services/reader_settings_service.dart';
 import '../services/bible_text_service.dart';
 import '../widgets/highlightable_text.dart';
-import '../widgets/uniform_back_button.dart';
 import '../widgets/reader_prompts_bar.dart';
 import '../widgets/mini_journal_sheet.dart';
 import '../services/journal_service.dart';
@@ -20,13 +19,21 @@ import '../services/user_prefs_hive.dart';
 import '../services/user_prefs_sync.dart';
 import '../services/version_change_notifier.dart';
 import '../bootstrap.dart' as bootstrap;
-import 'advanced_bible_study_page.dart';
 import '../services/spiritual_foundations_service.dart';
 import '../models/spiritual_foundation.dart';
-import '../services/themes_service.dart';
 import '../services/bible_context_service.dart';
-import '../services/bible_comparison_service.dart';
 import '../services/thomson_service.dart';
+import '../services/semantic_passage_boundary_service_v2.dart';
+import '../services/biblical_timeline_service.dart';
+import '../services/thomson_characters_service.dart';
+import '../services/bsb_topical_service.dart';
+import '../services/mirror_verse_service.dart';
+// Services supprimés (packs incomplets)
+import '../services/foundations_progress_service.dart';
+import '../services/reading_memory_service.dart';
+import '../services/meditation_journal_service.dart';
+import '../services/intelligent_quiz_service.dart';
+import '../models/meditation_journal_entry.dart';
 import 'bible_comparison_page.dart';
 
 class ReaderPageModern extends StatefulWidget {
@@ -55,7 +62,9 @@ class ReaderPageModern extends StatefulWidget {
 
 class _ReaderPageModernState extends State<ReaderPageModern>
     with TickerProviderStateMixin {
-  final bool _isFavorite = false;
+  bool _isFavorite = false;
+  bool _isBookmarked = false;
+  bool _hasNote = false;
   bool _isMarkedAsRead = false;
   SpiritualFoundation? _foundationOfDay;
   late AnimationController _buttonAnimationController;
@@ -132,6 +141,18 @@ class _ReaderPageModernState extends State<ReaderPageModern>
 
   String? _lastAppliedVersion;
 
+  /// Retourne un padding adaptatif basé sur la largeur de l'écran
+  EdgeInsets _getResponsivePadding(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    if (width < 360) {
+      return const EdgeInsets.all(12); // Petits écrans
+    } else if (width < 600) {
+      return const EdgeInsets.all(16); // Écrans moyens
+    } else {
+      return const EdgeInsets.all(20); // Grands écrans/tablettes
+    }
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -171,7 +192,7 @@ class _ReaderPageModernState extends State<ReaderPageModern>
         print('🔍 _loadUserBibleVersion (UserPrefsHive): userVersion="$userVersion"');
       } else {
         // Fallback vers UserPrefs si UserPrefsHive non disponible
-        final profile = await UserPrefs.loadProfile();
+      final profile = await UserPrefs.loadProfile();
         userVersion = profile['bibleVersion'] as String?;
         print('🔍 _loadUserBibleVersion (UserPrefs fallback): userVersion="$userVersion"');
       }
@@ -182,10 +203,10 @@ class _ReaderPageModernState extends State<ReaderPageModern>
         final isAvailable = await _checkVersionAvailability(userVersion);
         print('🔍 Résultat vérification "$userVersion": isAvailable=$isAvailable');
         if (isAvailable) {
-          setState(() {
+        setState(() {
             _selectedVersion = userVersion!;
-          });
-          print('📖 Version utilisateur chargée: $userVersion');
+        });
+        print('📖 Version utilisateur chargée: $userVersion');
         } else {
           // Essayer de forcer la réimportation pour francais_courant et semeur
           if (userVersion == 'francais_courant' || userVersion == 'semeur') {
@@ -301,10 +322,25 @@ class _ReaderPageModernState extends State<ReaderPageModern>
 
         try {
           await BibleTextService.ensureVersionAvailable(_selectedVersion);
-          final text = await BibleTextService.getPassageText(passage.reference, version: _selectedVersion);
-          final resolved = text ?? await _getFallbackText(passage.reference);
-          updated[index] = passage.copyWith(text: resolved, isLoaded: true, isLoading: false, error: text == null ? 'Texte non trouvé' : null);
-        } catch (e) {
+          
+          // 🧠 UTILISER LE SERVICE SÉMANTIQUE pour ajuster le passage
+          final adjustedPassage = await _adjustPassageWithSemanticService(passage.reference);
+          
+          print('📖 Récupération du texte pour: $adjustedPassage');
+          final text = await BibleTextService.getPassageText(adjustedPassage, version: _selectedVersion);
+          print('📖 Texte récupéré: ${text?.length ?? 0} caractères');
+          final resolved = text ?? await _getFallbackText(adjustedPassage);
+          
+          // 🔄 Mettre à jour la référence du passage avec la version ajustée
+          updated[index] = passage.copyWith(
+            reference: adjustedPassage, // ← Utiliser la référence ajustée
+            text: resolved, 
+            isLoaded: true, 
+            isLoading: false, 
+            error: text == null ? 'Texte non trouvé' : null
+          );
+      
+    } catch (e) {
           final resolved = await _getFallbackText(passage.reference);
           updated[index] = passage.copyWith(text: resolved, isLoaded: true, isLoading: false, error: e.toString());
         }
@@ -335,53 +371,57 @@ class _ReaderPageModernState extends State<ReaderPageModern>
 
       // Indiquer le loading
       if (_readingSession != null) {
-        setState(() {
+      setState(() {
           _readingSession = _readingSession!.updatePassage(
-            index,
-            passage.copyWith(isLoading: true),
-          );
-        });
+          index,
+          passage.copyWith(isLoading: true),
+        );
+      });
       }
 
       // ✅ S'assurer que la version est disponible avant de récupérer le texte
       await BibleTextService.ensureVersionAvailable(_selectedVersion);
       
-      // ✅ Utiliser le nouveau système SQLite avec service sémantique
+      // 🧠 UTILISER LE SERVICE SÉMANTIQUE pour ajuster le passage
+      final adjustedPassage = await _adjustPassageWithSemanticService(passage.reference);
+      
+      // ✅ Utiliser le passage ajusté avec le service sémantique
       final text = await BibleTextService.getPassageText(
-        passage.reference, 
+        adjustedPassage, 
         version: _selectedVersion,
       );
 
       // Résoudre le fallback AVANT setState
-      final resolvedText = text ?? await _getFallbackText(passage.reference);
+      final resolvedText = text ?? await _getFallbackText(adjustedPassage);
 
       if (!mounted || _readingSession == null) return;
-      setState(() {
+        setState(() {
         _readingSession = _readingSession!.updatePassage(
-          index,
-          passage.copyWith(
+            index,
+            passage.copyWith(
+            reference: adjustedPassage, // ← Utiliser la référence ajustée
             text: resolvedText,
-            isLoaded: true,
-            isLoading: false,
-            error: text == null ? 'Texte non trouvé' : null,
-          ),
-        );
-      });
+              isLoaded: true,
+              isLoading: false,
+              error: text == null ? 'Texte non trouvé' : null,
+            ),
+          );
+        });
     } catch (e) {
       print('⚠️ Erreur chargement passage ${passage.reference}: $e');
       final resolvedText = await _getFallbackText(passage.reference);
       if (!mounted || _readingSession == null) return;
-      setState(() {
+        setState(() {
         _readingSession = _readingSession!.updatePassage(
-          index,
-          passage.copyWith(
+            index,
+            passage.copyWith(
             text: resolvedText,
-            isLoaded: true,
-            isLoading: false,
-            error: e.toString(),
-          ),
-        );
-      });
+              isLoaded: true,
+              isLoading: false,
+              error: e.toString(),
+            ),
+          );
+        });
     }
   }
   
@@ -443,9 +483,12 @@ class _ReaderPageModernState extends State<ReaderPageModern>
       // S'assurer que la version est disponible
       await BibleTextService.ensureVersionAvailable(_selectedVersion);
       
+      // 🧠 UTILISER LE SERVICE SÉMANTIQUE pour ajuster le passage
+      final adjustedRef = await _adjustPassageWithSemanticService(currentRef);
+      
       // Récupérer le texte
       final text = await BibleTextService.getPassageText(
-        currentRef,
+        adjustedRef,
         version: _selectedVersion,
       );
 
@@ -454,6 +497,17 @@ class _ReaderPageModernState extends State<ReaderPageModern>
         setState(() {
           _passageText = text;
           _isLoadingText = false;
+          // 🔄 Mettre à jour la référence dans la session avec la version ajustée
+          if (adjustedRef != currentRef) {
+            final currentIndex = _readingSession!.currentPassageIndex;
+            final currentPassage = _readingSession!.currentPassage;
+            if (currentPassage != null) {
+              _readingSession = _readingSession!.updatePassage(
+                currentIndex,
+                currentPassage.copyWith(reference: adjustedRef),
+              );
+            }
+          }
         });
         print('✅ Passage rechargé: ${text.length} caractères');
       } else {
@@ -481,7 +535,7 @@ class _ReaderPageModernState extends State<ReaderPageModern>
   Future<void> _loadBibleText() async {
     try {
       await BibleTextService.init();
-
+      
       // ✅ Priorité 1: Texte fourni en paramètre
       if (widget.passageText != null && widget.passageText!.isNotEmpty) {
         if (!mounted) return;
@@ -491,22 +545,36 @@ class _ReaderPageModernState extends State<ReaderPageModern>
         });
         return;
       }
-
+      
       // ✅ Priorité 2: Passage de la session de lecture
       final currentReference = _readingSession?.currentPassage?.reference;
       if (currentReference != null && currentReference != 'Jean 14:1-19') {
         print('🔎 Chargement texte pour passage du jour: $currentReference');
         
+        // 🧠 UTILISER LE SERVICE SÉMANTIQUE pour ajuster le passage
+        final adjustedReference = await _adjustPassageWithSemanticService(currentReference);
+        
         final text = await BibleTextService.getPassageText(
-          currentReference,
+          adjustedReference,
           version: _selectedVersion,
         );
 
         if (text != null && text.trim().isNotEmpty) {
           if (!mounted) return;
-          setState(() {
+        setState(() {
             _passageText = text;
-            _isLoadingText = false;
+          _isLoadingText = false;
+            // 🔄 Mettre à jour la référence dans la session avec la version ajustée
+            if (_readingSession != null && adjustedReference != currentReference) {
+              final currentIndex = _readingSession!.currentPassageIndex;
+              final currentPassage = _readingSession!.currentPassage;
+              if (currentPassage != null) {
+                _readingSession = _readingSession!.updatePassage(
+                  currentIndex,
+                  currentPassage.copyWith(reference: adjustedReference),
+                );
+              }
+            }
           });
           print('✅ Texte du jour chargé: ${text.length} caractères');
           return;
@@ -529,10 +597,57 @@ class _ReaderPageModernState extends State<ReaderPageModern>
       print('⚠️ Erreur chargement texte biblique: $e');
       final resolved = await _getFallbackText(_readingSession?.currentPassage?.reference);
       if (!mounted) return;
-      setState(() {
+        setState(() {
         _passageText = resolved;
-        _isLoadingText = false;
-      });
+          _isLoadingText = false;
+        });
+      }
+  }
+
+  /// Ajuste un passage avec le service sémantique pour respecter les unités littéraires
+  Future<String> _adjustPassageWithSemanticService(String reference) async {
+    try {
+      print('🧠 Ajustement sémantique du passage: $reference');
+      
+      // Parser la référence (ex: "Colossiens 2:1-18")
+      final parts = reference.split(' ');
+      if (parts.length < 2) return reference;
+      
+      final book = parts[0];
+      final chapterVerse = parts[1];
+      final cvParts = chapterVerse.split(':');
+      
+      if (cvParts.length < 2) return reference;
+      
+      final chapter = int.tryParse(cvParts[0]) ?? 1;
+      final verseRange = cvParts[1];
+      final verseParts = verseRange.split('-');
+      final startVerse = int.tryParse(verseParts[0]) ?? 1;
+      final endVerse = verseParts.length > 1 ? int.tryParse(verseParts[1]) ?? startVerse : startVerse;
+      
+      // Utiliser le service sémantique pour ajuster le passage
+      final adjusted = SemanticPassageBoundaryService.adjustPassageVerses(
+        book: book,
+        startChapter: chapter,
+        startVerse: startVerse,
+        endChapter: chapter,
+        endVerse: endVerse,
+      );
+      
+      // Construire la nouvelle référence
+      final newReference = '${adjusted.book} ${adjusted.startChapter}:${adjusted.startVerse}-${adjusted.endVerse}';
+      
+      print('🧠 Service sémantique:');
+      print('   - Passage original: $reference');
+      print('   - Passage ajusté: $newReference');
+      print('   - Ajusté: ${adjusted.adjusted}');
+      print('   - Raison: ${adjusted.reason}');
+      print('   - Unité incluse: ${adjusted.includedUnit?.name ?? "Aucune"}');
+      
+      return newReference;
+    } catch (e) {
+      print('⚠️ Erreur ajustement sémantique: $e');
+      return reference; // Retourner la référence originale en cas d'erreur
     }
   }
 
@@ -615,13 +730,19 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
       _isMarkedAsRead = !_isMarkedAsRead;
     });
     HapticFeedback.mediumImpact();
-
+    
     // ✅ Marquer côté PlanService si contexte connu
     final planId = widget.planId;
     final day = widget.dayNumber;
     if (planId != null && day != null) {
       try {
         await bootstrap.planService.markDayCompleted(planId, day, _isMarkedAsRead);
+        
+        // 🧠 ACTIVATION DE TOUS LES SERVICES D'ANALYSE ET DE PROGRESSION
+    if (_isMarkedAsRead) {
+          await _activateAllAnalysisServices();
+        }
+        
         // Optionnel: feedback
         _showSnackBar(
           _isMarkedAsRead ? 'Jour marqué comme lu' : 'Marqué comme non lu',
@@ -636,6 +757,10 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
       }
     } else {
       // Pas de contexte de plan (lecture libre)
+      if (_isMarkedAsRead) {
+        await _activateAllAnalysisServices();
+      }
+      
       _showSnackBar(
         _isMarkedAsRead ? 'Lu (mode libre)' : 'Non lu (mode libre)',
         _isMarkedAsRead ? Icons.check_circle : Icons.radio_button_unchecked,
@@ -646,6 +771,152 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
     if (_isMarkedAsRead) {
       // Afficher les prompts de réflexion au lieu du bottom sheet
       _showReflectionPrompts();
+    }
+  }
+
+  void _toggleFavorite() {
+    setState(() {
+      _isFavorite = !_isFavorite;
+    });
+    
+    HapticFeedback.lightImpact();
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_isFavorite ? 'Ajouté aux favoris' : 'Retiré des favoris'),
+        backgroundColor: const Color(0xFF49C98D),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
+  void _toggleBookmark() {
+    setState(() {
+      _isBookmarked = !_isBookmarked;
+    });
+    
+    HapticFeedback.lightImpact();
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_isBookmarked ? 'Ajouté aux signets' : 'Retiré des signets'),
+        backgroundColor: const Color(0xFF2B1E75),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
+  void _toggleNote() {
+    setState(() {
+      _hasNote = !_hasNote;
+    });
+    
+    HapticFeedback.lightImpact();
+    
+    if (_hasNote) {
+      // _showModernNoteDialog(); // Méthode supprimée
+    }
+  }
+
+  /// 🧠 Active tous les services d'analyse, de progression et de quiz
+  Future<void> _activateAllAnalysisServices() async {
+    try {
+      final reference = _readingSession?.currentPassage?.reference ?? 'Jean 14:1-19';
+      final verseId = _extractVerseIdFromReference(reference);
+      final today = DateTime.now().toIso8601String().split('T')[0]; // YYYY-MM-DD
+      
+      print('🧠 Activation des services d\'analyse pour: $reference');
+      
+      // 1. 🧠 FOUNDATIONS PROGRESS SERVICE - Enregistrer la pratique
+      try {
+        await FoundationsProgressService.markAsPracticed(
+          'daily_reading_${widget.planId ?? 'free'}',
+          note: 'Lecture: $reference',
+        );
+        print('✅ FoundationsProgressService activé');
+      } catch (e) {
+        print('⚠️ Erreur FoundationsProgressService: $e');
+      }
+      
+      // 2. 🧠 READING MEMORY SERVICE - Analyser la lecture
+      try {
+        await ReadingMemoryService.init();
+        await ReadingMemoryService.saveRetention(
+          id: verseId,
+          retained: 'Lecture complétée: $reference',
+          date: DateTime.now(),
+        );
+        print('✅ ReadingMemoryService activé');
+      } catch (e) {
+        print('⚠️ Erreur ReadingMemoryService: $e');
+      }
+      
+      // 3. 🧠 MEDITATION JOURNAL SERVICE - Préparer l'analyse émotionnelle
+      try {
+        await MeditationJournalService.init();
+        // Créer une entrée de base pour l'analyse
+        final entry = MeditationJournalEntry(
+          id: 'reading_${DateTime.now().millisecondsSinceEpoch}',
+          date: DateTime.now(),
+          passageRef: reference,
+          passageText: _readingSession?.currentPassage?.text ?? '',
+          memoryVerse: '',
+          memoryVerseRef: '',
+          prayerSubjects: [],
+          prayerNotes: [],
+          gradientIndex: 0,
+          meditationType: 'free',
+          meditationData: {'note': 'Lecture marquée comme terminée'},
+        );
+        await MeditationJournalService.saveEntry(entry);
+        print('✅ MeditationJournalService activé');
+      } catch (e) {
+        print('⚠️ Erreur MeditationJournalService: $e');
+      }
+      
+      // 4. 🧠 INTELLIGENT QUIZ SERVICE - Préparer les quiz
+      try {
+        await IntelligentQuizService.init();
+        // Le service sera activé automatiquement lors de la génération de quiz
+        print('✅ IntelligentQuizService activé');
+      } catch (e) {
+        print('⚠️ Erreur IntelligentQuizService: $e');
+      }
+      
+      // 5. 🧠 SPIRITUAL FOUNDATIONS SERVICE - Mettre à jour les fondations
+      try {
+        await SpiritualFoundationsService.reload();
+        // Le service sera activé automatiquement lors de l'utilisation des fondations
+        print('✅ SpiritualFoundationsService activé');
+      } catch (e) {
+        print('⚠️ Erreur SpiritualFoundationsService: $e');
+      }
+      
+      // 6. 🧠 JOURNAL SERVICE - Enregistrer l'activité
+      try {
+        await JournalService.saveJournalEntry(
+          date: today,
+          bullets: ['Lecture terminée', 'Passage $reference marqué comme lu'],
+          passageRef: reference,
+          notes: 'Lecture complétée avec succès',
+        );
+        print('✅ JournalService activé');
+      } catch (e) {
+        print('⚠️ Erreur JournalService: $e');
+      }
+      
+      // 7. 🧠 INTENTIONS SERVICE - Mettre à jour les intentions
+      try {
+        await IntentionsService.saveTodayIntention('Lecture: $reference');
+        print('✅ IntentionsService activé');
+      } catch (e) {
+        print('⚠️ Erreur IntentionsService: $e');
+      }
+      
+      print('🎉 Tous les services d\'analyse ont été activés avec succès!');
+      
+    } catch (e) {
+      print('❌ Erreur lors de l\'activation des services: $e');
     }
   }
 
@@ -785,9 +1056,9 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                 subtitle: 'Réflexion structurée avec questions',
                 onTap: () {
                   Navigator.pop(context);
-                  context.go('/meditation/chooser', extra: {
+    context.go('/meditation/chooser', extra: {
                     'passageRef': _readingSession?.currentPassage?.reference ?? 'Jean 14:1-19',
-                    'passageText': _passageText,
+      'passageText': _passageText,
                     'memoryVerse': _notedVerse,
                   });
                 },
@@ -1002,9 +1273,205 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      builder: (context) => Consumer<ReaderSettingsService>(
+        builder: (context, settings, child) {
+          final isDark = settings.effectiveTheme == 'dark';
+          final theme = Theme.of(context);
+          final responsivePadding = _getResponsivePadding(context);
+          
+          return DraggableScrollableSheet(
+            initialChildSize: 0.4,
+            minChildSize: 0.3,
+            maxChildSize: 0.8,
+            builder: (context, scrollController) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1F1B3B) : theme.colorScheme.surface,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    left: responsivePadding.left,
+                    right: responsivePadding.right,
+                    top: responsivePadding.top,
+                    bottom: MediaQuery.of(context).viewInsets.bottom + responsivePadding.bottom,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Handle bar
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          margin: const EdgeInsets.only(top: 12),
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white.withOpacity(0.3) : Colors.black.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      
+                      // Titre
+                      Text(
+                        'Notez le verset qui vous a marqué',
+                        style: GoogleFonts.inter(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      
+                      Text(
+                        'Recopiez simplement le texte qui vous a touché. Il sera utilisé pour créer votre poster.',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          color: isDark ? Colors.white.withOpacity(0.7) : Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      
+                      // Zone de texte
+                      Expanded(
+                        child: TextField(
+                          controller: verseController,
+                          maxLines: null,
+                          expands: true,
+                          textAlignVertical: TextAlignVertical.top,
+                          keyboardType: TextInputType.multiline,
+                          textInputAction: TextInputAction.newline,
+                          enableInteractiveSelection: true,
+                          autocorrect: false,
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Écrivez le verset qui vous a marqué...',
+                            hintStyle: GoogleFonts.inter(
+                              fontSize: 16,
+                              color: isDark ? Colors.white.withOpacity(0.5) : Colors.grey[400],
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: isDark ? Colors.white.withOpacity(0.3) : Colors.grey[300]!),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.blue, width: 2),
+                            ),
+                            contentPadding: const EdgeInsets.all(16),
+                            fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[50],
+                            filled: true,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      
+                      // Boutons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: isDark ? Colors.white.withOpacity(0.1) : Colors.grey[200],
+                                foregroundColor: isDark ? Colors.white : Colors.black87,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: Text(
+                                'Passer',
+                                style: GoogleFonts.inter(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                final userText = verseController.text.trim();
+                                if (userText.isNotEmpty) {
+                                  // Analyser le texte pour trouver le verset exact
+                                  final exactVerse = _findExactVerse(userText);
+                                  setState(() {
+                                    _notedVerse = exactVerse;
+                                  });
+                                  Navigator.of(context).pop();
+                                  _showSnackBar(
+                                    'Verset analysé et noté !',
+                                    Icons.check_circle,
+                                    Colors.green,
+                                  );
+                                } else {
+                                  Navigator.of(context).pop();
+                                  _showSnackBar(
+                                    'Aucun texte saisi',
+                                    Icons.info,
+                                    Colors.orange,
+                                  );
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: Text(
+                                'Sauvegarder',
+                                style: GoogleFonts.inter(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  /// Affiche le bottom sheet de contexte enrichi
+  void _showEnrichedContextBottomSheet() {
+    final reference = _readingSession?.currentPassage?.reference ?? 'Jean 14:1-19';
+    final verseId = _extractVerseIdFromReference(reference);
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
         return Container(
-          height: MediaQuery.of(context).size.height * 0.4,
+          height: MediaQuery.of(context).size.height * 0.7,
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.only(
@@ -1013,12 +1480,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
             ),
           ),
           child: Padding(
-            padding: EdgeInsets.only(
-              left: 20,
-              right: 20,
-              top: 20,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-            ),
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1037,130 +1499,122 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                 
                 // Titre
                 Text(
-                  'Notez le verset qui vous a marqué',
+                  'Contexte enrichi - $reference',
                   style: GoogleFonts.inter(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
                     color: Colors.black87,
                   ),
                 ),
-                const SizedBox(height: 8),
-                
-                Text(
-                  'Recopiez simplement le texte qui vous a touché. Il sera utilisé pour créer votre poster.',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
-                ),
                 const SizedBox(height: 20),
                 
-                // Zone de texte
+                // Contenu enrichi
                 Expanded(
-                  child: TextField(
-                    controller: verseController,
-                    maxLines: null,
-                    expands: true,
-                    textAlignVertical: TextAlignVertical.top,
-                    keyboardType: TextInputType.multiline,
-                    textInputAction: TextInputAction.newline,
-                    enableInteractiveSelection: true,
-                    autocorrect: false,
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      color: Colors.black87,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'Écrivez le verset qui vous a marqué...',
-                      hintStyle: GoogleFonts.inter(
-                        fontSize: 16,
-                        color: Colors.grey[400],
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.blue, width: 2),
-                      ),
-                      contentPadding: const EdgeInsets.all(16),
-                    ),
+                  child: FutureBuilder<Map<String, dynamic>>(
+                    future: _loadEnrichedContextData(reference, verseId),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      }
+                      
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Text(
+                            'Erreur de chargement: ${snapshot.error}',
+                            style: GoogleFonts.inter(color: Colors.red),
+                          ),
+                        );
+                      }
+                      
+                      final data = snapshot.data ?? {};
+                      return SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Période historique
+                            if (data['period'] != null) ...[
+                              _buildContextSection(
+                                '📅 Période historique',
+                                data['period']['name'] ?? 'Inconnue',
+                                data['period']['description'] ?? '',
+                                Colors.blue,
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                            
+                            // Empire dominant
+                            if (data['empire'] != null) ...[
+                              _buildContextSection(
+                                '🏛️ Empire dominant',
+                                data['empire']['name'] ?? 'Aucun',
+                                data['empire']['description'] ?? '',
+                                Colors.orange,
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                            
+                            // Contexte littéraire
+                            if (data['literaryContext'] != null) ...[
+                              _buildContextSection(
+                                '📖 Contexte littéraire',
+                                data['literaryContext']['name'] ?? 'Inconnu',
+                                data['literaryContext']['description'] ?? '',
+                                Colors.purple,
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                            
+                            // Contexte historique Thomson
+                            if (data['historicalContext'] != null) ...[
+                              _buildContextSection(
+                                '🌍 Contexte historique',
+                                'Contexte Thomson',
+                                data['historicalContext'],
+                                Colors.green,
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                            
+                            // Contexte culturel
+                            if (data['culturalContext'] != null) ...[
+                              _buildContextSection(
+                                '📚 Contexte culturel',
+                                'Contexte culturel',
+                                data['culturalContext'],
+                                Colors.teal,
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                            
+                            // Message si aucune donnée
+                            if (data.isEmpty) ...[
+                              Center(
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.info_outline,
+                                      size: 48,
+                                      color: Colors.grey[400],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Aucun contexte disponible pour ce passage',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 16,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
                   ),
-                ),
-                const SizedBox(height: 20),
-                
-                // Boutons
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[200],
-                          foregroundColor: Colors.black87,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          'Passer',
-                          style: GoogleFonts.inter(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          final userText = verseController.text.trim();
-                          if (userText.isNotEmpty) {
-                            // Analyser le texte pour trouver le verset exact
-                            final exactVerse = _findExactVerse(userText);
-                            setState(() {
-                              _notedVerse = exactVerse;
-                            });
-                            Navigator.of(context).pop();
-                            _showSnackBar(
-                              'Verset analysé et noté !',
-                              Icons.check_circle,
-                              Colors.green,
-                            );
-                          } else {
-                            Navigator.of(context).pop();
-                            _showSnackBar(
-                              'Aucun texte saisi',
-                              Icons.info,
-                              Colors.orange,
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          'Sauvegarder',
-                          style: GoogleFonts.inter(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),
@@ -1170,38 +1624,148 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
     );
   }
 
+  /// Charge les données de contexte enrichi
+  Future<Map<String, dynamic>> _loadEnrichedContextData(String reference, String verseId) async {
+    final data = <String, dynamic>{};
+    
+    try {
+      // Initialiser les services
+      await Future.wait([
+        BiblicalTimelineService.init(),
+        ThomsonService.init(),
+        BibleContextService.init(),
+        SemanticPassageBoundaryService.init(),
+      ]);
+      
+      // 1. Période historique via BiblicalTimelineService
+      final bookName = _extractBookFromReference(reference);
+      if (bookName.isNotEmpty) {
+        final period = await BiblicalTimelineService.getPeriodForBook(bookName);
+        if (period != null) {
+          data['period'] = period;
+          
+          // Récupérer l'empire dominant pour cette période
+          final startYear = period['startYear'] as int? ?? 0;
+          final empire = await BiblicalTimelineService.getEmpireForYear(startYear);
+          if (empire != null) {
+            data['empire'] = empire;
+          }
+        }
+      }
+      
+      // 2. Contexte littéraire via SemanticPassageBoundaryService
+      if (bookName.isNotEmpty) {
+        final units = SemanticPassageBoundaryService.getUnitsForBook(bookName);
+        if (units.isNotEmpty) {
+          final unit = units.first;
+          data['literaryContext'] = {
+            'name': unit.name,
+            'description': unit.description ?? '',
+          };
+        }
+      }
+      
+      // 3. Contexte historique via ThomsonService
+      final thomsonContext = await ThomsonService.getContext(verseId);
+      if (thomsonContext.isNotEmpty) {
+        data['historicalContext'] = thomsonContext;
+      }
+      
+      // 4. Contexte culturel via BibleContextService
+      final culturalContext = await BibleContextService.cultural(verseId);
+      if (culturalContext != null && culturalContext.isNotEmpty) {
+        data['culturalContext'] = culturalContext;
+      }
+      
+    } catch (e) {
+      print('⚠️ Erreur chargement contexte enrichi: $e');
+    }
+    
+    return data;
+  }
+
+  /// Construit une section de contexte
+  Widget _buildContextSection(String title, String subtitle, String content, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.black87,
+            ),
+          ),
+          if (content.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              content,
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: Colors.black54,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Consumer<ReaderSettingsService>(
       builder: (context, settings, child) {
         final isDark = settings.effectiveTheme == 'dark';
         
-        return Scaffold(
-          body: Container(
-            decoration: BoxDecoration(
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
               gradient: isDark ? const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
                 colors: [Color(0xFF0B1025), Color(0xFF1C1740), Color(0xFF2D1B69)],
                 stops: [0.0, 0.55, 1.0],
               ) : const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [Colors.white, Color(0xFFF8F9FA)],
-              ),
-            ),
-            child: SafeArea(
-              child: Column(
-                children: [
-                  _buildHeader(isDark),
-                  Expanded(
-                    child: _buildMainContent(isDark),
-                  ),
-                  _buildBottomActions(),
-                ],
-              ),
-            ),
           ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+                  _buildHeader(isDark),
+              Expanded(
+                    child: _buildMainContent(isDark),
+              ),
+              _buildBottomActions(),
+            ],
+          ),
+        ),
+      ),
         );
       },
     );
@@ -1256,23 +1820,55 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
               ],
             ),
           ),
-          GestureDetector(
-            onTap: () => context.go('/reader_settings'),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isDark ? Colors.white.withOpacity(0.2) : Colors.black.withOpacity(0.2),
+          // IconToggle pour les actions rapides
+          Row(
+            children: [
+              IconButton(
+                onPressed: _toggleFavorite,
+                icon: Icon(
+                  _isFavorite ? Icons.favorite : Icons.favorite_border,
+                  color: _isFavorite ? Colors.red : Colors.white,
+                  size: 20,
                 ),
               ),
-              child: Icon(
-                Icons.settings_rounded,
-                color: isDark ? Colors.white : Colors.black,
-                size: 20,
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: _toggleBookmark,
+                icon: Icon(
+                  _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                  color: _isBookmarked ? Colors.blue : Colors.white,
+                  size: 20,
+                ),
               ),
-            ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: _toggleNote,
+                icon: Icon(
+                  _hasNote ? Icons.note : Icons.note_outlined,
+                  color: _hasNote ? Colors.green : Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => context.go('/reader_settings'),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDark ? Colors.white.withOpacity(0.2) : Colors.black.withOpacity(0.2),
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.settings,
+                    color: isDark ? Colors.white : Colors.black,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -1294,13 +1890,13 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
         borderRadius: BorderRadius.circular(24),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-          child: Column(
-            children: [
-              Expanded(
+      child: Column(
+        children: [
+          Expanded(
                 child: _buildTextContent(isDark),
-              ),
-              _buildBottomWidgets(),
-            ],
+          ),
+          _buildBottomWidgets(),
+        ],
           ),
         ),
       ),
@@ -1410,15 +2006,16 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                     HapticFeedback.mediumImpact();
                   },
                   child: HighlightableText(
-                    text: _passageText,
+                  text: _passageText,
                     style: settings.getFontStyle().copyWith(
                       color: isDark ? Colors.white : Colors.black,
                       fontSize: 16,
                       height: 1.6,
                     ),
-                    textAlign: settings.getTextAlign(),
-                  ),
+                  textAlign: settings.getTextAlign(),
                 ),
+                ),
+              
             ],
           ),
         );
@@ -1602,8 +2199,8 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.menu_book,
+            Icon(
+              Icons.book,
               size: 16,
               color: Color(0xFF1553FF),
             ),
@@ -1618,7 +2215,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
               ),
             ),
             const SizedBox(width: 4),
-            const Icon(
+            Icon(
               Icons.keyboard_arrow_down,
               size: 16,
               color: Color(0xFF1553FF),
@@ -1646,16 +2243,16 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
       builder: (context, settings, child) {
         final isDark = settings.effectiveTheme == 'dark';
         
-        return Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: _markAsRead,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-                  decoration: BoxDecoration(
+    return Row(
+      children: [
+        Expanded(
+          child: GestureDetector(
+            onTap: _markAsRead,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+              decoration: BoxDecoration(
                     color: _isMarkedAsRead ? const Color(0xFF49C98D) : const Color(0xFF1553FF),
-                    borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
                         color: (_isMarkedAsRead ? const Color(0xFF49C98D) : const Color(0xFF1553FF)).withOpacity(0.3),
@@ -1663,40 +2260,40 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                         offset: const Offset(0, 8),
                       ),
                     ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                     mainAxisSize: MainAxisSize.min,
-                    children: [
+                children: [
                       Flexible(
-                        child: Text(
+                    child: Text(
                           _isMarkedAsRead ? 'Marqué comme lu' : 'Marquer comme lu',
                           style: const TextStyle(
                             fontFamily: 'Gilroy',
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          textAlign: TextAlign.center,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
                       ),
-                    ],
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: GestureDetector(
-                onTap: _goToMeditation,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-                  decoration: BoxDecoration(
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: GestureDetector(
+            onTap: _goToMeditation,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+              decoration: BoxDecoration(
                     color: _isMarkedAsRead 
                         ? const Color(0xFF1553FF) 
                         : (isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1)),
-                    borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(16),
                     border: _isMarkedAsRead 
                         ? null 
                         : Border.all(
@@ -1709,32 +2306,32 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                         offset: const Offset(0, 8),
                       ),
                     ] : null,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                     mainAxisSize: MainAxisSize.min,
-                    children: [
+                children: [
                       Flexible(
-                        child: Text(
-                          'Méditation',
+                    child: Text(
+                      'Méditation',
                           style: TextStyle(
                             fontFamily: 'Gilroy',
                             color: _isMarkedAsRead 
                                 ? Colors.white 
                                 : (isDark ? Colors.white70 : Colors.black87),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          textAlign: TextAlign.center,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
                       ),
-                    ],
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
-          ],
+          ),
+        ),
+      ],
         );
       },
     );
@@ -1746,26 +2343,22 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
       builder: (context, settings, child) {
         final isDark = settings.effectiveTheme == 'dark';
         
-        return Container(
+    return Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           child: Column(
             children: [
-              // Aperçus intelligents enrichis
-              _buildSmartInsights(isDark),
-              
-              const SizedBox(height: 12),
               
               // Actions d'étude
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
+      child: Row(
+        children: [
                     _buildStudyAction(
-                      Icons.info_outline,
+                      Icons.help_outline,
                       'Contexte',
                       'Contexte historique et culturel',
                       Colors.blue,
-                      () => _goToAdvancedStudyTab(0),
+                      () => _goToAdvancedStudyTab(0), // Onglet 0 = Contexte
                       isDark,
                     ),
                     const SizedBox(width: 6),
@@ -1788,47 +2381,20 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                     ),
                     const SizedBox(width: 6),
                     _buildStudyAction(
-                      Icons.menu_book_outlined,
-                      'Encyclopédie',
-                      'Encyclopédie biblique',
+                      Icons.sync_alt,
+                      'Miroir',
+                      'Verset miroir typologique',
                       Colors.orange,
-                      () => _goToAdvancedStudyTab(2),
+                      () => _showMirrorBottomSheet(),
                       isDark,
                     ),
                     const SizedBox(width: 6),
                     _buildStudyAction(
-                      Icons.search_outlined,
-                      'Concordance',
-                      'Références croisées BSB',
+                      Icons.link_outlined,
+                      'Références',
+                      'Références croisées',
                       Colors.teal,
-                      () => _showConcordanceBottomSheet(),
-                      isDark,
-                    ),
-                    const SizedBox(width: 6),
-                    _buildStudyAction(
-                      Icons.translate_outlined,
-                      'Lexique',
-                      'Mots grecs et hébreux',
-                      Colors.indigo,
-                      () => _goToAdvancedStudyTab(3),
-                      isDark,
-                    ),
-                    const SizedBox(width: 6),
-                    _buildStudyAction(
-                      Icons.library_books_outlined,
-                      'Index BSB',
-                      'Index thématique BSB',
-                      Colors.deepOrange,
-                      () => _showTopicalIndexBottomSheet(),
-                      isDark,
-                    ),
-                    const SizedBox(width: 6),
-                    _buildStudyAction(
-                      Icons.compare_arrows_outlined,
-                      'Versions',
-                      'Comparer 14 versions',
-                      Colors.cyan,
-                      () => _showBibleComparison(),
+                      () => _showCrossReferencesBottomSheet(),
                       isDark,
                     ),
                   ],
@@ -1841,116 +2407,6 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
     );
   }
 
-  /// Construit les aperçus intelligents simplifiés (optimisé)
-  Widget _buildSmartInsights(bool isDark) {
-    // Version simplifiée sans FutureBuilder lourd
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            isDark 
-                ? Colors.white.withOpacity(0.08)
-                : Colors.grey.shade50,
-            isDark 
-                ? Colors.white.withOpacity(0.03)
-                : Colors.grey.shade100,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark 
-              ? Colors.white.withOpacity(0.15)
-              : Colors.grey.shade200,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.auto_awesome,
-                color: Colors.amber,
-                size: 16,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Aperçus intelligents',
-                style: TextStyle(
-                  fontFamily: 'Gilroy',
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white70 : Colors.grey.shade700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          
-          // Aperçu simplifié
-          _buildSmartInsightItem(
-            'Étude approfondie',
-            'Explorez ce passage avec nos outils d\'analyse',
-            Colors.purple,
-            Icons.auto_awesome,
-            isDark,
-          ),
-        ],
-      ),
-    );
-  }
-  
-  /// Construit un élément d'aperçu intelligent
-  Widget _buildSmartInsightItem(String label, String content, Color color, IconData icon, bool isDark) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Icon(
-            icon,
-            color: color,
-            size: 12,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontFamily: 'Gilroy',
-                  fontSize: 9,
-                  fontWeight: FontWeight.w600,
-                  color: color,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                content,
-                style: TextStyle(
-                  fontFamily: 'Gilroy',
-                  fontSize: 10,
-                  color: isDark ? Colors.white70 : Colors.grey.shade600,
-                  height: 1.2,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
   
   
   /// Extrait le nom du livre d'une référence biblique
@@ -2097,52 +2553,56 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
   
   /// Navigue vers la page d'étude biblique avancée
   void _goToAdvancedStudy() {
-    // Extraire le verset ID depuis la référence du passage
-    final verseId = _extractVerseIdFromReference(_readingSession?.currentPassage?.reference ?? 'Jean 14:1-19');
+    // Utiliser la référence complète du passage
+    final passageRef = _readingSession?.currentPassage?.reference ?? 'Jean 14:1-19';
+    final verseId = _extractVerseIdFromReference(passageRef);
     
     HapticFeedback.mediumImpact();
-    context.push('/advanced_bible_study', extra: {'verseId': verseId});
+    context.push('/advanced_bible_study', extra: {
+      'verseId': verseId,
+      'passageRef': passageRef, // Référence complète pour l'affichage
+    });
   }
   
   /// Navigue vers la page d'étude biblique avancée avec un onglet spécifique
   void _goToAdvancedStudyTab(int tabIndex) {
-    final verseId = _extractVerseIdFromReference(_readingSession?.currentPassage?.reference ?? 'Jean 14:1-19');
-    final ref = _readingSession?.currentPassage?.reference;
+    final passageRef = _readingSession?.currentPassage?.reference ?? 'Jean 14:1-19';
+    final verseId = _extractVerseIdFromReference(passageRef);
+    
+    HapticFeedback.mediumImpact();
     context.push('/advanced_bible_study', extra: {
       'verseId': verseId,
       'initialTab': tabIndex,
-      'passageRef': ref, // pour TopicService/ConcordanceService
+      'passageRef': passageRef, // Référence complète pour l'affichage
     });
   }
   
   /// Extrait un ID de verset depuis une référence biblique
   String _extractVerseIdFromReference(String reference) {
     try {
-      // Exemple: "Jean 3:16" -> "Jean.3.16"
-      // Exemple: "Matthieu & Romains & Jacques Éphésiens 2:8-9" -> "Éphésiens.2.8"
+      print('🔍 Extraction verseId depuis: "$reference"');
       
       // Nettoyer la référence
       final cleanRef = reference.trim();
       
-      // Trouver le dernier espace pour séparer le livre du chapitre/verset
-      final lastSpace = cleanRef.lastIndexOf(' ');
-      if (lastSpace <= 0) return 'Jean.3.16'; // Fallback
+      // Utiliser une regex pour extraire le livre, chapitre et verset
+      // Format attendu: "1 Pierre 3:1-18" ou "Jean 3:16"
+      final regex = RegExp(r'^(.+?)\s+(\d+):(\d+)(?:-(\d+))?$');
+      final match = regex.firstMatch(cleanRef);
       
-      final bookPart = cleanRef.substring(0, lastSpace).trim();
-      final chapterVersePart = cleanRef.substring(lastSpace + 1).trim();
+      if (match == null) {
+        print('⚠️ Format de référence non reconnu: $cleanRef');
+        return 'Jean.3.16'; // Fallback
+      }
       
-      // Extraire le livre (prendre le dernier mot si plusieurs livres)
-      final bookWords = bookPart.split(' ');
-      final book = bookWords.last;
+      final book = match.group(1)!.trim();
+      final chapter = match.group(2)!;
+      final verse = match.group(3)!;
       
-      // Extraire chapitre et verset
-      final cv = chapterVersePart.split(':');
-      if (cv.length < 2) return 'Jean.3.16'; // Fallback
+      final result = '$book.$chapter.$verse';
+      print('🔍 VerseId extrait: "$result" (livre: $book, chapitre: $chapter, verset: $verse)');
       
-      final chapter = cv[0];
-      final verse = cv[1].split('-')[0]; // Prendre le premier verset si plage
-      
-      return '$book.$chapter.$verse';
+      return result;
     } catch (e) {
       print('⚠️ Erreur extraction verseId: $e');
       return 'Jean.3.16'; // Fallback
@@ -2167,8 +2627,8 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
         if (!hasCurrent) {
           // Si l'utilisateur a une préférence mais pas encore dispo, on garde _selectedVersion
           // sinon fallback sur la première dispo
-          if (_availableVersions.isNotEmpty) {
-            _selectedVersion = _availableVersions.first['id']!;
+        if (_availableVersions.isNotEmpty) {
+          _selectedVersion = _availableVersions.first['id']!;
           }
         }
       });
@@ -2311,128 +2771,157 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
 
   /// Affiche les thèmes du passage dans un bottom sheet
   void _showThemesBottomSheet() {
-    final verseId = _extractVerseIdFromReference(_readingSession?.currentPassage?.reference ?? 'Jean 14:1-19');
+    final reference = _readingSession?.currentPassage?.reference ?? 'Jean 14:1-19';
     
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (context) => Consumer<ReaderSettingsService>(
         builder: (context, settings, child) {
           final isDark = settings.effectiveTheme == 'dark';
           final theme = Theme.of(context);
+          final responsivePadding = _getResponsivePadding(context);
           
-          return Container(
-            decoration: BoxDecoration(
-              color: isDark 
-                  ? const Color(0xFF1F1B3B) 
-                  : theme.colorScheme.surface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Handle bar
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: isDark 
-                        ? Colors.white.withOpacity(0.3)
-                        : Colors.black.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                
-                // Titre
-                Row(
-                  children: [
-                    Icon(
-                      Icons.label_outline,
-                      color: Colors.purple,
-                      size: 24,
+          return DraggableScrollableSheet(
+            initialChildSize: 0.6,
+            minChildSize: 0.4,
+            maxChildSize: 0.9,
+            builder: (context, scrollController) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1F1B3B) : theme.colorScheme.surface,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, -2),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Thèmes bibliques',
-                      style: TextStyle(
-                        fontFamily: 'Gilroy',
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // Handle bar
+                    Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(top: 12),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white.withOpacity(0.3) : Colors.black.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    
+                    // Header (non-scrollable)
+                    Padding(
+                      padding: responsivePadding,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.label_outline, color: Colors.purple, size: 24),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Thèmes bibliques',
+                                style: TextStyle(
+                                  fontFamily: 'Gilroy',
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Thèmes identifiés dans ce passage',
+                            style: TextStyle(
+                              fontFamily: 'Gilroy',
+                              fontSize: 14,
+                              color: isDark ? Colors.white.withOpacity(0.7) : theme.colorScheme.onSurface.withOpacity(0.7),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    // Content (scrollable)
+                    Expanded(
+                      child: ListView(
+                        controller: scrollController,
+                        padding: EdgeInsets.symmetric(horizontal: responsivePadding.left),
+                        children: [
+                          FutureBuilder<Map<String, List<String>>>(
+                          future: _loadEnrichedThemesData(reference),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(32),
+                                  child: CircularProgressIndicator(),
+                                ),
+                              );
+                            }
+                            
+                            final data = snapshot.data ?? {};
+                            final thomsonThemes = data['thomson'] ?? [];
+                            final bsbThemes = data['bsb'] ?? [];
+                            
+                            if (thomsonThemes.isEmpty && bsbThemes.isEmpty) {
+                              return Container(
+                                padding: const EdgeInsets.all(32),
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.info_outline,
+                                      color: isDark ? Colors.white54 : Colors.grey.shade600,
+                                      size: 48,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Aucun thème identifié',
+                                      style: TextStyle(
+                                        fontFamily: 'Gilroy',
+                                        fontSize: 16,
+                                        color: isDark ? Colors.white70 : Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                            
+                            return Column(
+                              children: [
+                                // Thèmes Thomson
+                                if (thomsonThemes.isNotEmpty) ...[
+                                  _buildThemeSectionHeader('🎨 Thomson', isDark),
+                                  const SizedBox(height: 12),
+                                  ...thomsonThemes.map((theme) => _buildThemeItem(theme, isDark, 'thomson')),
+                                  const SizedBox(height: 20),
+                                ],
+                                
+                                // Thèmes BSB
+                                if (bsbThemes.isNotEmpty) ...[
+                                  _buildThemeSectionHeader('📚 BSB', isDark),
+                                  const SizedBox(height: 12),
+                                  ...bsbThemes.map((theme) => _buildThemeItem(theme, isDark, 'bsb')),
+                                ],
+                                
+                                const SizedBox(height: 20),
+                              ],
+                            );
+                          },
+                        ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Thèmes identifiés dans ce passage',
-                  style: TextStyle(
-                    fontFamily: 'Gilroy',
-                    fontSize: 14,
-                    color: isDark 
-                        ? Colors.white.withOpacity(0.7)
-                        : theme.colorScheme.onSurface.withOpacity(0.7),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                
-                // Liste des thèmes
-                FutureBuilder<List<String>>(
-                  future: ThomsonService.getThemes(verseId),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(32),
-                          child: CircularProgressIndicator(),
-                        ),
-                      );
-                    }
-                    
-                    final themes = snapshot.data ?? [];
-                    
-                    if (themes.isEmpty) {
-                      return Container(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              color: isDark ? Colors.white54 : Colors.grey.shade600,
-                              size: 48,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Aucun thème identifié',
-                              style: TextStyle(
-                                fontFamily: 'Gilroy',
-                                fontSize: 16,
-                                color: isDark ? Colors.white70 : Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-                    
-                    return Column(
-                      children: themes.map((theme) => _buildThemeItem(theme, isDark)).toList(),
-                    );
-                  },
-                ),
-                
-                const SizedBox(height: 20),
-              ],
-            ),
+              );
+            },
           );
         },
       ),
@@ -2441,152 +2930,242 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
   
   /// Affiche les personnages du passage dans un bottom sheet
   void _showCharactersBottomSheet() {
-    final verseId = _extractVerseIdFromReference(_readingSession?.currentPassage?.reference ?? 'Jean 14:1-19');
+    final reference = _readingSession?.currentPassage?.reference ?? 'Jean 14:1-19';
     
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (context) => Consumer<ReaderSettingsService>(
         builder: (context, settings, child) {
           final isDark = settings.effectiveTheme == 'dark';
           final theme = Theme.of(context);
+          final responsivePadding = _getResponsivePadding(context);
           
-          return Container(
-            decoration: BoxDecoration(
-              color: isDark 
-                  ? const Color(0xFF1F1B3B) 
-                  : theme.colorScheme.surface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Handle bar
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: isDark 
-                        ? Colors.white.withOpacity(0.3)
-                        : Colors.black.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                
-                // Titre
-                Row(
-                  children: [
-                    Icon(
-                      Icons.person_outline,
-                      color: Colors.green,
-                      size: 24,
+          return DraggableScrollableSheet(
+            initialChildSize: 0.6,
+            minChildSize: 0.4,
+            maxChildSize: 0.9,
+            builder: (context, scrollController) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1F1B3B) : theme.colorScheme.surface,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, -2),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Personnages bibliques',
-                      style: TextStyle(
-                        fontFamily: 'Gilroy',
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // Handle bar
+                    Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(top: 12),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white.withOpacity(0.3) : Colors.black.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    
+                    // Header (non-scrollable)
+                    Padding(
+                      padding: responsivePadding,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.person_outline, color: Colors.green, size: 24),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Personnages bibliques',
+                                style: TextStyle(
+                                  fontFamily: 'Gilroy',
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Personnages mentionnés dans ce passage',
+                            style: TextStyle(
+                              fontFamily: 'Gilroy',
+                              fontSize: 14,
+                              color: isDark ? Colors.white.withOpacity(0.7) : theme.colorScheme.onSurface.withOpacity(0.7),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    // Content (scrollable)
+                    Expanded(
+                      child: ListView(
+                        controller: scrollController,
+                        padding: EdgeInsets.symmetric(horizontal: responsivePadding.left),
+                        children: [
+                          FutureBuilder<List<Map<String, dynamic>>>(
+                          future: _loadEnrichedCharactersData(reference),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(32),
+                                  child: CircularProgressIndicator(),
+                                ),
+                              );
+                            }
+                            
+                            final characters = snapshot.data ?? [];
+                            
+                            if (characters.isEmpty) {
+                              return Container(
+                                padding: const EdgeInsets.all(32),
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.info_outline,
+                                      color: isDark ? Colors.white54 : Colors.grey.shade600,
+                                      size: 48,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Aucun personnage identifié',
+                                      style: TextStyle(
+                                        fontFamily: 'Gilroy',
+                                        fontSize: 16,
+                                        color: isDark ? Colors.white70 : Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                            
+                            return Column(
+                              children: [
+                                ...characters.map((character) => _buildEnrichedCharacterItem(character, isDark)).toList(),
+                                const SizedBox(height: 20),
+                              ],
+                            );
+                          },
+                        ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Personnages mentionnés dans ce passage',
-                  style: TextStyle(
-                    fontFamily: 'Gilroy',
-                    fontSize: 14,
-                    color: isDark 
-                        ? Colors.white.withOpacity(0.7)
-                        : theme.colorScheme.onSurface.withOpacity(0.7),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                
-                // Liste des personnages
-                FutureBuilder<List<String>>(
-                  future: ThomsonService.getCharacters(verseId),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(32),
-                          child: CircularProgressIndicator(),
-                        ),
-                      );
-                    }
-                    
-                    final characters = snapshot.data ?? [];
-                    
-                    if (characters.isEmpty) {
-                      return Container(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              color: isDark ? Colors.white54 : Colors.grey.shade600,
-                              size: 48,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Aucun personnage identifié',
-                              style: TextStyle(
-                                fontFamily: 'Gilroy',
-                                fontSize: 16,
-                                color: isDark ? Colors.white70 : Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-                    
-                    return Column(
-                      children: characters.map((character) => _buildCharacterItem(character, isDark)).toList(),
-                    );
-                  },
-                ),
-                
-                const SizedBox(height: 20),
-              ],
-            ),
+              );
+            },
           );
         },
       ),
     );
   }
   
-  /// Construit un élément de thème
-  Widget _buildThemeItem(String theme, bool isDark) {
+
+  /// Charge les données de thèmes enrichies
+  Future<Map<String, List<String>>> _loadEnrichedThemesData(String reference) async {
+    final data = <String, List<String>>{};
+    
+    try {
+      print('🔍 === DÉBUT CHARGEMENT THÈMES POUR: $reference ===');
+      
+      // Initialiser les services
+      await Future.wait([
+        ThomsonService.init(),
+        BSBTopicalService.init(),
+      ]);
+      
+      // 1. Thèmes Thomson - extraire l'ID du verset depuis la référence
+      final verseId = _extractVerseIdFromReference(reference);
+      print('🔍 VerseId extrait: $verseId');
+      
+      final thomsonThemes = await ThomsonService.getThemes(verseId);
+      data['thomson'] = thomsonThemes;
+      print('🔍 Thomson thèmes pour $reference ($verseId): ${thomsonThemes.length}');
+      
+      // 2. Thèmes BSB - utiliser la référence complète
+      final bsbThemes = await BSBTopicalService.getThemesForPassage(reference);
+      data['bsb'] = bsbThemes;
+      print('🔍 BSB thèmes pour $reference: ${bsbThemes.length}');
+      
+      // 3. Essayer avec des références alternatives
+      if (thomsonThemes.isEmpty && bsbThemes.isEmpty) {
+        print('🔍 Aucun thème trouvé, essai avec des références alternatives...');
+        
+        // Essayer avec juste le livre
+        final bookName = _extractBookFromReference(reference);
+        print('🔍 Essai avec le livre: $bookName');
+        
+        // Essayer avec un verset spécifique
+        final singleVerseRef = reference.split('-')[0]; // Prendre juste le premier verset
+        print('🔍 Essai avec verset simple: $singleVerseRef');
+        
+        final singleVerseId = _extractVerseIdFromReference(singleVerseRef);
+        final singleVerseThemes = await ThomsonService.getThemes(singleVerseId);
+        print('🔍 Thèmes verset simple ($singleVerseId): ${singleVerseThemes.length}');
+        
+        if (singleVerseThemes.isNotEmpty) {
+          data['thomson'] = singleVerseThemes;
+        }
+      }
+      
+      print('🔍 === FIN CHARGEMENT THÈMES ===');
+      
+    } catch (e) {
+      print('⚠️ Erreur chargement thèmes enrichis: $e');
+    }
+    
+    return data;
+  }
+
+  /// Construit l'en-tête d'une section de thèmes
+  Widget _buildThemeSectionHeader(String title, bool isDark) {
+    return Row(
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontFamily: 'Gilroy',
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.white70 : Colors.black54,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Construit un élément de thème avec type
+  Widget _buildThemeItem(String theme, bool isDark, String type) {
+    final color = type == 'thomson' ? Colors.purple : Colors.blue;
+    final icon = type == 'thomson' ? Icons.label : Icons.bookmark;
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.purple.withOpacity(0.1),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.purple.withOpacity(0.3),
+          color: color.withOpacity(0.3),
           width: 1,
         ),
       ),
       child: Row(
         children: [
           Icon(
-            Icons.label,
-            color: Colors.purple,
+            icon,
+            color: color,
             size: 20,
           ),
           const SizedBox(width: 12),
@@ -2606,10 +3185,86 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
     );
   }
   
-  /// Construit un élément de personnage
-  Widget _buildCharacterItem(String character, bool isDark) {
+
+  /// Charge les données de personnages enrichies
+  Future<List<Map<String, dynamic>>> _loadEnrichedCharactersData(String reference) async {
+    final characters = <Map<String, dynamic>>[];
+    
+    try {
+      print('🔍 === DÉBUT CHARGEMENT PERSONNAGES POUR: $reference ===');
+      
+      // Initialiser les services
+      await Future.wait([
+        ThomsonService.init(),
+        ThomsonCharactersService.init(),
+      ]);
+      
+      // 1. Récupérer les noms des personnages via ThomsonService
+      final verseId = _extractVerseIdFromReference(reference);
+      print('🔍 VerseId extrait: $verseId');
+      
+      final characterNames = await ThomsonService.getCharacters(verseId);
+      print('🔍 Thomson personnages pour $reference ($verseId): ${characterNames.length}');
+      
+      // 2. Enrichir avec les descriptions via ThomsonCharactersService
+      for (final name in characterNames) {
+        final characterData = await ThomsonCharactersService.getCharacterByName(name);
+        if (characterData != null) {
+          characters.add(characterData);
+        } else {
+          // Fallback si pas de données enrichies
+          characters.add({
+            'name': name,
+            'description': 'Personnage biblique mentionné dans ce passage',
+            'shortDescription': 'Personnage biblique',
+            'keyPassages': [],
+            'themes': [],
+            'period': 'Période inconnue',
+            'books': [],
+          });
+        }
+      }
+      
+      // 3. Si aucun personnage trouvé, essayer avec des références alternatives
+      if (characters.isEmpty) {
+        print('🔍 Aucun personnage trouvé, essai avec des références alternatives...');
+        
+        // Essayer avec un verset spécifique
+        final singleVerseRef = reference.split('-')[0];
+        final singleVerseId = _extractVerseIdFromReference(singleVerseRef);
+        final singleVerseCharacters = await ThomsonService.getCharacters(singleVerseId);
+        print('🔍 Personnages verset simple ($singleVerseId): ${singleVerseCharacters.length}');
+        
+        for (final name in singleVerseCharacters) {
+          characters.add({
+            'name': name,
+            'description': 'Personnage biblique mentionné dans ce passage',
+            'shortDescription': 'Personnage biblique',
+            'keyPassages': [],
+            'themes': [],
+            'period': 'Période inconnue',
+            'books': [],
+          });
+        }
+      }
+      
+      print('🔍 === FIN CHARGEMENT PERSONNAGES ===');
+      
+    } catch (e) {
+      print('⚠️ Erreur chargement personnages enrichis: $e');
+    }
+    
+    return characters;
+  }
+
+  /// Construit un élément de personnage enrichi
+  Widget _buildEnrichedCharacterItem(Map<String, dynamic> character, bool isDark) {
+    final name = character['name'] as String? ?? 'Inconnu';
+    final shortDescription = character['shortDescription'] as String? ?? 'Personnage biblique';
+    final keyPassages = character['keyPassages'] as List<dynamic>? ?? [];
+    
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.green.withOpacity(0.1),
@@ -2619,25 +3274,720 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
           width: 1,
         ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.person,
-            color: Colors.green,
-            size: 20,
+          Row(
+            children: [
+              Icon(
+                Icons.person,
+                color: Colors.green,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  name,
+                  style: TextStyle(
+                    fontFamily: 'Gilroy',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              character,
-              style: TextStyle(
-                fontFamily: 'Gilroy',
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white : Colors.black87,
+          const SizedBox(height: 8),
+          Text(
+            '→ $shortDescription',
+            style: TextStyle(
+              fontFamily: 'Gilroy',
+              fontSize: 14,
+              color: isDark ? Colors.white70 : Colors.black54,
+              height: 1.3,
+            ),
+          ),
+          if (keyPassages.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 4,
+              runSpacing: 4,
+              children: keyPassages.take(3).map((passage) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  passage.toString(),
+                  style: TextStyle(
+                    fontFamily: 'Gilroy',
+                    fontSize: 12,
+                    color: Colors.green[700],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              )).toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Affiche le bottom sheet des versets miroirs
+  void _showMirrorBottomSheet() {
+    final reference = _readingSession?.currentPassage?.reference ?? 'Jean 14:1-19';
+    final verseId = _extractVerseIdFromReference(reference);
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Consumer<ReaderSettingsService>(
+        builder: (context, settings, child) {
+          final isDark = settings.effectiveTheme == 'dark';
+          final theme = Theme.of(context);
+          final responsivePadding = _getResponsivePadding(context);
+          
+          return DraggableScrollableSheet(
+            initialChildSize: 0.6,
+            minChildSize: 0.4,
+            maxChildSize: 0.9,
+            builder: (context, scrollController) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1F1B3B) : theme.colorScheme.surface,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // Handle bar
+                    Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(top: 12),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white.withOpacity(0.3) : Colors.black.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    
+                    // Header (non-scrollable)
+                    Padding(
+                      padding: responsivePadding,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.sync_alt, color: Colors.orange, size: 24),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Verset miroir typologique',
+                                style: GoogleFonts.inter(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark ? Colors.white : Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Connexion typologique entre l\'AT et le NT',
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              color: isDark ? Colors.white.withOpacity(0.7) : Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    // Content (scrollable)
+                    Expanded(
+                      child: ListView(
+                        controller: scrollController,
+                        padding: EdgeInsets.symmetric(horizontal: responsivePadding.left),
+                        children: [
+                          FutureBuilder<MirrorVerse?>(
+                          future: _loadMirrorData(reference, verseId),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(32),
+                                  child: CircularProgressIndicator(),
+                                ),
+                              );
+                            }
+                            
+                            if (snapshot.hasError) {
+                              return Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(32),
+                                  child: Text(
+                                    'Erreur de chargement: ${snapshot.error}',
+                                    style: GoogleFonts.inter(color: Colors.red),
+                                  ),
+                                ),
+                              );
+                            }
+                            
+                            final mirror = snapshot.data;
+                            
+                            if (mirror == null) {
+                              return Container(
+                                padding: const EdgeInsets.all(32),
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.info_outline,
+                                      size: 48,
+                                      color: isDark ? Colors.white54 : Colors.grey[400],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Aucun verset miroir trouvé pour ce passage',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 16,
+                                        color: isDark ? Colors.white70 : Colors.grey[600],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Ce passage n\'a pas de connexion typologique identifiée',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 14,
+                                        color: isDark ? Colors.white54 : Colors.grey[500],
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                            
+                            return Column(
+                              children: [
+                                _buildMirrorItem(mirror),
+                                const SizedBox(height: 20),
+                              ],
+                            );
+                          },
+                        ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  /// Charge les données du verset miroir
+  Future<MirrorVerse?> _loadMirrorData(String reference, String verseId) async {
+    try {
+      print('🔍 === DÉBUT CHARGEMENT MIROIR POUR: $reference ===');
+      
+      // Initialiser le service
+      await MirrorVerseService.init();
+      
+      // Récupérer le verset miroir enrichi
+      final mirror = await MirrorVerseService.enrichedMirror(
+        verseId,
+        getVerseText: (id) async {
+          // Convertir l'ID en référence pour récupérer le texte
+          final parts = id.split('.');
+          if (parts.length >= 3) {
+            final book = parts[0];
+            final chapter = parts[1];
+            final verse = parts[2];
+            final ref = '$book $chapter:$verse';
+            return await BibleTextService.getPassageText(ref, version: _selectedVersion);
+          }
+          return null;
+        },
+      );
+      
+      print('🔍 Miroir pour $reference ($verseId): ${mirror != null ? "Trouvé" : "Non trouvé"}');
+      
+      print('🔍 === FIN CHARGEMENT MIROIR ===');
+      
+      return mirror;
+      
+    } catch (e) {
+      print('⚠️ Erreur chargement miroir: $e');
+      return null;
+    }
+  }
+
+  /// Construit un élément de verset miroir
+  Widget _buildMirrorItem(MirrorVerse mirror) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.orange.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // En-tête avec icône et type de connexion
+          Row(
+            children: [
+              Icon(
+                Icons.sync_alt,
+                color: Colors.orange,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                mirror.connectionTitle,
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.orange[700],
+                ),
+              ),
+              const Spacer(),
+              Text(
+                mirror.connectionIcon,
+                style: const TextStyle(fontSize: 20),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          // Verset original
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Colors.orange.withOpacity(0.2),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Verset original',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.orange[600],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  mirror.originalId,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                if (mirror.originalText != null && mirror.originalText!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    mirror.originalText!,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: Colors.black54,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 12),
+          
+          // Flèche de connexion
+          Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.arrow_downward,
+                    color: Colors.orange,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Connexion typologique',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.orange[700],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
+          
+          const SizedBox(height: 12),
+          
+          // Verset miroir
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Colors.orange.withOpacity(0.2),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Verset miroir',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.orange[600],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  mirror.mirrorId,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                if (mirror.mirrorText != null && mirror.mirrorText!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    mirror.mirrorText!,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: Colors.black54,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          
+          // Explication
+          if (mirror.explanation.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Explication',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.orange[600],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    mirror.explanation,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: Colors.black54,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Affiche les références croisées dans un bottom sheet
+  void _showCrossReferencesBottomSheet() {
+    final reference = _readingSession?.currentPassage?.reference ?? 'Jean 14:1-19';
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Consumer<ReaderSettingsService>(
+        builder: (context, settings, child) {
+          final isDark = settings.effectiveTheme == 'dark';
+          final theme = Theme.of(context);
+          final responsivePadding = _getResponsivePadding(context);
+          
+          return DraggableScrollableSheet(
+            initialChildSize: 0.6,
+            minChildSize: 0.4,
+            maxChildSize: 0.9,
+            builder: (context, scrollController) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1F1B3B) : theme.colorScheme.surface,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // Handle bar
+                    Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(top: 12),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white.withOpacity(0.3) : Colors.black.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    
+                    // Header (non-scrollable)
+                    Padding(
+                      padding: responsivePadding,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.link_outlined, color: Colors.teal, size: 24),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Références croisées',
+                                style: GoogleFonts.inter(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark ? Colors.white : Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Passages liés à $reference',
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              color: isDark ? Colors.white.withOpacity(0.7) : Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    // Content (scrollable)
+                    Expanded(
+                      child: ListView(
+                        controller: scrollController,
+                        padding: EdgeInsets.symmetric(horizontal: responsivePadding.left),
+                        children: [
+                          FutureBuilder<List<Map<String, dynamic>>>(
+                          future: _loadCrossReferencesData(reference),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(32),
+                                  child: CircularProgressIndicator(),
+                                ),
+                              );
+                            }
+                            
+                            if (snapshot.hasError) {
+                              return Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(32),
+                                  child: Text(
+                                    'Erreur de chargement: ${snapshot.error}',
+                                    style: GoogleFonts.inter(color: Colors.red),
+                                  ),
+                                ),
+                              );
+                            }
+                            
+                            final references = snapshot.data ?? [];
+                            
+                            if (references.isEmpty) {
+                              return Container(
+                                padding: const EdgeInsets.all(32),
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.info_outline,
+                                      size: 48,
+                                      color: isDark ? Colors.white54 : Colors.grey[400],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Aucune référence croisée trouvée pour ce passage',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 16,
+                                        color: isDark ? Colors.white70 : Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                            
+                            return Column(
+                              children: [
+                                ...references.map((ref) => _buildCrossReferenceItem(ref)).toList(),
+                                const SizedBox(height: 20),
+                              ],
+                            );
+                          },
+                        ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  /// Charge les données des références croisées
+  Future<List<Map<String, dynamic>>> _loadCrossReferencesData(String reference) async {
+    final references = <Map<String, dynamic>>[];
+    
+    try {
+      print('🔍 === DÉBUT CHARGEMENT RÉFÉRENCES CROISÉES POUR: $reference ===');
+      
+      // Service supprimé (packs incomplets)
+      print('⚠️ CrossRefService supprimé (packs incomplets)');
+      
+      // Récupérer les références croisées enrichies
+      final verseId = _extractVerseIdFromReference(reference);
+      print('🔍 VerseId extrait: $verseId');
+      
+      final crossRefs = <String>[];
+      
+      print('🔍 Références croisées trouvées: ${crossRefs.length}');
+      
+      print('🔍 === FIN CHARGEMENT RÉFÉRENCES CROISÉES ===');
+      
+    } catch (e) {
+      print('⚠️ Erreur chargement références croisées: $e');
+    }
+    
+    return references;
+  }
+
+  /// Construit un élément de référence croisée
+  Widget _buildCrossReferenceItem(Map<String, dynamic> reference) {
+    final ref = reference['reference'] as String? ?? '';
+    final text = reference['text'] as String? ?? '';
+    final relevance = reference['relevance'] as double? ?? 0.0;
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.teal.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.teal.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Référence
+          Row(
+            children: [
+              Icon(
+                Icons.link,
+                color: Colors.teal,
+                size: 16,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                ref,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.teal[700],
+                ),
+              ),
+              const Spacer(),
+              if (relevance > 0) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${(relevance * 100).toInt()}%',
+                    style: GoogleFonts.inter(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.teal[700],
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 8),
+          
+          // Texte
+          if (text.isNotEmpty) ...[
+            Text(
+              text,
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: Colors.black54,
+                height: 1.4,
+              ),
+            ),
+          ],
         ],
       ),
     );

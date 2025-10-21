@@ -1,0 +1,51 @@
+{
+  "1 Pierre": {
+    "period": "Église primitive (60-65 ap. J.-C.)",
+    "context": "Persécution sous Néron",
+    "location": "Rome (traditionnellement)",
+    "audience": "Chrétiens dispersés en Asie Mineure",
+    "purpose": "Encourager les croyants face à la persécution",
+    "historical_events": [
+      "Grand incendie de Rome (64 ap. J.-C.)",
+      "Persécution de Néron contre les chrétiens",
+      "Dispersion des chrétiens hors de Jérusalem",
+      "Évangélisation de l'Asie Mineure"
+    ],
+    "cultural_context": {
+      "society": "Empire romain païen",
+      "religion": "Polythéisme romain dominant",
+      "persecution": "Chrétiens accusés d'être des ennemis de l'État",
+      "family": "Structure patriarcale romaine"
+    },
+    "theological_themes": [
+      "Souffrance et gloire",
+      "Soumission aux autorités",
+      "Témoignage par la conduite",
+      "Espérance en Christ"
+    ]
+  },
+  "Colossiens": {
+    "period": "Église primitive (60-62 ap. J.-C.)",
+    "context": "Prison de Paul à Rome",
+    "location": "Colosses (Asie Mineure)",
+    "audience": "Église de Colosses",
+    "purpose": "Corriger les erreurs doctrinales",
+    "historical_events": [
+      "Prison de Paul à Rome",
+      "Hérésies gnostiques naissantes",
+      "Évangélisation de l'Asie Mineure"
+    ]
+  },
+  "Éphésiens": {
+    "period": "Église primitive (60-62 ap. J.-C.)",
+    "context": "Prison de Paul à Rome",
+    "location": "Éphèse (Asie Mineure)",
+    "audience": "Églises d'Asie Mineure",
+    "purpose": "Exposer le mystère de l'Église",
+    "historical_events": [
+      "Prison de Paul à Rome",
+      "Développement de l'Église universelle",
+      "Unité juifs et païens en Christ"
+    ]
+  }
+}

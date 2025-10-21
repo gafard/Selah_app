@@ -149,7 +149,10 @@ class _ThemeStudyPageState extends State<ThemeStudyPage>
     try {
       // Charger les références du thème
       final references = await BSBTopicalService.searchThemeReferences(_selectedTheme!);
-      _themeReferences = references;
+      _themeReferences = references.map((ref) => {
+        'reference': ref,
+        'type': 'biblical',
+      }).toList();
       
       // Charger les résultats de concordance
       final concordanceResults = await BSBConcordanceService.searchPartial(_selectedTheme!);

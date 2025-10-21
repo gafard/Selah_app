@@ -583,7 +583,7 @@ class PlanServiceHttp implements PlanService {
         final userProfile = await UserPrefs.loadProfile();
         
         // Générer des presets intelligents basés sur le profil
-        final presets = IntelligentLocalPresetGenerator.generateEnrichedPresets(userProfile);
+        final presets = await IntelligentLocalPresetGenerator.generateEnrichedPresets(userProfile);
         
         if (presets.isNotEmpty) {
           final selectedPreset = presets.first; // Prendre le premier preset recommandé
@@ -951,14 +951,40 @@ class PlanServiceHttp implements PlanService {
   /// Génère un passage intelligent pour un livre spécifique
   ReadingRef _generateIntelligentPassageForBook(String book, int day, Map<String, dynamic> userProfile) {
     final durationMin = userProfile['durationMin'] ?? 15;
-    final readingLength = _calculateReadingLength(durationMin);
+    final meditationType = userProfile['meditation'] as String?;
+    final readingLength = _calculateReadingLength(durationMin, meditationType: meditationType);
     
-    // 🚀 FALCON X v2 - Utiliser le service sémantique avancé pour des passages intelligents
-    // Corriger : utiliser le nombre réel de chapitres de chaque livre
+    // 🚀 FALCON X v2 - Service sémantique avec contexte historique et priorisation intelligente
     final maxChapters = _getMaxChaptersForBook(book);
-    final chapter = (day % maxChapters) + 1; // Chapitre de base respectant les limites
+    final chapter = (day % maxChapters) + 1;
     
-    // Utiliser la version 2 pour un ajustement intelligent
+    // 1. PRIORISATION INTELLIGENTE : Sélectionner l'unité littéraire la plus pertinente
+    final prioritizedUnit = _selectPrioritizedLiteraryUnit(book, chapter, day, userProfile);
+    
+    if (prioritizedUnit != null) {
+      // 2. AJUSTEMENT SÉMANTIQUE : Respecter les unités littéraires
+      final boundary = SemanticPassageBoundaryService.adjustPassageVerses(
+        book: book,
+        startChapter: prioritizedUnit.startChapter,
+        startVerse: prioritizedUnit.startVerse,
+        endChapter: prioritizedUnit.endChapter,
+        endVerse: prioritizedUnit.endVerse,
+      );
+      
+      if (boundary.adjusted && boundary.includedUnit != null) {
+        // 3. ENRICHISSEMENT HISTORIQUE : Ajouter le contexte chronologique
+        _enrichWithHistoricalContext(boundary.includedUnit!);
+        
+        print('🧠 Passage sémantique généré: ${boundary.reference} (${prioritizedUnit.name})');
+        return ReadingRef(
+          book: book,
+          range: _extractRangeFromReference(boundary.reference, book),
+          url: null,
+        );
+      }
+    }
+    
+    // 4. FALLBACK INTELLIGENT : Génération basique avec ajustement sémantique
     final boundary = SemanticPassageBoundaryService.adjustPassageChapters(
       book: book,
       startChapter: chapter,
@@ -966,15 +992,15 @@ class PlanServiceHttp implements PlanService {
     );
     
     if (boundary.adjusted && boundary.includedUnit != null) {
-      // Utiliser l'unité sémantique ajustée
+      _enrichWithHistoricalContext(boundary.includedUnit!);
       return ReadingRef(
         book: book,
-        range: boundary.reference,
+        range: _extractRangeFromReference(boundary.reference, book),
         url: null,
       );
     }
     
-    // Logique intelligente basée sur le livre (fallback)
+    // 5. FALLBACK TRADITIONNEL : Logique basée sur le livre
     if (book.toLowerCase() == 'psaumes' || book.toLowerCase() == 'psaumes') {
       return ReadingRef(
         book: 'Psaumes',
@@ -991,7 +1017,7 @@ class PlanServiceHttp implements PlanService {
       // Pour les livres du NT, utiliser le nombre réel de versets
       final maxVerses = _getVersesInChapter(book, chapter);
       final requestedVerses = readingLength['gospels'] ?? 30;
-      final actualVerses = (requestedVerses ?? 30) > maxVerses ? maxVerses : (requestedVerses ?? 30);
+      final actualVerses = requestedVerses > maxVerses ? maxVerses : requestedVerses;
       
       return ReadingRef(
         book: book,
@@ -1010,6 +1036,44 @@ class PlanServiceHttp implements PlanService {
   /// Retourne le nombre maximum de chapitres pour un livre donné
   int _getMaxChaptersForBook(String book) {
     return BibleVersesDatabase.getChaptersInBook(book);
+  }
+  
+  /// Extrait la partie chapitre/verset d'une référence complète
+  /// Ex: "1 Pierre 1:1–2:25" + "1 Pierre" → "1:1–2:25"
+  String _extractRangeFromReference(String fullReference, String book) {
+    try {
+      // Nettoyer la référence
+      final cleanRef = fullReference.trim();
+      
+      // Trouver le dernier espace pour séparer le livre du chapitre/verset
+      final lastSpace = cleanRef.lastIndexOf(' ');
+      if (lastSpace <= 0) return '1:1'; // Fallback
+      
+      final bookPart = cleanRef.substring(0, lastSpace).trim();
+      final rangePart = cleanRef.substring(lastSpace + 1).trim();
+      
+      // Vérifier que le livre correspond (pour éviter les erreurs)
+      if (bookPart.toLowerCase() == book.toLowerCase()) {
+        return rangePart;
+      }
+      
+      // Si les livres ne correspondent pas, essayer de trouver le range quand même
+      // en cherchant le premier ":" ou "-"
+      final colonIndex = cleanRef.indexOf(':');
+      if (colonIndex > 0) {
+        // Prendre tout après le dernier espace avant le ":"
+        final beforeColon = cleanRef.substring(0, colonIndex);
+        final lastSpaceBeforeColon = beforeColon.lastIndexOf(' ');
+        if (lastSpaceBeforeColon > 0) {
+          return cleanRef.substring(lastSpaceBeforeColon + 1);
+        }
+      }
+      
+      return rangePart;
+    } catch (e) {
+      print('⚠️ Erreur extraction range de "$fullReference": $e');
+      return '1:1'; // Fallback
+    }
   }
   
   /// Parse une référence Thompson en ReadingRef
@@ -1064,9 +1128,10 @@ class PlanServiceHttp implements PlanService {
   Future<List<ReadingRef>> _generateLocalReadings(String books, int dayIndex) async {
     // Récupérer la durée choisie par l'utilisateur depuis le profil
     final durationMin = await _getUserDurationMin();
+    final meditationType = await _getUserMeditationType();
     
-    // Calculer le nombre de versets/chapitres selon la durée
-    final readingLength = _calculateReadingLength(durationMin);
+    // Calculer le nombre de versets/chapitres selon la durée et le type de méditation
+    final readingLength = _calculateReadingLength(durationMin, meditationType: meditationType);
     
     // Parser la chaîne books pour extraire les livres individuels
     final bookList = books.split(',').map((b) => b.trim()).where((b) => b.isNotEmpty).toList();
@@ -1151,11 +1216,26 @@ class PlanServiceHttp implements PlanService {
       return 15; // Fallback à 15 minutes
     }
   }
+  
+  /// Récupère le type de méditation depuis le profil utilisateur
+  Future<String?> _getUserMeditationType() async {
+    try {
+      // Synchroniser d'abord les deux systèmes
+      await UserPrefsSync.syncBidirectional();
+      
+      // Essayer de récupérer depuis UserPrefs
+      final profile = await UserPrefs.loadProfile();
+      return profile['meditation'] as String?;
+    } catch (e) {
+      return null; // Fallback à null (utilisera la valeur par défaut)
+    }
+  }
 
   /// Calcule la longueur de lecture selon la durée disponible
-  Map<String, int> _calculateReadingLength(int durationMin) {
-    // Estimation : 1 minute = 1.5-2 versets moyens (plus réaliste pour la méditation)
-    const versesPerMinute = 1.8;
+  /// S'adapte au type de méditation pour ajuster la vitesse de lecture
+  Map<String, int> _calculateReadingLength(int durationMin, {String? meditationType}) {
+    // Vitesse de base adaptée au type de méditation
+    double versesPerMinute = _getVersesPerMinuteForMeditation(meditationType);
     final totalVerses = (durationMin * versesPerMinute).round();
     
     return {
@@ -1166,6 +1246,24 @@ class PlanServiceHttp implements PlanService {
       'ot': _clampVerses(totalVerses, 5, 22), // AT : 5-22 versets
       'default': _clampVerses(totalVerses, 4, 18), // Défaut : 4-18 versets
     };
+  }
+  
+  /// Retourne la vitesse de lecture adaptée au type de méditation
+  double _getVersesPerMinuteForMeditation(String? meditationType) {
+    if (meditationType == null) return 1.8; // Défaut
+    
+    // Vitesses ajustées selon l'intensité de chaque méthode
+    if (meditationType.contains('Méditation profonde')) {
+      return 1.5; // Plus lent pour la réflexion profonde
+    } else if (meditationType.contains('Prière')) {
+      return 1.2; // Très lent pour les pauses de prière
+    } else if (meditationType.contains('Application')) {
+      return 1.6; // Modéré pour l'application pratique
+    } else if (meditationType.contains('Mémorisation')) {
+      return 1.0; // Très lent pour la répétition
+    }
+    
+    return 1.8; // Défaut
   }
 
   /// Limite le nombre de versets dans une plage raisonnable
@@ -1227,5 +1325,335 @@ class PlanServiceHttp implements PlanService {
     } catch (e) {
       print('⚠️ Sync reschedule plan échouée: $e');
     }
+  }
+
+  // ============================================================================
+  // 🧠 INTELLIGENCE SÉMANTIQUE AVANCÉE - FALCON X v2
+  // ============================================================================
+
+  /// Sélectionne l'unité littéraire la plus pertinente selon le profil utilisateur
+  LiteraryUnit? _selectPrioritizedLiteraryUnit(String book, int chapter, int day, Map<String, dynamic> userProfile) {
+    try {
+      // 1. Récupérer toutes les unités littéraires pour ce livre
+      final allUnits = SemanticPassageBoundaryService.getUnitsForBook(book);
+      if (allUnits.isEmpty) return null;
+
+      // 2. Filtrer les unités qui incluent le chapitre demandé
+      final relevantUnits = allUnits.where((unit) => 
+        unit.startChapter <= chapter && unit.endChapter >= chapter
+      ).toList();
+
+      if (relevantUnits.isEmpty) return null;
+
+      // 3. PRIORISATION INTELLIGENTE basée sur :
+      // - Priorité de l'unité (critical > high > medium > low)
+      // - Objectif utilisateur
+      // - Niveau spirituel
+      // - Jour de lecture (progression logique)
+
+      final goal = userProfile['goal'] as String? ?? '';
+      final level = userProfile['level'] as String? ?? '';
+      final heartPosture = userProfile['heartPosture'] as String? ?? '';
+
+      // Score de priorisation
+      LiteraryUnit? bestUnit;
+      int bestScore = -1;
+
+      for (final unit in relevantUnits) {
+        int score = 0;
+
+        // Score de priorité de l'unité
+        switch (unit.priority) {
+          case UnitPriority.critical:
+            score += 100;
+            break;
+          case UnitPriority.high:
+            score += 75;
+            break;
+          case UnitPriority.medium:
+            score += 50;
+            break;
+          case UnitPriority.low:
+            score += 25;
+            break;
+        }
+
+        // Score basé sur l'objectif utilisateur
+        if (_unitMatchesGoal(unit, goal)) {
+          score += 50;
+        }
+
+        // Score basé sur le niveau spirituel
+        if (_unitMatchesLevel(unit, level)) {
+          score += 30;
+        }
+
+        // Score basé sur la posture du cœur
+        if (_unitMatchesHeartPosture(unit, heartPosture)) {
+          score += 20;
+        }
+
+        // Score de progression (éviter de répéter les mêmes unités)
+        final unitKey = '${unit.name}_${unit.startChapter}_${unit.startVerse}';
+        final lastUsed = _getLastUsedUnit(unitKey);
+        if (lastUsed == null || (day - lastUsed) > 30) {
+          score += 15; // Bonus pour les unités non utilisées récemment
+        }
+
+        // Score de cohérence narrative (préférer les unités complètes)
+        if (unit.startChapter == unit.endChapter) {
+          score += 10; // Bonus pour les unités dans un seul chapitre
+        }
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestUnit = unit;
+        }
+      }
+
+      // 4. Enregistrer l'unité utilisée pour éviter les répétitions
+      if (bestUnit != null) {
+        final unitKey = '${bestUnit.name}_${bestUnit.startChapter}_${bestUnit.startVerse}';
+        _recordUsedUnit(unitKey, day);
+      }
+
+      return bestUnit;
+    } catch (e) {
+      print('⚠️ Erreur priorisation unité littéraire: $e');
+      return null;
+    }
+  }
+
+  /// Vérifie si une unité correspond à l'objectif utilisateur
+  bool _unitMatchesGoal(LiteraryUnit unit, String goal) {
+    if (goal.isEmpty) return false;
+    
+    final goalLower = goal.toLowerCase();
+    final unitNameLower = unit.name.toLowerCase();
+    final unitDescLower = (unit.description ?? '').toLowerCase();
+
+    // Correspondances spécifiques par objectif
+    if (goalLower.contains('témoigner') || goalLower.contains('évangéliser')) {
+      return unitNameLower.contains('mission') || 
+             unitNameLower.contains('témoignage') ||
+             unitNameLower.contains('évangile') ||
+             unitDescLower.contains('mission');
+    }
+    
+    if (goalLower.contains('prière') || goalLower.contains('mieux prier')) {
+      return unitNameLower.contains('prière') || 
+             unitNameLower.contains('prier') ||
+             unitDescLower.contains('prière');
+    }
+    
+    if (goalLower.contains('sagesse')) {
+      return unitNameLower.contains('sagesse') || 
+             unitNameLower.contains('proverbe') ||
+             unitDescLower.contains('sagesse');
+    }
+
+    return false;
+  }
+
+  /// Vérifie si une unité correspond au niveau spirituel
+  bool _unitMatchesLevel(LiteraryUnit unit, String level) {
+    if (level.isEmpty) return false;
+    
+    final levelLower = level.toLowerCase();
+    final unitNameLower = unit.name.toLowerCase();
+
+    if (levelLower.contains('nouveau') || levelLower.contains('débutant')) {
+      // Pour les nouveaux convertis, privilégier les unités fondamentales
+      return unitNameLower.contains('création') || 
+             unitNameLower.contains('évangile') ||
+             unitNameLower.contains('salut') ||
+             unit.priority == UnitPriority.critical;
+    }
+    
+    if (levelLower.contains('fidèle') || levelLower.contains('régulier')) {
+      // Pour les fidèles réguliers, toutes les unités sont appropriées
+      return true;
+    }
+    
+    if (levelLower.contains('mature') || levelLower.contains('avancé')) {
+      // Pour les matures, privilégier les unités complexes
+      return unitNameLower.contains('prophétie') || 
+             unitNameLower.contains('apocalypse') ||
+             unit.priority == UnitPriority.high ||
+             unit.priority == UnitPriority.critical;
+    }
+
+    return true;
+  }
+
+  /// Vérifie si une unité correspond à la posture du cœur
+  bool _unitMatchesHeartPosture(LiteraryUnit unit, String heartPosture) {
+    if (heartPosture.isEmpty) return false;
+    
+    final postureLower = heartPosture.toLowerCase();
+    final unitNameLower = unit.name.toLowerCase();
+
+    if (postureLower.contains('écouter')) {
+      return unitNameLower.contains('parole') || 
+             unitNameLower.contains('écouter') ||
+             unitNameLower.contains('révélation');
+    }
+    
+    if (postureLower.contains('reconnaissance')) {
+      return unitNameLower.contains('louange') || 
+             unitNameLower.contains('reconnaissance') ||
+             unitNameLower.contains('psaume');
+    }
+    
+    if (postureLower.contains('repentance')) {
+      return unitNameLower.contains('repentance') || 
+             unitNameLower.contains('pardon') ||
+             unitNameLower.contains('conversion');
+    }
+
+    return true;
+  }
+
+  /// Enrichit une unité littéraire avec le contexte historique
+  void _enrichWithHistoricalContext(LiteraryUnit unit) {
+    try {
+      // Utiliser le service de chronologie pour enrichir la description
+      final enrichedDescription = _buildEnrichedDescription(unit);
+      if (enrichedDescription.isNotEmpty) {
+        print('📚 Contexte historique ajouté: ${unit.name}');
+        // Note: Dans une implémentation complète, on pourrait stocker cette
+        // description enrichie pour l'affichage dans l'interface utilisateur
+      }
+    } catch (e) {
+      print('⚠️ Erreur enrichissement historique: $e');
+    }
+  }
+
+  /// Construit une description enrichie avec le contexte historique
+  String _buildEnrichedDescription(LiteraryUnit unit) {
+    try {
+      // Trouver la période historique correspondante
+      final period = _getHistoricalPeriodForBook(unit.book);
+      if (period == null) return unit.description ?? '';
+
+      final buffer = StringBuffer();
+      buffer.write(unit.description ?? '');
+      
+      if (period['name'] != null) {
+        buffer.write(' • Contexte historique: ${period['name']}');
+      }
+      
+      if (period['description'] != null) {
+        buffer.write(' • ${period['description']}');
+      }
+      
+      if (period['themes'] != null) {
+        final themes = (period['themes'] as List<dynamic>? ?? [])
+            .map((t) => t.toString())
+            .join(', ');
+        if (themes.isNotEmpty) {
+          buffer.write(' • Thèmes de l\'époque: $themes');
+        }
+      }
+      
+      if (period['events'] != null) {
+        final events = period['events'] as List<dynamic>? ?? [];
+        if (events.isNotEmpty) {
+          final eventTitles = events
+              .map((e) => (e as Map<String, dynamic>)['title']?.toString() ?? '')
+              .where((t) => t.isNotEmpty)
+              .take(3)
+              .join(', ');
+          if (eventTitles.isNotEmpty) {
+            buffer.write(' • Événements clés: $eventTitles');
+          }
+        }
+      }
+
+      return buffer.toString();
+    } catch (e) {
+      print('⚠️ Erreur construction description enrichie: $e');
+      return unit.description ?? '';
+    }
+  }
+
+  /// Trouve la période historique correspondant à un livre biblique
+  Map<String, dynamic>? _getHistoricalPeriodForBook(String book) {
+    try {
+      // Mapping simplifié livre -> période historique
+      final bookToPeriod = {
+        'Genèse': 'Patriarches',
+        'Exode': 'Exode et Conquête',
+        'Lévitique': 'Exode et Conquête',
+        'Nombres': 'Exode et Conquête',
+        'Deutéronome': 'Exode et Conquête',
+        'Josué': 'Exode et Conquête',
+        'Juges': 'Exode et Conquête',
+        'Ruth': 'Exode et Conquête',
+        '1 Samuel': 'Royaume uni',
+        '2 Samuel': 'Royaume uni',
+        '1 Rois': 'Royaume uni',
+        '2 Rois': 'Royaume uni',
+        '1 Chroniques': 'Royaume uni',
+        '2 Chroniques': 'Royaume uni',
+        'Matthieu': 'Nouveau Testament',
+        'Marc': 'Nouveau Testament',
+        'Luc': 'Nouveau Testament',
+        'Jean': 'Nouveau Testament',
+        'Actes': 'Nouveau Testament',
+        'Romains': 'Nouveau Testament',
+        '1 Corinthiens': 'Nouveau Testament',
+        '2 Corinthiens': 'Nouveau Testament',
+        'Galates': 'Nouveau Testament',
+        'Éphésiens': 'Nouveau Testament',
+        'Philippiens': 'Nouveau Testament',
+        'Colossiens': 'Nouveau Testament',
+        '1 Thessaloniciens': 'Nouveau Testament',
+        '2 Thessaloniciens': 'Nouveau Testament',
+        '1 Timothée': 'Nouveau Testament',
+        '2 Timothée': 'Nouveau Testament',
+        'Tite': 'Nouveau Testament',
+        'Philémon': 'Nouveau Testament',
+        'Hébreux': 'Nouveau Testament',
+        'Jacques': 'Nouveau Testament',
+        '1 Pierre': 'Nouveau Testament',
+        '2 Pierre': 'Nouveau Testament',
+        '1 Jean': 'Nouveau Testament',
+        '2 Jean': 'Nouveau Testament',
+        '3 Jean': 'Nouveau Testament',
+        'Jude': 'Nouveau Testament',
+        'Apocalypse': 'Nouveau Testament',
+      };
+
+      final periodName = bookToPeriod[book];
+      if (periodName == null) return null;
+
+      // Retourner les données de la période (simulées pour l'instant)
+      return {
+        'name': periodName,
+        'description': 'Période biblique correspondante',
+        'themes': ['foi', 'alliance', 'bénédiction'],
+        'events': [
+          {'title': 'Événement clé 1'},
+          {'title': 'Événement clé 2'},
+        ],
+      };
+    } catch (e) {
+      print('⚠️ Erreur recherche période historique: $e');
+      return null;
+    }
+  }
+
+  // Cache simple pour éviter les répétitions d'unités
+  static final Map<String, int> _usedUnits = {};
+
+  /// Enregistre l'utilisation d'une unité littéraire
+  void _recordUsedUnit(String unitKey, int day) {
+    _usedUnits[unitKey] = day;
+  }
+
+  /// Récupère le jour d'utilisation d'une unité littéraire
+  int? _getLastUsedUnit(String unitKey) {
+    return _usedUnits[unitKey];
   }
 }

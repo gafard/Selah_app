@@ -8,7 +8,9 @@ class BibleAssetsService {
   static const List<String> _integratedVersions = [
     'lsg1910',
     'francais_courant', 
-    'semeur'
+    'semeur',
+    'nouvelle_segond',
+    'oecumenique'
   ];
   
   /// Vérifie si une version est intégrée dans les assets
@@ -162,7 +164,7 @@ class BibleAssetsService {
 
   /// Récupère la base de données SQLite
   static Future<Database> _getDatabase() async {
-    final dbPath = join(await getDatabasesPath(), 'bible_pack.sqlite');
+    final dbPath = join(await getDatabasesPath(), 'bible_versions.db');
     return await openDatabase(dbPath);
   }
 }

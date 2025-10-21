@@ -48,11 +48,12 @@ class IntelligentDurationCalculator {
   );
   
   /// Multiplicateurs par type de méditation
+  /// Basés sur l'intensité et le temps requis pour chaque méthode
   static const _MeditationTypeFactors = (
-    lectioDivina: 1.05,       // +5% pour Lectio Divina (plus contemplatif)
-    contemplation: 1.10,      // +10% pour Contemplation
-    priereSilencieuse: 1.0,   // Neutre pour Prière silencieuse
-    meditationBiblique: 1.0,  // Neutre pour Méditation biblique (défaut)
+    meditationProfonde: 1.15,     // +15% pour méditation profonde (plus de temps de réflexion)
+    priere: 1.20,                 // +20% pour prière (pauses fréquentes)
+    application: 1.10,            // +10% pour application (réflexion sur l'usage)
+    memorisation: 1.25,           // +25% pour mémorisation (répétition intensive)
   );
   
   // ============ HELPERS DE SÉCURITÉ ============
@@ -160,14 +161,23 @@ class IntelligentDurationCalculator {
   
   
   /// Facteur de méditation pour ajuster la durée
+  /// Prend en compte le temps supplémentaire requis pour chaque méthode
   static double _meditationTypeFactor(String? meditationType) {
-    switch (meditationType) {
-      case 'Lectio Divina': return _MeditationTypeFactors.lectioDivina;
-      case 'Contemplation': return _MeditationTypeFactors.contemplation;
-      case 'Prière silencieuse': return _MeditationTypeFactors.priereSilencieuse;
-      case 'Méditation biblique': return _MeditationTypeFactors.meditationBiblique;
-      default: return _MeditationTypeFactors.meditationBiblique;
+    if (meditationType == null) return _MeditationTypeFactors.meditationProfonde;
+    
+    // Correspondance avec les nouvelles méthodes de méditation
+    if (meditationType.contains('Méditation profonde')) {
+      return _MeditationTypeFactors.meditationProfonde;
+    } else if (meditationType.contains('Prière')) {
+      return _MeditationTypeFactors.priere;
+    } else if (meditationType.contains('Application')) {
+      return _MeditationTypeFactors.application;
+    } else if (meditationType.contains('Mémorisation')) {
+      return _MeditationTypeFactors.memorisation;
     }
+    
+    // Fallback pour compatibilité avec anciennes valeurs
+    return _MeditationTypeFactors.meditationProfonde;
   }
   
   /// Base de connaissances élargie sur les habitudes et le changement comportemental

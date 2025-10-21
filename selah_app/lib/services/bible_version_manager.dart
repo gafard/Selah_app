@@ -1,9 +1,7 @@
 import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
-import 'bible_text_service.dart';
 import 'bible_assets_service.dart';
 
 /// Gestionnaire des versions de Bible - Intégration VideoPsalm et OpenBible
@@ -480,7 +478,53 @@ class BibleVersionManager {
 
   /// Récupère la base de données SQLite
   static Future<Database> _getDatabase() async {
-    final dbPath = join(await getDatabasesPath(), 'bible_pack.sqlite');
-    return await openDatabase(dbPath);
+    final dbPath = join(await getDatabasesPath(), 'bible_versions.db');
+    
+    return await openDatabase(
+      dbPath,
+      version: 1,
+      onCreate: (db, version) async {
+        // Créer la table versions
+        await db.execute('''
+          CREATE TABLE versions (
+            version_id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            language TEXT NOT NULL,
+            copyright TEXT,
+            source TEXT
+          )
+        ''');
+        
+        // Créer la table books
+        await db.execute('''
+          CREATE TABLE books (
+            book_id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            abbreviation TEXT,
+            chapters INTEGER
+          )
+        ''');
+        
+        // Créer la table verses
+        await db.execute('''
+          CREATE TABLE verses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            book_id INTEGER NOT NULL,
+            chapter INTEGER NOT NULL,
+            verse INTEGER NOT NULL,
+            text TEXT NOT NULL,
+            version_id TEXT NOT NULL,
+            FOREIGN KEY (version_id) REFERENCES versions(version_id),
+            FOREIGN KEY (book_id) REFERENCES books(book_id)
+          )
+        ''');
+        
+        // Index pour les requêtes fréquentes
+        await db.execute('''
+          CREATE INDEX idx_verses_lookup 
+          ON verses(version_id, book_id, chapter, verse)
+        ''');
+      },
+    );
   }
 }

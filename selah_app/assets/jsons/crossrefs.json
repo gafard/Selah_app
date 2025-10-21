@@ -50,7 +50,9 @@
   "1Pierre.5.7": ["Psaumes.55.23", "Philippiens.4.6"],
   
   "1Jean.1.9": ["Proverbes.28.13", "Psaumes.32.5"],
-  "1Jean.4.8": ["1Corinthiens.13.1", "Jean.3.16"]
+  "1Jean.4.8": ["1Corinthiens.13.1", "Jean.3.16"],
+  
+  "Colossiens.2.1": ["Colossiens.1.24", "Éphésiens.3.13", "2Corinthiens.11.28", "Galates.4.19", "1Thessaloniciens.2.17"]
 }
 
 

@@ -1,275 +1,512 @@
 import 'dart:convert';
 import 'package:flutter/services.dart';
 
-/// Service pour les chronologies bibliques
-/// Utilise les données d'OpenBible pour enrichir l'étude thématique
+/// Service de chronologie biblique basé sur OpenBible Timeline Charts
+/// https://openbible.com/timelinecharts/
 class BiblicalTimelineService {
   static Map<String, dynamic>? _timelineData;
-  static bool _isInitialized = false;
+  static bool _isLoading = false;
 
-  /// Initialise le service
+  /// Initialise le service (chargement à la demande - optimisé)
   static Future<void> init() async {
-    if (_isInitialized) return;
+    if (_timelineData != null || _isLoading) return;
 
+    _isLoading = true;
     try {
-      // Pour l'instant, on utilise des données simulées
-      // TODO: Intégrer les données d'OpenBible
-      _timelineData = _getSimulatedTimelineData();
-      _isInitialized = true;
+      // Charger les données de chronologie depuis assets/data
+      final String jsonString = await rootBundle.loadString('assets/data/biblical_timeline.json');
+      _timelineData = json.decode(jsonString);
       print('✅ BiblicalTimelineService initialisé avec ${_timelineData?.length ?? 0} périodes');
     } catch (e) {
-      print('⚠️ Erreur chargement chronologies: $e');
-      _timelineData = {};
-      _isInitialized = true;
+      print('⚠️ Erreur chargement chronologie biblique: $e');
+      // Utiliser des données par défaut si le fichier n'existe pas
+      _timelineData = _getDefaultTimelineData();
+    } finally {
+      _isLoading = false;
     }
   }
 
-  /// Obtient les périodes bibliques
-  static Future<List<Map<String, dynamic>>> getBiblicalPeriods() async {
-    await init();
-    return (_timelineData?['periods'] as List<dynamic>? ?? [])
-        .map((e) => e as Map<String, dynamic>)
-        .toList();
+  /// Données de chronologie par défaut basées sur OpenBible Timeline Charts
+  static Map<String, dynamic> _getDefaultTimelineData() {
+    return {
+      'periods': [
+        {
+          'name': 'Création et Patriarches',
+          'startYear': -4000,
+          'endYear': -1800,
+          'description': 'De la création à Abraham',
+          'books': ['Genèse'],
+          'keyEvents': [
+            'Création du monde',
+            'Chute de l\'humanité',
+            'Déluge de Noé',
+            'Tour de Babel',
+            'Appel d\'Abraham'
+          ],
+          'characters': ['Adam', 'Ève', 'Noé', 'Abraham', 'Isaac', 'Jacob'],
+          'themes': ['création', 'chute', 'alliance', 'promesse', 'foi']
+        },
+        {
+          'name': 'Exode et Désert',
+          'startYear': -1800,
+          'endYear': -1400,
+          'description': 'Sortie d\'Égypte et errance dans le désert',
+          'books': ['Exode', 'Lévitique', 'Nombres', 'Deutéronome'],
+          'keyEvents': [
+            'Esclavage en Égypte',
+            'Naissance de Moïse',
+            'Les 10 plaies',
+            'Traversée de la mer Rouge',
+            'Don de la Loi au Sinaï',
+            '40 ans dans le désert'
+          ],
+          'characters': ['Moïse', 'Aaron', 'Miriam', 'Josué', 'Caleb'],
+          'themes': ['libération', 'délivrance', 'loi', 'alliance', 'sainteté']
+        },
+        {
+          'name': 'Conquête et Juges',
+          'startYear': -1400,
+          'endYear': -1050,
+          'description': 'Conquête de Canaan et période des juges',
+          'books': ['Josué', 'Juges', 'Ruth'],
+          'keyEvents': [
+            'Conquête de Jéricho',
+            'Partage de Canaan',
+            'Période des juges',
+            'Cycle d\'apostasie et délivrance'
+          ],
+          'characters': ['Josué', 'Caleb', 'Gédéon', 'Samson', 'Déborah', 'Ruth'],
+          'themes': ['conquête', 'possession', 'jugement', 'délivrance', 'fidélité']
+        },
+        {
+          'name': 'Royaume Unifié',
+          'startYear': -1050,
+          'endYear': -930,
+          'description': 'Règnes de Saül, David et Salomon',
+          'books': ['1 Samuel', '2 Samuel', '1 Rois 1-11', 'Psaumes', 'Proverbes', 'Ecclésiaste', 'Cantique'],
+          'keyEvents': [
+            'Règne de Saül',
+            'Règne de David',
+            'Conquête de Jérusalem',
+            'Règne de Salomon',
+            'Construction du Temple'
+          ],
+          'characters': ['Saül', 'David', 'Salomon', 'Samuel', 'Nathan', 'Bathsheba'],
+          'themes': ['royaume', 'alliance', 'temple', 'sagesse', 'adoration']
+        },
+        {
+          'name': 'Royaume Divisé',
+          'startYear': -930,
+          'endYear': -722,
+          'description': 'Royaume d\'Israël (Nord) et Juda (Sud)',
+          'books': ['1 Rois 12-22', '2 Rois 1-17', 'Osée', 'Amos', 'Michée', 'Ésaïe 1-39'],
+          'keyEvents': [
+            'Division du royaume',
+            'Règnes des rois d\'Israël et Juda',
+            'Ministère des prophètes',
+            'Chute d\'Israël (722 av. J.-C.)'
+          ],
+          'characters': ['Jéroboam', 'Achab', 'Jézabel', 'Élie', 'Élisée', 'Ésaïe'],
+          'themes': ['division', 'idolâtrie', 'prophétie', 'jugement', 'restauration']
+        },
+        {
+          'name': 'Exil et Retour',
+          'startYear': -722,
+          'endYear': -400,
+          'description': 'Exil babylonien et retour à Jérusalem',
+          'books': ['2 Rois 18-25', '2 Chroniques', 'Esdras', 'Néhémie', 'Esther', 'Ésaïe 40-66', 'Jérémie', 'Lamentations', 'Ézéchiel', 'Daniel', 'Aggée', 'Zacharie', 'Malachie'],
+          'keyEvents': [
+            'Chute de Juda (586 av. J.-C.)',
+            'Exil à Babylone',
+            'Règne de Cyrus',
+            'Retour à Jérusalem',
+            'Reconstruction du Temple',
+            'Reconstruction des murailles'
+          ],
+          'characters': ['Nebucadnetsar', 'Daniel', 'Ézéchiel', 'Cyrus', 'Esdras', 'Néhémie', 'Esther'],
+          'themes': ['exil', 'restauration', 'temple', 'loi', 'espérance']
+        },
+        {
+          'name': 'Intertestamentaire',
+          'startYear': -400,
+          'endYear': -4,
+          'description': 'Période entre l\'Ancien et le Nouveau Testament',
+          'books': ['Apocryphes'],
+          'keyEvents': [
+            'Règne grec (Alexandre le Grand)',
+            'Règne séleucide',
+            'Révolte des Maccabées',
+            'Règne hasmonéen',
+            'Conquête romaine'
+          ],
+          'characters': ['Alexandre le Grand', 'Antiochus Épiphane', 'Judas Maccabée'],
+          'themes': ['hellénisation', 'résistance', 'indépendance', 'attente']
+        },
+        {
+          'name': 'Vie de Jésus',
+          'startYear': -4,
+          'endYear': 30,
+          'description': 'Naissance, ministère, mort et résurrection de Jésus',
+          'books': ['Matthieu', 'Marc', 'Luc', 'Jean'],
+          'keyEvents': [
+            'Naissance de Jésus',
+            'Baptême de Jésus',
+            'Ministère en Galilée',
+            'Sermon sur la montagne',
+            'Miracles et paraboles',
+            'Entrée à Jérusalem',
+            'Crucifixion',
+            'Résurrection',
+            'Ascension'
+          ],
+          'characters': ['Jésus', 'Marie', 'Joseph', 'Jean-Baptiste', 'Pierre', 'Jean', 'Paul'],
+          'themes': ['incarnation', 'royaume', 'salut', 'amour', 'sacrifice', 'résurrection']
+        },
+        {
+          'name': 'Église Primitive',
+          'startYear': 30,
+          'endYear': 100,
+          'description': 'Formation et expansion de l\'Église',
+          'books': ['Actes', 'Romains', '1-2 Corinthiens', 'Galates', 'Éphésiens', 'Philippiens', 'Colossiens', '1-2 Thessaloniciens', '1-2 Timothée', 'Tite', 'Philémon', 'Hébreux', 'Jacques', '1-2 Pierre', '1-3 Jean', 'Jude', 'Apocalypse'],
+          'keyEvents': [
+            'Pentecôte',
+            'Conversion de Paul',
+            'Premier concile de Jérusalem',
+            'Voyages missionnaires de Paul',
+            'Écriture des épîtres',
+            'Persécutions romaines'
+          ],
+          'characters': ['Pierre', 'Paul', 'Jean', 'Jacques', 'Timothée', 'Tite', 'Barnabas'],
+          'themes': ['évangélisation', 'doctrine', 'église', 'sainteté', 'espérance', 'persévérance']
+        }
+      ],
+      'empires': [
+        {
+          'name': 'Empire Égyptien',
+          'startYear': -3000,
+          'endYear': -30,
+          'description': 'L\'un des plus anciens empires de l\'histoire',
+          'keyEvents': ['Construction des pyramides', 'Exode des Hébreux', 'Conquête par Rome']
+        },
+        {
+          'name': 'Empire Assyrien',
+          'startYear': -2000,
+          'endYear': -612,
+          'description': 'Empire mésopotamien puissant',
+          'keyEvents': ['Conquête d\'Israël (722 av. J.-C.)', 'Siège de Jérusalem']
+        },
+        {
+          'name': 'Empire Babylonien',
+          'startYear': -612,
+          'endYear': -539,
+          'description': 'Empire de Nebucadnetsar',
+          'keyEvents': ['Conquête de Juda (586 av. J.-C.)', 'Exil babylonien']
+        },
+        {
+          'name': 'Empire Perse',
+          'startYear': -539,
+          'endYear': -330,
+          'description': 'Empire de Cyrus et ses successeurs',
+          'keyEvents': ['Édit de Cyrus', 'Retour des exilés', 'Reconstruction du Temple']
+        },
+        {
+          'name': 'Empire Grec',
+          'startYear': -330,
+          'endYear': -63,
+          'description': 'Empire d\'Alexandre le Grand',
+          'keyEvents': ['Conquête d\'Alexandre', 'Hellénisation', 'Révolte des Maccabées']
+        },
+        {
+          'name': 'Empire Romain',
+          'startYear': -63,
+          'endYear': 476,
+          'description': 'Empire qui dominait à l\'époque de Jésus',
+          'keyEvents': ['Conquête de la Palestine', 'Crucifixion de Jésus', 'Destruction du Temple (70 ap. J.-C.)']
+        }
+      ]
+    };
   }
 
-  /// Obtient les événements d'une période
-  static Future<List<Map<String, dynamic>>> getEventsForPeriod(String periodName) async {
+  /// Récupère toutes les périodes bibliques
+  static Future<List<Map<String, dynamic>>> getPeriods() async {
+    await init();
+    if (_timelineData != null) {
+      final periods = _timelineData!['periods'] as List<dynamic>? ?? [];
+      return periods.map((period) => period as Map<String, dynamic>).toList();
+    }
+    return [];
+  }
+
+  /// Récupère toutes les périodes d'empires
+  static Future<List<Map<String, dynamic>>> getEmpires() async {
+    await init();
+    if (_timelineData != null) {
+      final empires = _timelineData!['empires'] as List<dynamic>? ?? [];
+      return empires.map((empire) => empire as Map<String, dynamic>).toList();
+    }
+    return [];
+  }
+
+  /// Recherche des périodes par thème
+  static Future<List<Map<String, dynamic>>> searchPeriodsByTheme(String theme) async {
+    await init();
+    final matchingPeriods = <Map<String, dynamic>>[];
+    
+    if (_timelineData != null) {
+      final periods = _timelineData!['periods'] as List<dynamic>? ?? [];
+      
+      for (final period in periods) {
+        final periodMap = period as Map<String, dynamic>;
+        final themes = periodMap['themes'] as List<dynamic>? ?? [];
+        
+        if (themes.any((t) => t.toString().toLowerCase().contains(theme.toLowerCase()))) {
+          matchingPeriods.add(periodMap);
+        }
+      }
+    }
+    
+    return matchingPeriods;
+  }
+
+  /// Recherche des périodes par personnage
+  static Future<List<Map<String, dynamic>>> searchPeriodsByCharacter(String character) async {
+    await init();
+    final matchingPeriods = <Map<String, dynamic>>[];
+    
+    if (_timelineData != null) {
+      final periods = _timelineData!['periods'] as List<dynamic>? ?? [];
+      
+      for (final period in periods) {
+        final periodMap = period as Map<String, dynamic>;
+        final characters = periodMap['characters'] as List<dynamic>? ?? [];
+        
+        if (characters.any((c) => c.toString().toLowerCase().contains(character.toLowerCase()))) {
+          matchingPeriods.add(periodMap);
+        }
+      }
+    }
+    
+    return matchingPeriods;
+  }
+
+  /// Récupère la période pour une année donnée
+  static Future<Map<String, dynamic>?> getPeriodForYear(int year) async {
     await init();
     
-    final periods = _timelineData?['periods'] as List<dynamic>? ?? [];
-    for (final period in periods) {
-      final periodData = period as Map<String, dynamic>;
-      if (periodData['name'] == periodName) {
-        return (periodData['events'] as List<dynamic>? ?? [])
-            .map((e) => e as Map<String, dynamic>)
-            .toList();
+    if (_timelineData != null) {
+      final periods = _timelineData!['periods'] as List<dynamic>? ?? [];
+      
+      for (final period in periods) {
+        final periodMap = period as Map<String, dynamic>;
+        final startYear = periodMap['startYear'] as int? ?? 0;
+        final endYear = periodMap['endYear'] as int? ?? 0;
+        
+        if (year >= startYear && year <= endYear) {
+          return periodMap;
+        }
+      }
+    }
+    
+    return null;
+  }
+
+  /// Récupère l'empire dominant pour une année donnée
+  static Future<Map<String, dynamic>?> getEmpireForYear(int year) async {
+    await init();
+    
+    if (_timelineData != null) {
+      final empires = _timelineData!['empires'] as List<dynamic>? ?? [];
+      
+      for (final empire in empires) {
+        final empireMap = empire as Map<String, dynamic>;
+        final startYear = empireMap['startYear'] as int? ?? 0;
+        final endYear = empireMap['endYear'] as int? ?? 0;
+        
+        if (year >= startYear && year <= endYear) {
+          return empireMap;
+        }
+      }
+    }
+    
+    return null;
+  }
+
+  /// Récupère la période pour un livre biblique
+  static Future<Map<String, dynamic>?> getPeriodForBook(String bookName) async {
+    await init();
+    
+    if (_timelineData != null) {
+      final periods = _timelineData!['periods'] as List<dynamic>? ?? [];
+      
+      for (final period in periods) {
+        final periodMap = period as Map<String, dynamic>;
+        final books = periodMap['books'] as List<dynamic>? ?? [];
+        
+        // Recherche exacte d'abord
+        if (books.any((book) => book.toString().toLowerCase() == bookName.toLowerCase())) {
+          return periodMap;
+        }
+        
+        // Recherche partielle
+        if (books.any((book) => book.toString().toLowerCase().contains(bookName.toLowerCase()))) {
+          return periodMap;
+        }
+      }
+    }
+    
+    return null;
+  }
+
+  /// Récupère les événements clés pour une période
+  static Future<List<String>> getKeyEventsForPeriod(String periodName) async {
+    await init();
+    
+    if (_timelineData != null) {
+      final periods = _timelineData!['periods'] as List<dynamic>? ?? [];
+      
+      for (final period in periods) {
+        final periodMap = period as Map<String, dynamic>;
+        if (periodMap['name'] == periodName) {
+          final events = periodMap['keyEvents'] as List<dynamic>? ?? [];
+          return events.map((event) => event.toString()).toList();
+        }
       }
     }
     
     return [];
   }
 
-  /// Obtient les événements liés à un thème
-  static Future<List<Map<String, dynamic>>> getEventsForTheme(String theme) async {
+  /// Récupère les personnages pour une période
+  static Future<List<String>> getCharactersForPeriod(String periodName) async {
     await init();
     
-    final allEvents = <Map<String, dynamic>>[];
-    final periods = _timelineData?['periods'] as List<dynamic>? ?? [];
-    
-    for (final period in periods) {
-      final periodData = period as Map<String, dynamic>;
-      final events = (periodData['events'] as List<dynamic>? ?? [])
-          .map((e) => e as Map<String, dynamic>)
-          .toList();
+    if (_timelineData != null) {
+      final periods = _timelineData!['periods'] as List<dynamic>? ?? [];
       
-      for (final event in events) {
-        final eventThemes = (event['themes'] as List<dynamic>? ?? [])
-            .map((t) => t.toString().toLowerCase())
-            .toList();
-        
-        if (eventThemes.any((t) => t.contains(theme.toLowerCase()))) {
-          allEvents.add({
-            ...event,
-            'period': periodData['name'],
-            'periodYears': periodData['years'],
-          });
+      for (final period in periods) {
+        final periodMap = period as Map<String, dynamic>;
+        if (periodMap['name'] == periodName) {
+          final characters = periodMap['characters'] as List<dynamic>? ?? [];
+          return characters.map((character) => character.toString()).toList();
         }
       }
     }
     
-    return allEvents;
+    return [];
   }
 
-  /// Obtient la chronologie d'un thème à travers l'histoire biblique
+  /// Récupère les thèmes pour une période
+  static Future<List<String>> getThemesForPeriod(String periodName) async {
+    await init();
+    
+    if (_timelineData != null) {
+      final periods = _timelineData!['periods'] as List<dynamic>? ?? [];
+      
+      for (final period in periods) {
+        final periodMap = period as Map<String, dynamic>;
+        if (periodMap['name'] == periodName) {
+          final themes = periodMap['themes'] as List<dynamic>? ?? [];
+          return themes.map((theme) => theme.toString()).toList();
+        }
+      }
+    }
+    
+    return [];
+  }
+
+  /// Récupère la chronologie pour un thème spécifique
   static Future<List<Map<String, dynamic>>> getThemeTimeline(String theme) async {
     await init();
+    final matchingPeriods = <Map<String, dynamic>>[];
     
-    final events = await getEventsForTheme(theme);
-    
-    // Trier par ordre chronologique
-    events.sort((a, b) {
-      final yearA = int.tryParse(a['year']?.toString() ?? '0') ?? 0;
-      final yearB = int.tryParse(b['year']?.toString() ?? '0') ?? 0;
-      return yearA.compareTo(yearB);
-    });
-    
-    return events;
-  }
-
-  /// Obtient les données simulées des chronologies
-  static Map<String, dynamic> _getSimulatedTimelineData() {
-    return {
-      'periods': [
-        {
-          'name': 'Patriarches',
-          'years': '2000-1500 av. J.-C.',
-          'description': 'Période des patriarches Abraham, Isaac et Jacob',
-          'events': [
-            {
-              'title': 'Appel d\'Abraham',
-              'year': '2000',
-              'reference': 'Genèse 12:1-3',
-              'description': 'Dieu appelle Abraham à quitter son pays',
-              'themes': ['foi', 'obéissance', 'promesse', 'bénédiction'],
-            },
-            {
-              'title': 'Alliance avec Abraham',
-              'year': '1980',
-              'reference': 'Genèse 15:1-21',
-              'description': 'Dieu établit une alliance avec Abraham',
-              'themes': ['alliance', 'promesse', 'foi', 'bénédiction'],
-            },
-            {
-              'title': 'Sacrifice d\'Isaac',
-              'year': '1850',
-              'reference': 'Genèse 22:1-19',
-              'description': 'Abraham est prêt à sacrifier Isaac',
-              'themes': ['foi', 'obéissance', 'sacrifice', 'bénédiction'],
-            },
-          ],
-        },
-        {
-          'name': 'Exode et Conquête',
-          'years': '1500-1200 av. J.-C.',
-          'description': 'Sortie d\'Égypte et conquête de Canaan',
-          'events': [
-            {
-              'title': 'Sortie d\'Égypte',
-              'year': '1446',
-              'reference': 'Exode 14:1-31',
-              'description': 'Israël sort d\'Égypte par la mer Rouge',
-              'themes': ['délivrance', 'miracles', 'foi', 'obéissance'],
-            },
-            {
-              'title': 'Don de la loi',
-              'year': '1445',
-              'reference': 'Exode 20:1-17',
-              'description': 'Dieu donne les dix commandements',
-              'themes': ['loi', 'alliance', 'obéissance', 'sainteté'],
-            },
-            {
-              'title': 'Conquête de Jéricho',
-              'year': '1406',
-              'reference': 'Josué 6:1-27',
-              'description': 'Jéricho tombe par la foi d\'Israël',
-              'themes': ['foi', 'obéissance', 'victoire', 'miracles'],
-            },
-          ],
-        },
-        {
-          'name': 'Royaume uni',
-          'years': '1050-930 av. J.-C.',
-          'description': 'Règnes de Saül, David et Salomon',
-          'events': [
-            {
-              'title': 'Oint de David',
-              'year': '1025',
-              'reference': '1 Samuel 16:1-13',
-              'description': 'David est oint roi d\'Israël',
-              'themes': ['onction', 'royaume', 'bénédiction', 'promesse'],
-            },
-            {
-              'title': 'Alliance avec David',
-              'year': '1000',
-              'reference': '2 Samuel 7:1-17',
-              'description': 'Dieu établit une alliance éternelle avec David',
-              'themes': ['alliance', 'promesse', 'royaume', 'bénédiction'],
-            },
-            {
-              'title': 'Construction du temple',
-              'year': '966',
-              'reference': '1 Rois 6:1-38',
-              'description': 'Salomon construit le temple de Jérusalem',
-              'themes': ['temple', 'adoration', 'bénédiction', 'sainteté'],
-            },
-          ],
-        },
-        {
-          'name': 'Nouveau Testament',
-          'years': '4 av. J.-C. - 100 ap. J.-C.',
-          'description': 'Vie de Jésus et début de l\'Église',
-          'events': [
-            {
-              'title': 'Naissance de Jésus',
-              'year': '4',
-              'reference': 'Luc 2:1-20',
-              'description': 'Jésus naît à Bethléem',
-              'themes': ['incarnation', 'salut', 'promesse', 'bénédiction'],
-            },
-            {
-              'title': 'Baptême de Jésus',
-              'year': '26',
-              'reference': 'Matthieu 3:13-17',
-              'description': 'Jésus est baptisé par Jean',
-              'themes': ['baptême', 'onction', 'ministère', 'bénédiction'],
-            },
-            {
-              'title': 'Crucifixion',
-              'year': '30',
-              'reference': 'Jean 19:16-30',
-              'description': 'Jésus meurt sur la croix',
-              'themes': ['sacrifice', 'salut', 'amour', 'pardon'],
-            },
-            {
-              'title': 'Résurrection',
-              'year': '30',
-              'reference': 'Jean 20:1-18',
-              'description': 'Jésus ressuscite d\'entre les morts',
-              'themes': ['résurrection', 'victoire', 'vie', 'bénédiction'],
-            },
-            {
-              'title': 'Pentecôte',
-              'year': '30',
-              'reference': 'Actes 2:1-41',
-              'description': 'L\'Esprit Saint descend sur les disciples',
-              'themes': ['Esprit', 'Église', 'bénédiction', 'puissance'],
-            },
-          ],
-        },
-      ],
-    };
-  }
-
-  /// Obtient les périodes disponibles
-  static Future<List<String>> getAvailablePeriods() async {
-    await init();
-    final periods = _timelineData?['periods'] as List<dynamic>? ?? [];
-    return periods.map((p) => (p as Map<String, dynamic>)['name'] as String).toList();
-  }
-
-  /// Recherche des événements par mot-clé
-  static Future<List<Map<String, dynamic>>> searchEvents(String keyword) async {
-    await init();
-    
-    final allEvents = <Map<String, dynamic>>[];
-    final periods = _timelineData?['periods'] as List<dynamic>? ?? [];
-    final keywordLower = keyword.toLowerCase();
-    
-    for (final period in periods) {
-      final periodData = period as Map<String, dynamic>;
-      final events = (periodData['events'] as List<dynamic>? ?? [])
-          .map((e) => e as Map<String, dynamic>)
-          .toList();
+    if (_timelineData != null) {
+      final periods = _timelineData!['periods'] as List<dynamic>? ?? [];
       
-      for (final event in events) {
-        final title = (event['title'] ?? '').toString().toLowerCase();
-        final description = (event['description'] ?? '').toString().toLowerCase();
-        final themes = (event['themes'] as List<dynamic>? ?? [])
-            .map((t) => t.toString().toLowerCase())
-            .toList();
+      for (final period in periods) {
+        final periodMap = period as Map<String, dynamic>;
+        final themes = periodMap['themes'] as List<dynamic>? ?? [];
         
-        if (title.contains(keywordLower) || 
-            description.contains(keywordLower) ||
-            themes.any((t) => t.contains(keywordLower))) {
-          allEvents.add({
-            ...event,
-            'period': periodData['name'],
-            'periodYears': periodData['years'],
-          });
+        if (themes.any((t) => t.toString().toLowerCase().contains(theme.toLowerCase()))) {
+          matchingPeriods.add(periodMap);
         }
       }
     }
     
-    return allEvents;
+    return matchingPeriods;
   }
+
+  /// Récupère la chronologie complète avec tous les détails
+  static Future<Map<String, dynamic>?> getFullTimeline() async {
+    await init();
+    return _timelineData;
+  }
+
+  /// Recherche avancée dans la chronologie
+  static Future<List<Map<String, dynamic>>> advancedSearch({
+    String? periodName,
+    String? character,
+    String? theme,
+    int? startYear,
+    int? endYear,
+  }) async {
+    await init();
+    final results = <Map<String, dynamic>>[];
+    
+    if (_timelineData != null) {
+      final periods = _timelineData!['periods'] as List<dynamic>? ?? [];
+      
+      for (final period in periods) {
+        final periodMap = period as Map<String, dynamic>;
+        bool matches = true;
+        
+        if (periodName != null && periodMap['name'] != periodName) {
+          matches = false;
+        }
+        
+        if (character != null) {
+          final characters = periodMap['characters'] as List<dynamic>? ?? [];
+          if (!characters.any((c) => c.toString().toLowerCase().contains(character.toLowerCase()))) {
+            matches = false;
+          }
+        }
+        
+        if (theme != null) {
+          final themes = periodMap['themes'] as List<dynamic>? ?? [];
+          if (!themes.any((t) => t.toString().toLowerCase().contains(theme.toLowerCase()))) {
+            matches = false;
+          }
+        }
+        
+        if (startYear != null) {
+          final periodStartYear = periodMap['startYear'] as int? ?? 0;
+          if (periodStartYear > startYear) {
+            matches = false;
+          }
+        }
+        
+        if (endYear != null) {
+          final periodEndYear = periodMap['endYear'] as int? ?? 0;
+          if (periodEndYear < endYear) {
+            matches = false;
+          }
+        }
+        
+        if (matches) {
+          results.add(periodMap);
+        }
+      }
+    }
+    
+    return results;
+  }
+
+  /// Vérifie si le service est initialisé
+  static bool get isInitialized => _timelineData != null;
+
+  /// Obtient le nombre de périodes disponibles
+  static int get periodCount => _timelineData?['periods']?.length ?? 0;
+
+  /// Obtient le nombre d'empires disponibles
+  static int get empireCount => _timelineData?['empires']?.length ?? 0;
 }
+

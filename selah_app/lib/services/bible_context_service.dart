@@ -1,6 +1,7 @@
 import 'package:hive/hive.dart';
 import 'semantic_passage_boundary_service.dart';
-import 'isbe_service.dart';
+// Service supprimé (packs incomplets)
+import 'biblical_timeline_service.dart';
 
 /// 🧠 PROPHÈTE - Service de contexte biblique avec intelligence sémantique
 /// 
@@ -161,53 +162,93 @@ class BibleContextService {
     }
   }
 
-  /// 🔥 PRIORITÉ 1.5: Récupère le contexte ISBE enrichi
+  /// Service supprimé (packs incomplets)
   static Future<Map<String, dynamic>?> _getISBEContext(String id) async {
-    try {
-      if (!ISBEService.isAvailable) return null;
-      
-      // Extraire des mots-clés de l'ID
-      final parts = id.split('.');
-      if (parts.isEmpty) return null;
-      
-      final book = parts[0];
-      
-      // Rechercher dans ISBE
-      final isbeEntry = await ISBEService.getEntry(book);
-      if (isbeEntry != null) {
-        return {
-          'title': isbeEntry['title'],
-          'content': isbeEntry['content'],
-          'category': isbeEntry['category'],
-          'source': 'ISBE'
-        };
-      }
-      
-      return null;
-    } catch (e) {
-      print('⚠️ Erreur contexte ISBE: $e');
-      return null;
-    }
+    return null;
   }
 
-  /// 🔥 PRIORITÉ 2: Récupère le thème Thompson
+  /// 🔥 PRIORITÉ 2: Récupère le thème Thompson enrichi avec Timeline
   static Future<String?> _getThompsonTheme(String id) async {
     try {
-      // TODO: Intégrer avec thompson_plan_service pour récupérer le thème
-      // Mapping basique pour l'instant
+      // Initialiser le service Timeline
+      await BiblicalTimelineService.init();
+      
+      // Extraire le livre de l'ID
       final book = id.split('.').first;
       
+      // Récupérer la période historique pour ce livre
+      final period = await BiblicalTimelineService.getPeriodForBook(book);
+      
+      // Thèmes de base par livre
+      String baseTheme = '';
       if (book.contains('Psaumes')) {
-        return 'Vie de prière — Souffle spirituel';
+        baseTheme = 'Vie de prière — Souffle spirituel';
       } else if (book.contains('Jean')) {
-        return 'Exigence spirituelle — Transformation profonde';
+        baseTheme = 'Exigence spirituelle — Transformation profonde';
       } else if (book.contains('Matthieu')) {
-        return 'Ne vous inquiétez pas — Apprentissages de Mt 6';
+        baseTheme = 'Ne vous inquiétez pas — Apprentissages de Mt 6';
+      } else if (book.contains('Romains')) {
+        baseTheme = 'Doctrine de la justification — Grâce et foi';
+      } else if (book.contains('Éphésiens')) {
+        baseTheme = 'Unité en Christ — Église et famille';
+      } else if (book.contains('Philippiens')) {
+        baseTheme = 'Joie en Christ — Humilité et service';
+      } else if (book.contains('Colossiens')) {
+        baseTheme = 'Prééminence de Christ — Sagesse et connaissance';
+      } else if (book.contains('Galates')) {
+        baseTheme = 'Liberté en Christ — Loi et grâce';
+      } else if (book.contains('1 Corinthiens')) {
+        baseTheme = 'Unité de l\'Église — Amour et charismes';
+      } else if (book.contains('2 Corinthiens')) {
+        baseTheme = 'Ministère de la réconciliation — Faiblesse et puissance';
+      } else if (book.contains('1 Thessaloniciens')) {
+        baseTheme = 'Espérance du retour — Sanctification pratique';
+      } else if (book.contains('2 Thessaloniciens')) {
+        baseTheme = 'Retour de Christ — Persévérance et travail';
+      } else if (book.contains('1 Timothée')) {
+        baseTheme = 'Ordre dans l\'Église — Doctrine et pratique';
+      } else if (book.contains('2 Timothée')) {
+        baseTheme = 'Fidélité au ministère — Transmission de la foi';
+      } else if (book.contains('Tite')) {
+        baseTheme = 'Organisation de l\'Église — Bonnes œuvres';
+      } else if (book.contains('Philémon')) {
+        baseTheme = 'Réconciliation personnelle — Amour fraternel';
+      } else if (book.contains('Hébreux')) {
+        baseTheme = 'Prééminence de Christ — Nouvelle alliance';
+      } else if (book.contains('Jacques')) {
+        baseTheme = 'Foi et œuvres — Sagesse pratique';
+      } else if (book.contains('1 Pierre')) {
+        baseTheme = 'Espérance vivante — Souffrance et gloire';
+      } else if (book.contains('2 Pierre')) {
+        baseTheme = 'Croissance spirituelle — Fausses doctrines';
+      } else if (book.contains('1 Jean')) {
+        baseTheme = 'Communion avec Dieu — Amour et vérité';
+      } else if (book.contains('2 Jean')) {
+        baseTheme = 'Marche dans la vérité — Amour et obéissance';
+      } else if (book.contains('3 Jean')) {
+        baseTheme = 'Hospitalité chrétienne — Vérité et amour';
+      } else if (book.contains('Jude')) {
+        baseTheme = 'Contendre pour la foi — Avertissement et exhortation';
+      } else if (book.contains('Apocalypse')) {
+        baseTheme = 'Révélation de Jésus-Christ — Espérance et victoire';
       }
       
-      return null;
+      // Enrichir avec le contexte historique de la Timeline
+      if (period != null) {
+        final periodName = period['name'] as String? ?? '';
+        final periodThemes = period['themes'] as List<dynamic>? ?? [];
+        
+        if (periodThemes.isNotEmpty) {
+          final timelineThemes = periodThemes.take(2).join(' • ');
+          baseTheme = baseTheme.isNotEmpty 
+              ? '$baseTheme — Contexte: $timelineThemes'
+              : 'Contexte historique: $timelineThemes';
+        }
+      }
+      
+      return baseTheme.isNotEmpty ? baseTheme : null;
     } catch (e) {
-      print('⚠️ Erreur thème Thompson: $e');
+      print('⚠️ Erreur thème Thompson enrichi: $e');
       return null;
     }
   }
@@ -222,6 +263,7 @@ class BibleContextService {
       return [];
     }
   }
+
   
   /// Hydrate la box depuis les assets JSON
   /// 
