@@ -1,6 +1,7 @@
 /// ═══════════════════════════════════════════════════════════════════════════
 /// TESTS RAPIDES - Semantic Passage Boundary Service v2.0
 /// ═══════════════════════════════════════════════════════════════════════════
+library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:selah_app/services/semantic_passage_boundary_service_v2.dart';

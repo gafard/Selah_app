@@ -5,11 +5,17 @@ class PassagePayload {
   final String ref;
   final String text;
   final String? altVersionText;
+  final String? dayTitle;
+  final String? planId;
+  final int? dayNumber;
   
   const PassagePayload({
     required this.ref,
     required this.text,
     this.altVersionText,
+    this.dayTitle,
+    this.planId,
+    this.dayNumber,
   });
 
   factory PassagePayload.fromMap(Map<String, dynamic> map) {
@@ -17,6 +23,9 @@ class PassagePayload {
       ref: map['passageRef'] as String? ?? '',
       text: map['passageText'] as String? ?? '',
       altVersionText: map['altVersionText'] as String?,
+      dayTitle: map['dayTitle'] as String?,
+      planId: map['planId'] as String?,
+      dayNumber: map['dayNumber'] as int?,
     );
   }
 
@@ -25,6 +34,9 @@ class PassagePayload {
       'passageRef': ref,
       'passageText': text,
       'altVersionText': altVersionText,
+      'dayTitle': dayTitle,
+      'planId': planId,
+      'dayNumber': dayNumber,
     };
   }
 }

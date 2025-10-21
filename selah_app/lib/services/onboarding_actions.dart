@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import '../services/user_prefs_hive.dart';
-import '../services/telemetry_console.dart';
 import '../services/daily_alarm.dart';
 import '../domain/user_prefs.dart';
 import '../bootstrap.dart' as bootstrap;

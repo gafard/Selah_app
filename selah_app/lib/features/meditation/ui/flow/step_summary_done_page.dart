@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../../theme/design_tokens.dart';
 import '../../logic/meditation_controller.dart';
 import '../../data/meditation_questions.dart';

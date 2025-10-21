@@ -1764,7 +1764,7 @@ class SemanticPassageBoundaryService {
         startChapter: 1,
         startVerse: 1,
         endChapter: 2,
-        endVerse: 10,
+        endVerse: 25,
         type: UnitType.letter,
         priority: UnitPriority.high,
       ),

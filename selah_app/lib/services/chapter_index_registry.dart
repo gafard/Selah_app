@@ -5,6 +5,7 @@
 /// Mapping canonique : Nom français → Abbr → Slug fichier → Ordre
 /// Utilisé par ChapterIndexLoader pour charger les métadonnées offline
 /// ═══════════════════════════════════════════════════════════════════════════
+library;
 
 class BibleBook {
   final String name; // "Genèse"

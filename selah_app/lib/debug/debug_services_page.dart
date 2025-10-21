@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 import '../services/bible_study_hydrator.dart';
 import '../services/bsb_topical_service.dart';
 import '../services/thomson_characters_service.dart';

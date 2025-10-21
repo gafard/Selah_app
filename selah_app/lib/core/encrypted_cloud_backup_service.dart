@@ -1,10 +1,8 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/local_storage_service.dart';
-import 'encryption_service.dart';
 
 /// Service de backup cloud chiffré dans Supabase
 /// 
@@ -247,7 +245,7 @@ class EncryptedCloudBackupService {
     required String password,
   }) async {
     // 1. Dériver une clé depuis le mot de passe (PBKDF2)
-    final salt = 'selah_backup_salt_v1'; // Salt fixe pour reproductibilité
+    const salt = 'selah_backup_salt_v1'; // Salt fixe pour reproductibilité
     final key = encrypt.Key.fromUtf8(
       _deriveKey(password, salt, keyLength: 32) // 32 bytes = 256 bits
     );
@@ -282,7 +280,7 @@ class EncryptedCloudBackupService {
   }) async {
     try {
       // 1. Dériver la même clé depuis le mot de passe
-      final salt = 'selah_backup_salt_v1';
+      const salt = 'selah_backup_salt_v1';
       final key = encrypt.Key.fromUtf8(
         _deriveKey(password, salt, keyLength: 32)
       );

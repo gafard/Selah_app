@@ -7,6 +7,7 @@ import '../services/bible_text_service.dart';
 import '../services/adaptive_difficulty_service.dart';
 import '../models/meditation_journal_entry.dart';
 import '../models/quiz_question.dart';
+import '../utils/responsive_helper.dart';
 import '../bootstrap.dart' as bootstrap;
 
 class BibleQuizPage extends StatefulWidget {
@@ -24,12 +25,12 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
   
   List<MeditationJournalEntry> _journalEntries = [];
   List<QuizQuestion> _questions = [];
-  List<int> _userAnswers = [];
+  List<List<int>> _userAnswers = []; // Changé pour supporter les réponses multiples
   int _currentQuestionIndex = 0;
   int _score = 0;
   bool _quizStarted = false;
   bool _quizCompleted = false;
-  String? _selectedAnswer;
+  Set<String> _selectedAnswers = {}; // Changé pour supporter les sélections multiples
   bool _showResult = false;
   bool _isLoading = false;
   DateTime _quizStartTime = DateTime.now();
@@ -141,7 +142,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
         id: 'fallback_${DateTime.now().millisecondsSinceEpoch}',
         question: q['question'],
         options: q['options'],
-        correctAnswerIndex: q['correct'],
+        correctAnswerIndices: [q['correct']],
         explanation: q['explanation'],
         difficulty: 'medium',
         category: 'comprehension',
@@ -192,7 +193,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
       id: 'fallback_${DateTime.now().millisecondsSinceEpoch}_${q.hashCode}',
       question: q['question'],
       options: q['options'],
-      correctAnswerIndex: q['correct'],
+      correctAnswerIndices: [q['correct']],
       explanation: q['explanation'],
       difficulty: 'medium',
       category: 'comprehension',
@@ -361,6 +362,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
       _currentQuestionIndex = 0;
       _score = 0;
       _userAnswers = [];
+      _selectedAnswers = {};
       _quizStartTime = DateTime.now();
     });
   }
@@ -370,12 +372,45 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
     if (_currentQuestionIndex >= _questions.length) return;
     
     final question = _questions[_currentQuestionIndex];
-    final isCorrect = question.isCorrectAnswer(index);
+    final optionText = question.options[index];
     
     setState(() {
-      _selectedAnswer = question.options[index];
+      if (question.type == QuizType.single) {
+        // Pour les questions à choix simple, remplacer la sélection
+        _selectedAnswers = {optionText};
+      } else {
+        // Pour les questions à choix multiples, toggle la sélection
+        if (_selectedAnswers.contains(optionText)) {
+          _selectedAnswers.remove(optionText);
+        } else {
+          _selectedAnswers.add(optionText);
+        }
+      }
+    });
+    
+    // Validation automatique pour les questions à choix simple
+    if (question.type == QuizType.single) {
+      _validateAnswer();
+    }
+  }
+
+  /// 🎯 Valide la réponse et passe à la suite
+  void _validateAnswer() async {
+    if (_currentQuestionIndex >= _questions.length) return;
+    
+    final question = _questions[_currentQuestionIndex];
+    final selectedIndices = _selectedAnswers.map((answer) => question.options.indexOf(answer)).toList();
+    
+    bool isCorrect;
+    if (question.type == QuizType.single) {
+      isCorrect = question.isCorrectAnswer(selectedIndices.first);
+    } else {
+      isCorrect = question.isCorrectAnswers(selectedIndices);
+    }
+    
+    setState(() {
       _showResult = true;
-      _userAnswers.add(index);
+      _userAnswers.add(selectedIndices);
       
       if (isCorrect) {
         _score++;
@@ -383,7 +418,6 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
     });
 
     // Enregistrer la réponse pour l'analyse cognitive
-    // Note: La méthode recordResponse sera implémentée dans une version future
     print('🧠 Apôtre: Réponse enregistrée - Question: ${question.id}, Correct: $isCorrect');
   }
 
@@ -423,12 +457,26 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
     return baseEffort.clamp(0.0, 1.0);
   }
 
+  /// Vérifie si la réponse actuelle est correcte
+  bool _isCurrentAnswerCorrect() {
+    if (_userAnswers.isEmpty) return false;
+    
+    final question = _questions[_currentQuestionIndex];
+    final lastAnswer = _userAnswers.last;
+    
+    if (question.type == QuizType.single) {
+      return question.isCorrectAnswer(lastAnswer.first);
+    } else {
+      return question.isCorrectAnswers(lastAnswer);
+    }
+  }
+
   /// ➡️ Passe à la question suivante
   void _nextQuestion() {
     if (_currentQuestionIndex < _questions.length - 1) {
       setState(() {
         _currentQuestionIndex++;
-        _selectedAnswer = null;
+        _selectedAnswers = {};
         _showResult = false;
       });
     } else {
@@ -477,7 +525,8 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
     
     double totalLoad = 0.0;
     for (int i = 0; i < _questions.length && i < _userAnswers.length; i++) {
-      totalLoad += _estimateCognitiveEffort(_questions[i], _userAnswers[i]);
+      // Pour l'estimation cognitive, utiliser le premier index de la réponse
+      totalLoad += _estimateCognitiveEffort(_questions[i], _userAnswers[i].isNotEmpty ? _userAnswers[i].first : 0);
     }
     return totalLoad / _questions.length;
   }
@@ -494,7 +543,14 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
     
     for (int i = 0; i < _questions.length && i < _userAnswers.length; i++) {
       final question = _questions[i];
-      final isCorrect = question.isCorrectAnswer(_userAnswers[i]);
+      final userAnswer = _userAnswers[i];
+      
+      bool isCorrect;
+      if (question.type == QuizType.single) {
+        isCorrect = question.isCorrectAnswer(userAnswer.first);
+      } else {
+        isCorrect = question.isCorrectAnswers(userAnswer);
+      }
       
       if (isCorrect) {
         switch (question.category) {
@@ -529,7 +585,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
       _quizCompleted = false;
       _currentQuestionIndex = 0;
       _score = 0;
-      _selectedAnswer = null;
+      _selectedAnswers = {};
       _showResult = false;
     });
     _generateIntelligentQuestions();
@@ -598,16 +654,16 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
                 child: SlideTransition(
                   position: _slideAnimation,
                   child: Padding(
-                    padding: const EdgeInsets.all(20.0),
+                    padding: ResponsiveHelper.getResponsivePadding(context, const EdgeInsets.all(20.0)),
                     child: Column(
                       children: [
                         // Header avec style Selah
                         _buildSelahHeader(),
                         
-                        const SizedBox(height: 24),
+                        SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 24)),
                         
                         // Content
-                        Expanded(
+                        Flexible(
                           child: _buildContent(),
                         ),
                       ],
@@ -642,8 +698,8 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
         children: [
           // Animation de chargement
           Container(
-            width: 80,
-            height: 80,
+            width: ResponsiveHelper.getResponsiveWidth(context, 80),
+            height: ResponsiveHelper.getResponsiveHeight(context, 80),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
@@ -663,36 +719,36 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
             ),
           ),
           
-          const SizedBox(height: 24),
+          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 24)),
           
           // Titre
           Text(
             '🧠 Apôtre en action',
             style: GoogleFonts.inter(
-              fontSize: 24,
+              fontSize: ResponsiveHelper.getResponsiveFontSize(context, 24),
               color: Colors.white,
               fontWeight: FontWeight.bold,
             ),
           ),
           
-          const SizedBox(height: 12),
+          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 12)),
           
           // Description
           Text(
             'Génération de questions intelligentes\nbasées sur votre historique de méditation...',
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
-              fontSize: 16,
+              fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
               color: Colors.white70,
               height: 1.4,
             ),
           ),
           
-          const SizedBox(height: 32),
+          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 32)),
           
           // Indicateur de progression
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: ResponsiveHelper.getResponsivePadding(context, const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.1),
               borderRadius: BorderRadius.circular(20),
@@ -701,12 +757,12 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.psychology, color: Colors.blue, size: 16),
+                Icon(Icons.psychology, color: Colors.blue, size: ResponsiveHelper.getResponsiveIconSize(context, 16)),
                 const SizedBox(width: 8),
                 Text(
                   'Analyse cognitive en cours...',
                   style: GoogleFonts.inter(
-                    fontSize: 12,
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(context, 12),
                     color: Colors.blue,
                     fontWeight: FontWeight.w500,
                   ),
@@ -725,8 +781,8 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
       children: [
         // Icône
         Container(
-          width: 120,
-          height: 120,
+          width: ResponsiveHelper.getResponsiveWidth(context, 120),
+          height: ResponsiveHelper.getResponsiveHeight(context, 120),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: const LinearGradient(
@@ -740,42 +796,42 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
               ),
             ],
           ),
-          child: const Icon(
+          child: Icon(
             Icons.quiz,
-            size: 60,
+            size: ResponsiveHelper.getResponsiveIconSize(context, 60),
             color: Colors.white,
           ),
         ),
         
-        const SizedBox(height: 32),
+        SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 32)),
         
         Text(
           'Quiz Biblique Avancé',
           style: GoogleFonts.inter(
-            fontSize: 28,
+            fontSize: ResponsiveHelper.getResponsiveFontSize(context, 28),
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
           textAlign: TextAlign.center,
         ),
         
-        const SizedBox(height: 16),
+        SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 16)),
         
         Text(
           'Testez vos connaissances bibliques avec des questions intelligentes basées sur vos lectures précédentes.',
           style: GoogleFonts.inter(
-            fontSize: 16,
+            fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
             color: Colors.white70,
             height: 1.5,
           ),
           textAlign: TextAlign.center,
         ),
         
-        const SizedBox(height: 32),
+        SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 32)),
         
         // Stats
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: ResponsiveHelper.getResponsivePadding(context, const EdgeInsets.all(20)),
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.1),
             borderRadius: BorderRadius.circular(16),
@@ -789,7 +845,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
               Text(
                 'Vos lectures',
                 style: GoogleFonts.inter(
-                  fontSize: 16,
+                  fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
                 ),
@@ -798,7 +854,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
               Text(
                 '${_journalEntries.length} passages lus',
                 style: GoogleFonts.inter(
-                  fontSize: 24,
+                  fontSize: ResponsiveHelper.getResponsiveFontSize(context, 24),
                   color: const Color(0xFFF59E0B),
                   fontWeight: FontWeight.bold,
                 ),
@@ -807,7 +863,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
               Text(
                 '${_questions.length} questions générées',
                 style: GoogleFonts.inter(
-                  fontSize: 14,
+                  fontSize: ResponsiveHelper.getResponsiveFontSize(context, 14),
                   color: Colors.white60,
                 ),
               ),
@@ -815,7 +871,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
           ),
         ),
         
-        const SizedBox(height: 40),
+        SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 40)),
         
         // Start button
         SizedBox(
@@ -825,7 +881,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFF59E0B),
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: ResponsiveHelper.getResponsivePadding(context, const EdgeInsets.symmetric(vertical: 16)),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -834,7 +890,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
             child: Text(
               _questions.isNotEmpty ? 'Commencer le Quiz' : 'Pas assez de données',
               style: GoogleFonts.inter(
-                fontSize: 16,
+                fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -847,8 +903,9 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
   Widget _buildQuestionScreen() {
     final question = _questions[_currentQuestionIndex];
     
-    return Column(
-      children: [
+    return SingleChildScrollView(
+      child: Column(
+        children: [
         // Progress avec informations intelligentes
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -859,7 +916,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
                 Text(
                   'Question ${_currentQuestionIndex + 1}/${_questions.length}',
                   style: GoogleFonts.inter(
-                    fontSize: 14,
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(context, 14),
                     color: Colors.white60,
                   ),
                 ),
@@ -876,7 +933,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
                       child: Text(
                         question.difficultyName,
                         style: GoogleFonts.inter(
-                          fontSize: 10,
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(context, 10),
                           color: question.difficultyColor,
                           fontWeight: FontWeight.w600,
                         ),
@@ -893,12 +950,12 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(question.categoryIcon, size: 12, color: Colors.blue),
+                          Icon(question.categoryIcon, size: ResponsiveHelper.getResponsiveIconSize(context, 12), color: Colors.blue),
                           const SizedBox(width: 4),
                           Text(
                             question.categoryName,
                             style: GoogleFonts.inter(
-                              fontSize: 10,
+                              fontSize: ResponsiveHelper.getResponsiveFontSize(context, 10),
                               color: Colors.blue,
                               fontWeight: FontWeight.w600,
                             ),
@@ -913,7 +970,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
             Text(
               'Score: $_score',
               style: GoogleFonts.inter(
-                fontSize: 14,
+                fontSize: ResponsiveHelper.getResponsiveFontSize(context, 14),
                 color: const Color(0xFFF59E0B),
                 fontWeight: FontWeight.w600,
               ),
@@ -921,7 +978,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
           ],
         ),
         
-        const SizedBox(height: 16),
+        SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 16)),
         
         // Progress bar
         LinearProgressIndicator(
@@ -930,12 +987,12 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
           valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFF59E0B)),
         ),
         
-        const SizedBox(height: 32),
+        SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 32)),
         
         // Question
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(24),
+          padding: ResponsiveHelper.getResponsivePadding(context, const EdgeInsets.all(24)),
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.1),
             borderRadius: BorderRadius.circular(16),
@@ -950,7 +1007,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
               Text(
                 question.question,
                 style: GoogleFonts.inter(
-                  fontSize: 18,
+                  fontSize: ResponsiveHelper.getResponsiveFontSize(context, 18),
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
                   height: 1.4,
@@ -959,7 +1016,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
               if (question.passageReference != null) ...[
                 const SizedBox(height: 16),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: ResponsiveHelper.getResponsivePadding(context, const EdgeInsets.symmetric(horizontal: 12, vertical: 6)),
                   decoration: BoxDecoration(
                     color: Colors.blue.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -968,12 +1025,12 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.menu_book, size: 14, color: Colors.blue),
+                      Icon(Icons.menu_book, size: ResponsiveHelper.getResponsiveIconSize(context, 14), color: Colors.blue),
                       const SizedBox(width: 6),
                       Text(
                         question.passageReference!,
                         style: GoogleFonts.inter(
-                          fontSize: 12,
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(context, 12),
                           color: Colors.blue,
                           fontWeight: FontWeight.w500,
                         ),
@@ -985,7 +1042,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
               if (question.verseText != null) ...[
                 const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: ResponsiveHelper.getResponsivePadding(context, const EdgeInsets.all(12)),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.05),
                     borderRadius: BorderRadius.circular(8),
@@ -994,7 +1051,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
                   child: Text(
                     '"${question.verseText}"',
                     style: GoogleFonts.inter(
-                      fontSize: 14,
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(context, 14),
                       color: Colors.white70,
                       fontStyle: FontStyle.italic,
                       height: 1.3,
@@ -1006,7 +1063,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
               Text(
                 'Référence: ${question.passageReference ?? 'Général'}',
                 style: GoogleFonts.inter(
-                  fontSize: 12,
+                  fontSize: ResponsiveHelper.getResponsiveFontSize(context, 12),
                   color: Colors.white60,
                   fontStyle: FontStyle.italic,
                 ),
@@ -1015,16 +1072,14 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
           ),
         ),
         
-        const SizedBox(height: 24),
+        SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 24)),
         
         // Options
-        Expanded(
-          child: ListView.builder(
-            itemCount: question.options.length,
-            itemBuilder: (context, index) {
+        ...question.options.asMap().entries.map((entry) {
+          final index = entry.key;
               final option = question.options[index];
-              final isSelected = _selectedAnswer == option;
-              final isCorrect = question.isCorrectAnswer(index);
+              final isSelected = _selectedAnswers.contains(option);
+              final isCorrect = question.correctAnswerIndices.contains(index);
               
               Color backgroundColor = Colors.white.withOpacity(0.1);
               Color borderColor = Colors.white.withOpacity(0.2);
@@ -1039,66 +1094,107 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
                 }
               }
               
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: GestureDetector(
-                  onTap: _showResult ? null : () => _selectAnswer(index),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: backgroundColor,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: borderColor,
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: _showResult && isCorrect 
-                                ? const Color(0xFF10B981)
-                                : _showResult && isSelected && !isCorrect
-                                    ? const Color(0xFFEF4444)
-                                    : Colors.white.withOpacity(0.2),
-                          ),
-                          child: _showResult && isCorrect
-                              ? const Icon(Icons.check, size: 16, color: Colors.white)
-                              : _showResult && isSelected && !isCorrect
-                                  ? const Icon(Icons.close, size: 16, color: Colors.white)
-                                  : null,
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Text(
-                            option,
-                            style: GoogleFonts.inter(
-                              fontSize: 16,
-                              color: Colors.white,
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            child: GestureDetector(
+              onTap: _showResult ? null : () => _selectAnswer(index),
+              child: Container(
+                width: double.infinity,
+                padding: ResponsiveHelper.getResponsivePadding(context, const EdgeInsets.all(16)),
+                decoration: BoxDecoration(
+                  color: backgroundColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: borderColor,
+                    width: 1,
                   ),
                 ),
-              );
-            },
-          ),
-        ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: ResponsiveHelper.getResponsiveWidth(context, 24),
+                      height: ResponsiveHelper.getResponsiveHeight(context, 24),
+                      decoration: BoxDecoration(
+                        shape: question.type == QuizType.single ? BoxShape.circle : BoxShape.rectangle,
+                        color: _showResult && isCorrect 
+                            ? const Color(0xFF10B981)
+                            : _showResult && isSelected && !isCorrect
+                                ? const Color(0xFFEF4444)
+                                : Colors.white.withOpacity(0.2),
+                      ),
+                      child: _showResult && isCorrect
+                          ? Icon(
+                              question.type == QuizType.single ? Icons.check : Icons.check_box,
+                              size: 16, 
+                              color: Colors.white
+                            )
+                          : _showResult && isSelected && !isCorrect
+                              ? Icon(
+                                  question.type == QuizType.single ? Icons.close : Icons.check_box_outlined,
+                                  size: 16, 
+                                  color: Colors.white
+                                )
+                              : isSelected
+                                  ? Icon(
+                                      question.type == QuizType.single ? Icons.radio_button_checked : Icons.check_box,
+                                      size: 16, 
+                                      color: Colors.white
+                                    )
+                                  : Icon(
+                                      question.type == QuizType.single ? Icons.radio_button_unchecked : Icons.check_box_outline_blank,
+                                      size: 16, 
+                                      color: Colors.white.withOpacity(0.5)
+                                    ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        option,
+                        style: GoogleFonts.inter(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
+                          color: Colors.white,
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
         
-        // Next button
-        if (_showResult) ...[
-          const SizedBox(height: 16),
+        // Validation button for multi-choice or result display
+        if (!_showResult && question.type == QuizType.multi) ...[
+          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 16)),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _selectedAnswers.isNotEmpty ? _validateAnswer : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _selectedAnswers.isNotEmpty 
+                    ? const Color(0xFFF59E0B) 
+                    : Colors.white.withOpacity(0.1),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: Text(
+                'Valider mes réponses',
+                style: GoogleFonts.inter(
+                  fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ] else if (_showResult) ...[
+          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 16)),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16),
+            padding: ResponsiveHelper.getResponsivePadding(context, const EdgeInsets.all(16)),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
@@ -1113,19 +1209,19 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
                 Row(
                   children: [
                     Icon(
-                      question.isCorrectAnswer(_userAnswers.isNotEmpty ? _userAnswers.last : -1) 
+                      _isCurrentAnswerCorrect() 
                           ? Icons.check_circle 
                           : Icons.cancel,
-                      color: question.isCorrectAnswer(_userAnswers.isNotEmpty ? _userAnswers.last : -1) 
+                      color: _isCurrentAnswerCorrect() 
                           ? Colors.green 
                           : Colors.red,
-                      size: 20,
+                      size: ResponsiveHelper.getResponsiveIconSize(context, 20),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       'Explication:',
                       style: GoogleFonts.inter(
-                        fontSize: 14,
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(context, 14),
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
                       ),
@@ -1136,7 +1232,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
                 Text(
                   question.explanation,
                   style: GoogleFonts.inter(
-                    fontSize: 14,
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(context, 14),
                     color: Colors.white70,
                     height: 1.4,
                   ),
@@ -1144,7 +1240,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 16)),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -1160,7 +1256,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
               child: Text(
                 _currentQuestionIndex < _questions.length - 1 ? 'Question suivante' : 'Voir les résultats',
                 style: GoogleFonts.inter(
-                  fontSize: 16,
+                  fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1168,6 +1264,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
           ),
         ],
       ],
+      ),
     );
   }
 
@@ -1179,8 +1276,8 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
       children: [
         // Score circle
         Container(
-          width: 150,
-          height: 150,
+          width: ResponsiveHelper.getResponsiveWidth(context, 150),
+          height: ResponsiveHelper.getResponsiveHeight(context, 150),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: LinearGradient(
@@ -1208,7 +1305,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
               Text(
                 '$percentage%',
                 style: GoogleFonts.inter(
-                  fontSize: 36,
+                  fontSize: ResponsiveHelper.getResponsiveFontSize(context, 36),
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
@@ -1216,7 +1313,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
               Text(
                 '$_score/${_questions.length}',
                 style: GoogleFonts.inter(
-                  fontSize: 16,
+                  fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
                   color: Colors.white70,
                 ),
               ),
@@ -1224,31 +1321,31 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
           ),
         ),
         
-        const SizedBox(height: 32),
+        SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 32)),
         
         Text(
           _getScoreMessage(percentage),
           style: GoogleFonts.inter(
-            fontSize: 24,
+            fontSize: ResponsiveHelper.getResponsiveFontSize(context, 24),
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
           textAlign: TextAlign.center,
         ),
         
-        const SizedBox(height: 16),
+        SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 16)),
         
         Text(
           _getScoreDescription(percentage),
           style: GoogleFonts.inter(
-            fontSize: 16,
+            fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
             color: Colors.white70,
             height: 1.5,
           ),
           textAlign: TextAlign.center,
         ),
         
-        const SizedBox(height: 40),
+        SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 40)),
         
         // Action buttons
         Row(
@@ -1268,16 +1365,16 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
                 child: Text(
                   'Recommencer',
                   style: GoogleFonts.inter(
-                    fontSize: 16,
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: ResponsiveHelper.getResponsiveSpacing(context, 16)),
             Expanded(
               child: ElevatedButton(
-                onPressed: () => context.pop(),
+                onPressed: () => context.go('/home'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFF59E0B),
                   foregroundColor: Colors.white,
@@ -1289,7 +1386,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
                 child: Text(
                   'Terminer',
                   style: GoogleFonts.inter(
-                    fontSize: 16,
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1451,7 +1548,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
   /// 🎯 Header avec style Selah
   Widget _buildSelahHeader() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: ResponsiveHelper.getResponsivePadding(context, const EdgeInsets.symmetric(horizontal: 20, vertical: 16)),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.05),
         borderRadius: BorderRadius.circular(20),
@@ -1471,8 +1568,8 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
         children: [
           // Bouton retour avec style Selah
           Container(
-            width: 44,
-            height: 44,
+            width: ResponsiveHelper.getResponsiveWidth(context, 44),
+            height: ResponsiveHelper.getResponsiveHeight(context, 44),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
@@ -1482,16 +1579,16 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
               ),
             ),
             child: IconButton(
-              onPressed: () => context.pop(),
-              icon: const Icon(
+              onPressed: () => context.go('/home'),
+              icon: Icon(
                 Icons.arrow_back_ios_new_rounded,
                 color: Colors.white,
-                size: 20,
+                size: ResponsiveHelper.getResponsiveIconSize(context, 20),
               ),
             ),
           ),
           
-          const SizedBox(width: 16),
+          SizedBox(width: ResponsiveHelper.getResponsiveSpacing(context, 16)),
           
           // Titre avec style moderne
           Expanded(
@@ -1501,7 +1598,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
                 Text(
                   'Quiz Biblique',
                   style: GoogleFonts.inter(
-                    fontSize: 20,
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(context, 20),
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                     letterSpacing: -0.5,
@@ -1510,7 +1607,7 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
                 Text(
                   'Testez vos connaissances',
                   style: GoogleFonts.inter(
-                    fontSize: 14,
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(context, 14),
                     color: Colors.white.withOpacity(0.7),
                     fontWeight: FontWeight.w500,
                   ),
@@ -1521,18 +1618,18 @@ class _BibleQuizPageState extends State<BibleQuizPage> with TickerProviderStateM
           
           // Icône de statut
           Container(
-            width: 44,
-            height: 44,
+            width: ResponsiveHelper.getResponsiveWidth(context, 44),
+            height: ResponsiveHelper.getResponsiveHeight(context, 44),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
               ),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.psychology_rounded,
               color: Colors.white,
-              size: 20,
+              size: ResponsiveHelper.getResponsiveIconSize(context, 20),
             ),
           ),
         ],

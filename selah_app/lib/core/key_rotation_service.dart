@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'encryption_service.dart';

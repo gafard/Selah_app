@@ -5,6 +5,7 @@
 /// Expose les poids et seuils pour calibrage facile sans toucher au code métier.
 /// Tous les paramètres sont offline (constants).
 /// ═══════════════════════════════════════════════════════════════════════════
+library;
 
 class PresetBehavioralConfig {
   /// ═══════════════════════════════════════════════════════════════════════

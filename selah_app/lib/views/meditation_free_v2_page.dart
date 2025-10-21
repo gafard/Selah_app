@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../services/intelligent_prayer_generator.dart';
 import '../services/user_prefs_hive.dart';
-import '../repositories/user_repository.dart';
 import '../utils/prayer_subjects_mapper.dart';
 import '../services/spiritual_foundations_service.dart';
 import '../models/spiritual_foundation.dart';
@@ -71,6 +70,21 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
       parent: _progressController,
       curve: Curves.easeInOut,
     ));
+    
+    // Ajouter des listeners aux TextEditingControllers
+    _charactersList.addListener(() => setState(() {}));
+    _charactersInventory.addListener(() => setState(() {}));
+    _actions.addListener(() => setState(() {}));
+    _details.addListener(() => setState(() {}));
+    _emotions.addListener(() => setState(() {}));
+    _choices.addListener(() => setState(() {}));
+    _reasons.addListener(() => setState(() {}));
+    _goodActions.addListener(() => setState(() {}));
+    _aboutGod.addListener(() => setState(() {}));
+    _aboutNeighbor.addListener(() => setState(() {}));
+    _convincePast.addListener(() => setState(() {}));
+    _correctToday.addListener(() => setState(() {}));
+    _setDifferent.addListener(() => setState(() {}));
     
     // Charger la fondation du jour
     _loadFoundationOfDay();
@@ -144,6 +158,30 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
       _currentStep = index;
     });
     _progressController.animateTo((index + 1) / _totalSteps);
+  }
+
+  bool _isCurrentStepValid() {
+    switch (_currentStep) {
+      case 0: // Étape 1: Demander
+        return _charactersList.text.trim().isNotEmpty ||
+               _charactersInventory.text.trim().isNotEmpty ||
+               _actions.text.trim().isNotEmpty ||
+               _details.text.trim().isNotEmpty;
+      case 1: // Étape 2: Chercher
+        return _emotions.text.trim().isNotEmpty ||
+               _choices.text.trim().isNotEmpty ||
+               _reasons.text.trim().isNotEmpty;
+      case 2: // Étape 3: Frapper
+        return _goodActions.text.trim().isNotEmpty ||
+               _aboutGod.text.trim().isNotEmpty ||
+               _aboutNeighbor.text.trim().isNotEmpty;
+      case 3: // Étape 4: Application
+        return _convincePast.text.trim().isNotEmpty ||
+               _correctToday.text.trim().isNotEmpty ||
+               _setDifferent.text.trim().isNotEmpty;
+      default:
+        return false;
+    }
   }
 
   void _togglePlayPause() {
@@ -365,7 +403,27 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
       child: Row(
         children: [
           IconButton(
-            onPressed: () => context.pop(),
+            onPressed: () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                // Récupérer les paramètres depuis GoRouterState pour les retransmettre
+                final goRouterState = GoRouterState.of(context);
+                final extra = goRouterState.extra as Map<String, dynamic>?;
+                
+                if (extra != null && extra['passageRef'] != null) {
+                  context.go('/meditation/chooser', extra: {
+                    'passageRef': extra['passageRef'],
+                    'passageText': extra['passageText'],
+                    'dayTitle': extra['dayTitle'],
+                    'planId': extra['planId'],
+                    'dayNumber': extra['dayNumber'],
+                  });
+                } else {
+                  context.go('/meditation/chooser');
+                }
+              }
+            },
             icon: const Icon(Icons.arrow_back, color: Colors.white),
           ),
           Expanded(
@@ -652,22 +710,27 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
                       ),
                     ],
                   ),
-                  child: ElevatedButton(
-                    onPressed: _currentStep == _totalSteps - 1 ? _finish : _nextStep,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  child: Opacity(
+                    opacity: (_currentStep == _totalSteps - 1 || _isCurrentStepValid()) ? 1.0 : 0.5,
+                    child: ElevatedButton(
+                      onPressed: (_currentStep == _totalSteps - 1 || _isCurrentStepValid())
+                        ? (_currentStep == _totalSteps - 1 ? _finish : _nextStep)
+                        : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                    ),
-                    child: Text(
-                      _currentStep == _totalSteps - 1 
-                        ? 'Proposer des sujets de prière'
-                        : 'Étape suivante',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                      child: Text(
+                        _currentStep == _totalSteps - 1 
+                          ? 'Proposer des sujets de prière'
+                          : 'Étape suivante',
+                        style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                      ),
                     ),
                   ),
                 ),
@@ -734,7 +797,7 @@ class _StepCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(
-                        Icons.self_improvement_rounded,
+                        Icons.book_rounded,
                         color: Colors.white,
                         size: 20,
                       ),

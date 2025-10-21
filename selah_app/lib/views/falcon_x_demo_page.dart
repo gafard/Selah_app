@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import '../services/semantic_passage_boundary_service.dart';
 import '../widgets/uniform_back_button.dart';
-import '../constants/app_tokens.dart';
 
 /// 🚀 Page de démonstration FALCON X - Analyse sémantique v2.0
 /// 
@@ -271,7 +270,7 @@ class _FalconXDemoPageState extends State<FalconXDemoPage> with TickerProviderSt
             children: [
               Row(
                 children: [
-                  Icon(Icons.psychology, color: Colors.blue, size: 24),
+                  const Icon(Icons.psychology, color: Colors.blue, size: 24),
                   const SizedBox(width: 12),
                   Text(
                     'Intelligence Sémantique',
@@ -352,7 +351,7 @@ class _FalconXDemoPageState extends State<FalconXDemoPage> with TickerProviderSt
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.rocket_launch, size: 20),
+                const Icon(Icons.rocket_launch, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   'Lancer l\'analyse FALCON X',
@@ -540,7 +539,7 @@ class _FalconXDemoPageState extends State<FalconXDemoPage> with TickerProviderSt
           ),
           child: Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.green, size: 24),
+              const Icon(Icons.check_circle, color: Colors.green, size: 24),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -665,7 +664,7 @@ class _FalconXDemoPageState extends State<FalconXDemoPage> with TickerProviderSt
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: _selectedBook,
+          initialValue: _selectedBook,
           decoration: InputDecoration(
             filled: true,
             fillColor: Colors.white.withOpacity(0.1),

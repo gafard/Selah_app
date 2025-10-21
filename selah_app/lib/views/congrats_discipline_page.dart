@@ -132,10 +132,10 @@ class _CongratsDisciplinePageState extends State<CongratsDisciplinePage>
                             ),
                           ),
                               const SizedBox(height: 18),
-                          Text(
+                          const Text(
                             'Tu es prêt à tenir ferme.',
                             textAlign: TextAlign.center,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontFamily: 'Gilroy',
                               fontSize: 24,
                                   fontWeight: FontWeight.w900,
@@ -623,8 +623,11 @@ class _StarPainter extends CustomPainter {
 
 class _SoftBlurHalo extends StatelessWidget {
   const _SoftBlurHalo({
-    this.left, this.top, this.right, this.bottom,
     required this.color,
+    this.left,
+    this.top,
+    this.right,
+    this.bottom,
   });
   final double? left, top, right, bottom;
   final Color color;

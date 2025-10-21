@@ -7,6 +7,7 @@
 /// 
 /// Ce service filtre et classe les presets selon leur alignement
 /// avec la vérité biblique et la doctrine apostolique.
+library;
 
 import '../models/plan_preset.dart';
 

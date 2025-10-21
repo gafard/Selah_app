@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../services/home_vm.dart';
 
 class HomeQuizCard extends StatelessWidget {
@@ -24,7 +23,7 @@ class HomeQuizCard extends StatelessWidget {
         Row(children: [
           const Icon(Icons.speed, color: Colors.white, size: 20),
           const SizedBox(width: 8),
-          Text('Quiz Apôtre', style: const TextStyle(fontFamily: 'Gilroy', color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+          const Text('Quiz Apôtre', style: TextStyle(fontFamily: 'Gilroy', color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
           const Spacer(),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

@@ -2,6 +2,7 @@
 /// 
 /// Convertit les PlanPreset existants vers le format TheologyGateV2
 /// en ajoutant automatiquement les tags et verseAnchors appropriés
+library;
 
 import '../models/plan_preset.dart' as Original;
 import 'preset_theology_gate_v2.dart' as Theology;

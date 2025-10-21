@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class ReaderSettings {
   final String theme;
@@ -7,21 +6,15 @@ class ReaderSettings {
   final double fontSize;
   final double brightness;
   final String textAlignment;
-  final bool isOfflineMode;
-  final bool isLocked;
   final bool isSearchEnabled;
-  final bool isTransitionsEnabled;
 
   const ReaderSettings({
     this.theme = 'light',
-    this.font = 'Inter',
+    this.font = 'Gilroy',
     this.fontSize = 16.0,
     this.brightness = 1.0,
     this.textAlignment = 'Left',
-    this.isOfflineMode = false,
-    this.isLocked = false,
     this.isSearchEnabled = true,
-    this.isTransitionsEnabled = true,
   });
 
   ReaderSettings copyWith({
@@ -30,10 +23,7 @@ class ReaderSettings {
     double? fontSize,
     double? brightness,
     String? textAlignment,
-    bool? isOfflineMode,
-    bool? isLocked,
     bool? isSearchEnabled,
-    bool? isTransitionsEnabled,
   }) {
     return ReaderSettings(
       theme: theme ?? this.theme,
@@ -41,19 +31,61 @@ class ReaderSettings {
       fontSize: fontSize ?? this.fontSize,
       brightness: brightness ?? this.brightness,
       textAlignment: textAlignment ?? this.textAlignment,
-      isOfflineMode: isOfflineMode ?? this.isOfflineMode,
-      isLocked: isLocked ?? this.isLocked,
       isSearchEnabled: isSearchEnabled ?? this.isSearchEnabled,
-      isTransitionsEnabled: isTransitionsEnabled ?? this.isTransitionsEnabled,
     );
   }
 
   TextStyle getFontStyle() {
-    return GoogleFonts.getFont(
-      font,
-      fontSize: fontSize,
-      fontWeight: FontWeight.w400,
-    );
+    switch (font.toLowerCase().replaceAll(' ', '')) {
+      case 'gilroy':
+        return TextStyle(
+          fontFamily: 'Gilroy',
+          fontSize: fontSize,
+          fontWeight: FontWeight.w400,
+        );
+      case 'inter':
+        // Utilise Inter si disponible, sinon fallback vers Roboto (système Android)
+        return TextStyle(
+          fontFamily: 'Inter',
+          fontSize: fontSize,
+          fontWeight: FontWeight.w400,
+        );
+      case 'lora':
+        // Utilise Lora si disponible, sinon fallback vers serif système
+        return TextStyle(
+          fontFamily: 'Lora',
+          fontSize: fontSize,
+          fontWeight: FontWeight.w400,
+        );
+      case 'roboto':
+        // Roboto est disponible par défaut sur Android
+        return TextStyle(
+          fontFamily: 'Roboto',
+          fontSize: fontSize,
+          fontWeight: FontWeight.w400,
+        );
+      case 'merriweather':
+        // Utilise Merriweather si disponible, sinon fallback vers serif système
+        return TextStyle(
+          fontFamily: 'Merriweather',
+          fontSize: fontSize,
+          fontWeight: FontWeight.w400,
+        );
+      case 'ptserif':
+        // Utilise PT Serif si disponible, sinon fallback vers serif système
+        return TextStyle(
+          fontFamily: 'PT Serif',
+          fontSize: fontSize,
+          fontWeight: FontWeight.w400,
+        );
+      default:
+        print('⚠️ Police "$font" non reconnue, fallback vers Gilroy');
+        return TextStyle(
+          fontFamily: 'Gilroy',
+          fontSize: fontSize,
+          fontWeight: FontWeight.w400,
+        );
+    }
   }
 
   TextAlign getTextAlign() {
@@ -77,21 +109,15 @@ class ReaderSettings {
     'fontSize': fontSize,
     'brightness': brightness,
     'textAlignment': textAlignment,
-    'isOfflineMode': isOfflineMode,
-    'isLocked': isLocked,
     'isSearchEnabled': isSearchEnabled,
-    'isTransitionsEnabled': isTransitionsEnabled,
   };
 
   factory ReaderSettings.fromJson(Map<String, dynamic> json) => ReaderSettings(
     theme: json['theme'] ?? 'light',
-    font: json['font'] ?? 'Inter',
+    font: json['font'] ?? 'Gilroy',
     fontSize: (json['fontSize'] ?? 16.0).toDouble(),
     brightness: (json['brightness'] ?? 1.0).toDouble(),
     textAlignment: json['textAlignment'] ?? 'Left',
-    isOfflineMode: json['isOfflineMode'] ?? false,
-    isLocked: json['isLocked'] ?? false,
     isSearchEnabled: json['isSearchEnabled'] ?? true,
-    isTransitionsEnabled: json['isTransitionsEnabled'] ?? true,
   );
 }

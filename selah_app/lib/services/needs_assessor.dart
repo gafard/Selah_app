@@ -62,19 +62,28 @@ class NeedsAssessor {
     );
   }
 
-  /// Renvoie une courte liste de thèmes **orientés besoins** (et non envies).
+  /// Renvoie une courte liste de thèmes **orientés besoins** (et non envies) avec équilibre AT/NT.
   static List<String> themesFor(NeedsProfile n) {
     final items = <MapEntry<String, double>>[
+      // Thèmes existants (maintenant équilibrés AT/NT)
       MapEntry('Fondements de l\'Evangile (Jean, Romains, Galates)', n.foundation),
       MapEntry('Discipline & Regularite (Proverbes, Matthieu 6)', n.discipline),
       MapEntry('Retour & Repentance (Psaumes 51, Luc 15)', n.repentance),
       MapEntry('Saine Doctrine (1-2 Timothee, Tite)', n.doctrine),
       MapEntry('Consolation dans l\'epreuve (1 Pierre, Psaumes)', n.suffering),
       MapEntry('Paix contre l\'anxiete (Philippiens 4, Matthieu 6)', n.anxiety),
+      
+      // Nouveaux thèmes AT-spécifiques
+      MapEntry('Les promesses divines', n.foundation * 0.8), // Genèse, Exode, Josué, Psaumes
+      MapEntry('La sagesse pratique', n.discipline * 0.9), // Proverbes, Ecclésiaste, Job, Jacques
+      MapEntry('Les prophètes de l\'espérance', n.suffering * 0.7), // Ésaïe, Jérémie, Ézéchiel, Daniel
+      MapEntry('L\'histoire d\'Israël', n.discipline * 0.6), // 1-2 Samuel, 1-2 Rois
+      MapEntry('La loi et la grâce', n.doctrine * 0.8), // Lévitique, Deutéronome, Romains, Galates
+      MapEntry('La prière et l\'adoration', n.anxiety * 0.9), // Psaumes, Cantique, Matthieu, Jean
     ];
 
     items.sort((a, b) => b.value.compareTo(a.value));
-    return items.take(5).map((e) => e.key).toList();
+    return items.take(6).map((e) => e.key).toList(); // Prendre 6 au lieu de 5 pour plus de variété
   }
 
   static double _round2(double v) => double.parse(v.toStringAsFixed(2));

@@ -231,7 +231,7 @@ class _SpiritualWallPageState extends State<SpiritualWallPage> {
             const SizedBox(height: 32),
             ElevatedButton(
               onPressed: () {
-                context.go('/meditation/chooser');
+                context.go('/meditation/bible-warning');
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,

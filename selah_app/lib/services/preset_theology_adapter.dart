@@ -2,6 +2,7 @@
 /// 
 /// Convertit les PlanPreset existants vers le format TheologyGate
 /// en ajoutant automatiquement les tags et verseAnchors appropriés
+library;
 
 import '../models/plan_preset.dart' as Original;
 import 'preset_theology_gate.dart' as Theology;
@@ -222,7 +223,7 @@ class PresetTheologyAdapter {
   static Theology.CompleteProfilePrefs extractUserPrefs(Map<String, dynamic> userProfile) {
     // Par défaut, on assume que l'utilisateur affirme les 3 critères
     // car ils sont fondamentaux pour un chrétien
-    return Theology.CompleteProfilePrefs(
+    return const Theology.CompleteProfilePrefs(
       affirmsDoctrineOfChrist: true,  // Toujours vrai pour un chrétien
       affirmsAuthorityOfBible: true,  // Toujours vrai pour un chrétien
       affirmsGospelOfJesus: true,     // Toujours vrai pour un chrétien

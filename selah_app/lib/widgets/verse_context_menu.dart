@@ -588,13 +588,13 @@ class LexiconBottomSheet extends StatelessWidget {
   }
   
   Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
-          const Icon(Icons.language, color: Color(0xFF5C34D1)),
-          const SizedBox(width: 12),
-          const Expanded(
+          Icon(Icons.language, color: Color(0xFF5C34D1)),
+          SizedBox(width: 12),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -688,11 +688,11 @@ class MirrorVerseBottomSheet extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
+          const Row(
             children: [
-              const Icon(Icons.compare_arrows, color: Color(0xFF5C34D1)),
-              const SizedBox(width: 12),
-              const Text(
+              Icon(Icons.compare_arrows, color: Color(0xFF5C34D1)),
+              SizedBox(width: 12),
+              Text(
                 'Verset miroir',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
@@ -764,9 +764,9 @@ class MirrorVerseBottomSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
+          const Text(
             'Texte du verset ici...', // TODO: Récupérer texte réel
-            style: const TextStyle(fontSize: 14),
+            style: TextStyle(fontSize: 14),
           ),
         ],
       ),
@@ -804,11 +804,11 @@ class ThemesBottomSheet extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
+          const Row(
             children: [
-              const Icon(Icons.label, color: Color(0xFF5C34D1)),
-              const SizedBox(width: 12),
-              const Text(
+              Icon(Icons.label, color: Color(0xFF5C34D1)),
+              SizedBox(width: 12),
+              Text(
                 'Thèmes spirituels',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
@@ -1069,11 +1069,11 @@ class AuthorCharactersBottomSheet extends StatelessWidget {
             controller: scrollController,
             padding: const EdgeInsets.all(20),
             children: [
-              Row(
+              const Row(
                 children: [
-                  const Icon(Icons.people, color: Color(0xFF5C34D1)),
-                  const SizedBox(width: 12),
-                  const Text(
+                  Icon(Icons.people, color: Color(0xFF5C34D1)),
+                  SizedBox(width: 12),
+                  Text(
                     'Auteur & Personnages',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),

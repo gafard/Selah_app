@@ -1,9 +1,10 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/spiritual_foundation.dart';
 import '../../services/airplane_guard.dart';
+import '../../services/daily_display_service.dart';
+import '../../bootstrap.dart';
 
 /// Carte affichant la fondation spirituelle du jour
 class FoundationOfDayCard extends StatelessWidget {
@@ -21,17 +22,151 @@ class FoundationOfDayCard extends StatelessWidget {
     if (onTap != null) {
       onTap!();
     } else {
-      // Utiliser AirplaneGuard pour la notification de mode avion
-      await AirplaneGuard.ensureFocusMode(
-        context,
-        proceed: () async {
-          HapticFeedback.mediumImpact();
-          if (context.mounted) {
-            context.go('/pre_meditation_prayer');
-          }
-        },
-      );
+      // Vérifier si la page pre_meditation_prayer doit être affichée aujourd'hui
+      if (DailyDisplayService.shouldShowPreMeditationPrayer()) {
+        // Utiliser AirplaneGuard pour la notification de mode avion
+        await AirplaneGuard.ensureFocusMode(
+          context,
+          proceed: () async {
+            HapticFeedback.mediumImpact();
+            if (context.mounted) {
+              context.go('/pre_meditation_prayer');
+            }
+          },
+        );
+      } else {
+        // Déjà affichée aujourd'hui, naviguer directement vers le lecteur avec le passage du jour
+        HapticFeedback.mediumImpact();
+        if (context.mounted) {
+          // Navigation directe vers le lecteur avec le passage du jour
+          // Utiliser la même logique que pre_meditation_prayer_page.dart
+          _navigateToReaderDirectly(context);
+        }
+      }
     }
+  }
+
+  /// Navigation directe vers le lecteur avec le passage du jour (même logique que pre_meditation_prayer_page.dart)
+  Future<void> _navigateToReaderDirectly(BuildContext context) async {
+    try {
+      // Utiliser le PlanServiceHttp configuré globalement
+      final activePlan = await planService.getActiveLocalPlan();
+      
+      if (activePlan != null) {
+        // S'assurer que les jours du plan existent (auto-régénération si nécessaire)
+        await planService.regenerateCurrentPlanDays();
+        
+        // Récupérer les jours du plan
+        final planDays = await planService.getPlanDays(activePlan.id);
+        
+        if (planDays.isNotEmpty) {
+          // Calculer la différence en jours calendaires (change à minuit)
+          final today = DateTime.now();
+          final startDate = activePlan.startDate;
+          
+          // Normaliser les dates à minuit pour comparer les jours calendaires
+          final todayNormalized = DateTime(today.year, today.month, today.day);
+          final startNormalized = DateTime(startDate.year, startDate.month, startDate.day);
+          
+          final dayIndex = todayNormalized.difference(startNormalized).inDays + 1;
+          
+          if (dayIndex >= 1 && dayIndex <= planDays.length) {
+            final todayPassage = planDays.firstWhere((day) => day.dayIndex == dayIndex);
+            
+            // Construire la référence du passage
+            String passageRef;
+            if (todayPassage.readings.isNotEmpty) {
+              final r = todayPassage.readings.first;
+              passageRef = '${r.book} ${r.range}'.trim();
+            } else {
+              passageRef = _generatePassageRef(todayPassage.dayIndex);
+            }
+            
+            // Navigation avec les données du passage
+            if (context.mounted) {
+              final extraData = <String, dynamic>{
+                'passageRef': passageRef,
+                'passageText': null, // Sera récupéré depuis la base de données
+                'dayTitle': 'Jour ${todayPassage.dayIndex}',
+                'planId': activePlan.id,
+                'dayNumber': todayPassage.dayIndex,
+              };
+              context.go('/reader', extra: extraData);
+            }
+          } else {
+            // Plan terminé ou pas encore commencé - utiliser fallback
+            if (context.mounted) {
+              final fallbackData = <String, dynamic>{
+                'passageRef': _generatePassageRef(1),
+                'passageText': null,
+                'dayTitle': 'Lecture du jour',
+                'planId': activePlan.id,
+                'dayNumber': 1,
+              };
+              context.go('/reader', extra: fallbackData);
+            }
+          }
+        } else {
+          // Pas de jours de plan trouvés - utiliser le fallback
+          if (context.mounted) {
+            final fallbackData = <String, dynamic>{
+              'passageRef': _generatePassageRef(1),
+              'passageText': null,
+              'dayTitle': 'Lecture du jour',
+              'planId': activePlan.id,
+              'dayNumber': 1,
+            };
+            context.go('/reader', extra: fallbackData);
+          }
+        }
+      } else {
+        // Aucun plan actif - navigation par défaut avec fallback
+        if (context.mounted) {
+          final defaultData = <String, dynamic>{
+            'passageRef': _generatePassageRef(1),
+            'passageText': null,
+            'dayTitle': 'Lecture du jour',
+          };
+          context.go('/reader', extra: defaultData);
+        }
+      }
+    } catch (e) {
+      // Fallback en cas d'erreur
+      if (context.mounted) {
+        final errorData = <String, dynamic>{
+          'passageRef': _generatePassageRef(1),
+          'passageText': null,
+          'dayTitle': 'Lecture du jour',
+        };
+        context.go('/reader', extra: errorData);
+      }
+    }
+  }
+
+  /// Génère une référence de passage basée sur le jour du plan (FALLBACK INTELLIGENT)
+  String _generatePassageRef(int dayNumber) {
+    // Liste de passages bibliques populaires pour la méditation
+    final passages = [
+      'Jean 14:1-19',    // Jour 1 - "Je suis le chemin, la vérité et la vie"
+      'Psaume 23:1-6',   // Jour 2 - "L'Éternel est mon berger"
+      'Matthieu 6:9-13', // Jour 3 - Notre Père
+      'Romains 8:28-39', // Jour 4 - "Toutes choses concourent au bien"
+      'Éphésiens 2:8-10', // Jour 5 - "C'est par la grâce que vous êtes sauvés"
+      'Philippiens 4:4-9', // Jour 6 - "Réjouissez-vous toujours"
+      '1 Corinthiens 13:4-8', // Jour 7 - L'amour
+      'Galates 5:22-23', // Jour 8 - Le fruit de l'Esprit
+      'Colossiens 3:12-17', // Jour 9 - "Revêtez-vous de compassion"
+      'Hébreux 11:1-6', // Jour 10 - La foi
+      'Jacques 1:2-8', // Jour 11 - "Considérez comme un sujet de joie"
+      '1 Pierre 5:6-11', // Jour 12 - "Humiliez-vous sous la main puissante"
+      '2 Pierre 1:3-8', // Jour 13 - "Sa divine puissance nous a donné tout"
+      '1 Jean 4:7-12', // Jour 14 - "Dieu est amour"
+      'Apocalypse 21:1-7', // Jour 15 - "Voici, je fais toutes choses nouvelles"
+    ];
+    
+    // Utiliser le passage correspondant au jour, ou revenir au début si on dépasse
+    final index = (dayNumber - 1) % passages.length;
+    return passages[index];
   }
 
   /// Retourne l'image de fond pour la fondation - évite les doublons avec les cartes d'activité

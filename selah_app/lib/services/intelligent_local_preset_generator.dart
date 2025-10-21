@@ -10,11 +10,8 @@ import 'needs_first_scorer.dart';
 import 'doctrinal_guard.dart';
 // ═══ NOUVEAU ! Fondations Spirituelles ⭐ ═══
 import 'spiritual_foundations_service.dart';
-import '../models/spiritual_foundation.dart';
 // ═══ NOUVEAU ! Enrichissement BSB ⭐ ═══
 import 'bsb_topical_service.dart';
-import 'bsb_concordance_service.dart';
-import 'bible_comparison_service.dart';
 
 /// Signaux du profil pour évaluer les BESOINS réels
 class NeedSignals {
@@ -632,7 +629,7 @@ class IntelligentLocalPresetGenerator {
   /// Thèmes spirituels avec leurs caractéristiques détaillées
   static const Map<String, Map<String, dynamic>> _spiritualThemes = {
     'spiritual_growth': {
-      'books': ['Philippiens', 'Colossiens', 'Éphésiens', 'Romains'],
+      'books': ['Philippiens', 'Colossiens', 'Éphésiens', 'Romains', 'Proverbes', 'Psaumes'],
       'duration': [21, 30, 40],
       'focus': 'Croissance spirituelle et maturité',
       'verses': ['Philippiens 1:6', 'Colossiens 2:6-7', 'Éphésiens 4:15'],
@@ -640,7 +637,7 @@ class IntelligentLocalPresetGenerator {
       'targetAudience': ['Rétrograde', 'Fidèle pas si régulier', 'Fidèle régulier', 'Serviteur/leader']
     },
     'prayer_life': {
-      'books': ['Psaumes', 'Luc', 'Matthieu', '1 Thessaloniciens'],
+      'books': ['Psaumes', 'Luc', 'Matthieu', '1 Thessaloniciens', '1 Samuel', '1 Rois'],
       'duration': [21, 30, 40],
       'focus': 'Développement de la vie de prière',
       'verses': ['Matthieu 6:9-13', 'Luc 11:1-13', '1 Thessaloniciens 5:17'],
@@ -648,7 +645,7 @@ class IntelligentLocalPresetGenerator {
       'targetAudience': ['Nouveau converti', 'Rétrograde', 'Fidèle pas si régulier', 'Fidèle régulier', 'Serviteur/leader']
     },
     'wisdom_understanding': {
-      'books': ['Proverbes', 'Jacques', 'Ecclésiaste', 'Job'],
+      'books': ['Proverbes', 'Jacques', 'Ecclésiaste', 'Job', 'Deutéronome', '1 Rois'],
       'duration': [21, 31, 40],
       'focus': 'Sagesse et discernement spirituel',
       'verses': ['Proverbes 1:7', 'Jacques 1:5', 'Ecclésiaste 12:13'],
@@ -656,7 +653,7 @@ class IntelligentLocalPresetGenerator {
       'targetAudience': ['Fidèle pas si régulier', 'Fidèle régulier', 'Serviteur/leader']
     },
     'faith_foundation': {
-      'books': ['Jean', 'Romains', 'Hébreux', 'Galates'],
+      'books': ['Jean', 'Romains', 'Hébreux', 'Galates', 'Genèse', 'Exode'],
       'duration': [21, 30, 40],
       'focus': 'Fondements de la foi chrétienne',
       'verses': ['Jean 3:16', 'Romains 10:17', 'Hébreux 11:1'],
@@ -664,7 +661,7 @@ class IntelligentLocalPresetGenerator {
       'targetAudience': ['Nouveau converti', 'Rétrograde', 'Fidèle pas si régulier', 'Fidèle régulier']
     },
     'christian_character': {
-      'books': ['Galates', 'Éphésiens', 'Colossiens', '1 Pierre'],
+      'books': ['Galates', 'Éphésiens', 'Colossiens', '1 Pierre', 'Lévitique', 'Proverbes'],
       'duration': [21, 30, 40],
       'focus': 'Développement du caractère chrétien',
       'verses': ['Galates 5:22-23', 'Éphésiens 4:32', '1 Pierre 2:9'],
@@ -672,7 +669,7 @@ class IntelligentLocalPresetGenerator {
       'targetAudience': ['Rétrograde', 'Fidèle pas si régulier', 'Fidèle régulier', 'Serviteur/leader']
     },
     'hope_encouragement': {
-      'books': ['Romains', 'Philippiens', '1 Pierre', 'Apocalypse'],
+      'books': ['Romains', 'Philippiens', '1 Pierre', 'Apocalypse', 'Ésaïe', 'Psaumes'],
       'duration': [21, 30, 40],
       'focus': 'Espérance et encouragement',
       'verses': ['Romains 8:28', 'Philippiens 4:13', '1 Pierre 1:3'],
@@ -680,7 +677,7 @@ class IntelligentLocalPresetGenerator {
       'targetAudience': ['Nouveau converti', 'Rétrograde', 'Fidèle pas si régulier', 'Fidèle régulier', 'Serviteur/leader']
     },
     'forgiveness_healing': {
-      'books': ['Matthieu', 'Luc', '1 Jean', 'Psaumes'],
+      'books': ['Matthieu', 'Luc', '1 Jean', 'Psaumes', 'Jérémie', 'Ésaïe'],
       'duration': [21, 30, 40],
       'focus': 'Pardon et guérison spirituelle',
       'verses': ['Matthieu 6:14-15', 'Luc 15:11-32', '1 Jean 1:9'],
@@ -688,7 +685,7 @@ class IntelligentLocalPresetGenerator {
       'targetAudience': ['Nouveau converti', 'Rétrograde', 'Fidèle pas si régulier', 'Fidèle régulier', 'Serviteur/leader']
     },
     'mission_evangelism': {
-      'books': ['Actes', 'Matthieu', 'Marc', 'Luc'],
+      'books': ['Actes', 'Matthieu', 'Marc', 'Luc', 'Ésaïe', 'Jérémie'],
       'duration': [21, 30, 40],
       'focus': 'Mission et évangélisation',
       'verses': ['Matthieu 28:19-20', 'Actes 1:8', 'Marc 16:15'],
@@ -697,7 +694,7 @@ class IntelligentLocalPresetGenerator {
     },
     // 🚀 NOUVEAUX THÈMES THOMPSON PURS
     'marriage_relationships': {
-      'books': ['Genèse', 'Proverbes', 'Éphésiens', '1 Pierre'],
+      'books': ['Genèse', 'Proverbes', 'Éphésiens', '1 Pierre', 'Cantique', 'Deutéronome'],
       'duration': [21, 30, 40],
       'focus': 'Relations et mariage selon la Bible',
       'verses': ['Genèse 2:24', 'Proverbes 5:18-19', 'Éphésiens 5:22-33'],
@@ -705,7 +702,7 @@ class IntelligentLocalPresetGenerator {
       'targetAudience': ['Fidèle régulier', 'Serviteur/leader']
     },
     'anxiety_peace': {
-      'books': ['Matthieu', 'Philippiens', '1 Pierre', 'Psaumes'],
+      'books': ['Matthieu', 'Philippiens', '1 Pierre', 'Psaumes', 'Ésaïe', 'Jérémie'],
       'duration': [14, 21, 30],
       'focus': 'Surmonter l\'anxiété et trouver la paix',
       'verses': ['Matthieu 6:25-34', 'Philippiens 4:6-7', '1 Pierre 5:7'],
@@ -713,7 +710,7 @@ class IntelligentLocalPresetGenerator {
       'targetAudience': ['Nouveau converti', 'Rétrograde', 'Fidèle pas si régulier', 'Fidèle régulier']
     },
     'spiritual_discipline': {
-      'books': ['1 Corinthiens', 'Hébreux', '2 Timothée', 'Jacques'],
+      'books': ['1 Corinthiens', 'Hébreux', '2 Timothée', 'Jacques', 'Proverbes', 'Lévitique'],
       'duration': [21, 30, 40],
       'focus': 'Discipline spirituelle et persévérance',
       'verses': ['1 Corinthiens 9:24-27', 'Hébreux 12:1-2', '2 Timothée 2:15'],
@@ -721,7 +718,7 @@ class IntelligentLocalPresetGenerator {
       'targetAudience': ['Fidèle régulier', 'Serviteur/leader']
     },
     'healing_restoration': {
-      'books': ['Psaumes', 'Ésaïe', 'Matthieu', '1 Pierre'],
+      'books': ['Psaumes', 'Ésaïe', 'Matthieu', '1 Pierre', 'Jérémie', 'Job'],
       'duration': [21, 30, 40],
       'focus': 'Guérison et restauration divine',
       'verses': ['Psaumes 103:3', 'Ésaïe 53:5', 'Matthieu 8:17', '1 Pierre 2:24'],
@@ -2346,14 +2343,22 @@ class IntelligentLocalPresetGenerator {
     final presets = <PlanPreset>[];
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     
-    // Mapping des thèmes vers les livres bibliques appropriés
+    // Mapping des thèmes vers les livres bibliques appropriés (équilibré AT/NT)
     final themeToBooks = {
-      'Fondements de l\'Evangile (Jean, Romains, Galates)': ['Jean', 'Romains', 'Galates'],
-      'Discipline & Regularite (Proverbes, Matthieu 6)': ['Proverbes', 'Matthieu', 'Jacques'],
-      'Retour & Repentance (Psaumes 51, Luc 15)': ['Psaumes', 'Luc', '1 Jean'],
-      'Saine Doctrine (1-2 Timothee, Tite)': ['1 Timothée', '2 Timothée', 'Tite'],
-      'Consolation dans l\'epreuve (1 Pierre, Psaumes)': ['1 Pierre', 'Psaumes', 'Job'],
-      'Paix contre l\'anxiete (Philippiens 4, Matthieu 6)': ['Philippiens', 'Matthieu', '1 Pierre'],
+      'Fondements de l\'Evangile (Jean, Romains, Galates)': ['Jean', 'Romains', 'Genèse', 'Ésaïe'],
+      'Discipline & Regularite (Proverbes, Matthieu 6)': ['Proverbes', 'Matthieu', 'Deutéronome', 'Jacques'],
+      'Retour & Repentance (Psaumes 51, Luc 15)': ['Psaumes', 'Luc', 'Jérémie', '1 Jean'],
+      'Saine Doctrine (1-2 Timothee, Tite)': ['1 Timothée', '2 Timothée', 'Lévitique', 'Tite'],
+      'Consolation dans l\'epreuve (1 Pierre, Psaumes)': ['1 Pierre', 'Psaumes', 'Job', 'Lamentations'],
+      'Paix contre l\'anxiete (Philippiens 4, Matthieu 6)': ['Philippiens', 'Matthieu', 'Ésaïe', '1 Pierre'],
+      
+      // Nouveaux thèmes AT-spécifiques
+      'Les promesses divines': ['Genèse', 'Exode', 'Josué', 'Psaumes'],
+      'La sagesse pratique': ['Proverbes', 'Ecclésiaste', 'Job', 'Jacques'],
+      'Les prophètes de l\'espérance': ['Ésaïe', 'Jérémie', 'Ézéchiel', 'Daniel'],
+      'L\'histoire d\'Israël': ['1 Samuel', '2 Samuel', '1 Rois', '2 Rois'],
+      'La loi et la grâce': ['Lévitique', 'Deutéronome', 'Romains', 'Galates'],
+      'La prière et l\'adoration': ['Psaumes', 'Cantique', 'Matthieu', 'Jean'],
     };
     
     // Générer un preset pour chaque thème prioritaire
@@ -2500,97 +2505,97 @@ class IntelligentLocalPresetGenerator {
     final relevantThemes = await BSBTopicalService.getThemesForGoal(goal);
     print('🎨 Thèmes BSB pertinents pour "$goal": ${relevantThemes.take(5).join(', ')}');
     
-    // ═══ MAPPING : Objectif → Thèmes spécifiques ═══
+    // ═══ MAPPING : Objectif → Thèmes spécifiques (équilibré AT/NT) ═══
     final goalToThemes = {
       'Rencontrer Jésus dans la Parole': [
-        'Jean & Romains & Luc',
-        'Matthieu & Marc & Jean', 
-        'Évangiles & Actes',
+        'Jean & Romains & Luc & Ésaïe',
+        'Matthieu & Marc & Jean & Genèse', 
+        'Évangiles & Actes & Psaumes',
       ],
       'Voir Jésus dans chaque livre': [
-        'Jean & Hébreux & Colossiens',
-        'Matthieu & Éphésiens & Philippiens',
-        'Luc & Romains & Galates',
+        'Jean & Hébreux & Colossiens & Ésaïe',
+        'Matthieu & Éphésiens & Philippiens & Genèse',
+        'Luc & Romains & Galates & Jérémie',
       ],
       'Être transformé à son image': [
-        'Romains & 2 Corinthiens & Galates',
-        'Éphésiens & Colossiens & 1 Pierre',
-        'Philippiens & Jacques & 1 Jean',
+        'Romains & 2 Corinthiens & Galates & Proverbes',
+        'Éphésiens & Colossiens & 1 Pierre & Psaumes',
+        'Philippiens & Jacques & 1 Jean & Ésaïe',
       ],
       'Développer l\'intimité avec Dieu': [
-        'Psaumes & Jean & 1 Jean',
-        'Cantique & Jean & Éphésiens',
-        'Psaumes & Luc & Romains',
+        'Psaumes & Jean & 1 Jean & Cantique',
+        'Cantique & Jean & Éphésiens & Psaumes',
+        'Psaumes & Luc & Romains & Ésaïe',
       ],
       'Apprendre à prier comme Jésus': [
-        'Matthieu & Luc & Jean',
-        'Psaumes & Matthieu & Éphésiens',
-        'Luc & Actes & 1 Thessaloniciens',
+        'Matthieu & Luc & Jean & Psaumes',
+        'Psaumes & Matthieu & Éphésiens & 1 Samuel',
+        'Luc & Actes & 1 Thessaloniciens & Psaumes',
       ],
       'Reconnaître la voix de Dieu': [
-        'Jean & 1 Jean & Hébreux',
-        'Psaumes & Jean & Romains',
-        'Luc & Jean & 1 Corinthiens',
+        'Jean & 1 Jean & Hébreux & Ésaïe',
+        'Psaumes & Jean & Romains & Jérémie',
+        'Luc & Jean & 1 Corinthiens & Proverbes',
       ],
       'Développer le fruit de l\'Esprit': [
-        'Galates & Éphésiens & Colossiens',
-        'Jean & Romains & 1 Pierre',
-        'Luc & Galates & Jacques',
+        'Galates & Éphésiens & Colossiens & Proverbes',
+        'Jean & Romains & 1 Pierre & Psaumes',
+        'Luc & Galates & Jacques & Ésaïe',
       ],
       'Renouveler mes pensées': [
-        'Romains & Éphésiens & Philippiens',
-        'Colossiens & 2 Corinthiens & 1 Pierre',
-        'Matthieu & Romains & Jacques',
+        'Romains & Éphésiens & Philippiens & Proverbes',
+        'Colossiens & 2 Corinthiens & 1 Pierre & Psaumes',
+        'Matthieu & Romains & Jacques & Ésaïe',
       ],
       'Marcher par l\'Esprit': [
-        'Galates & Romains & Jean',
-        'Éphésiens & Colossiens & 1 Jean',
-        'Luc & Actes & Galates',
+        'Galates & Romains & Jean & Ésaïe',
+        'Éphésiens & Colossiens & 1 Jean & Proverbes',
+        'Luc & Actes & Galates & Psaumes',
       ],
       'Discipline quotidienne': [
-        'Proverbes & Matthieu & Jacques',
-        'Psaumes & Luc & 1 Timothée',
-        'Matthieu & Proverbes & Hébreux',
+        'Proverbes & Matthieu & Jacques & Deutéronome',
+        'Psaumes & Luc & 1 Timothée & Proverbes',
+        'Matthieu & Proverbes & Hébreux & Psaumes',
       ],
       'Discipline de prière': [
-        'Psaumes & Matthieu & Luc',
-        'Jean & Éphésiens & 1 Thessaloniciens',
-        'Psaumes & Luc & Actes',
+        'Psaumes & Matthieu & Luc & 1 Samuel',
+        'Jean & Éphésiens & 1 Thessaloniciens & Psaumes',
+        'Psaumes & Luc & Actes & 1 Rois',
       ],
       'Approfondir la Parole': [
-        'Jean & Romains & Hébreux',
-        'Matthieu & Éphésiens & Colossiens',
-        'Luc & Galates & 1 Pierre',
+        'Jean & Romains & Hébreux & Genèse',
+        'Matthieu & Éphésiens & Colossiens & Ésaïe',
+        'Luc & Galates & 1 Pierre & Proverbes',
       ],
       'Grandir dans la foi': [
-        'Romains & Hébreux & Jacques',
-        'Jean & Galates & 1 Pierre',
-        'Matthieu & Romains & Éphésiens',
+        'Romains & Hébreux & Jacques & Genèse',
+        'Jean & Galates & 1 Pierre & Ésaïe',
+        'Matthieu & Romains & Éphésiens & Psaumes',
       ],
       'Développer mon caractère': [
-        'Galates & Jacques & 1 Pierre',
-        'Romains & Éphésiens & Colossiens',
-        'Matthieu & Proverbes & 1 Jean',
+        'Galates & Jacques & 1 Pierre & Proverbes',
+        'Romains & Éphésiens & Colossiens & Psaumes',
+        'Matthieu & Proverbes & 1 Jean & Ésaïe',
       ],
       'Trouver de l\'encouragement': [
-        'Psaumes & Romains & 1 Pierre',
-        'Job & Psaumes & 2 Corinthiens',
-        'Psaumes & Luc & Philippiens',
+        'Psaumes & Romains & 1 Pierre & Job',
+        'Job & Psaumes & 2 Corinthiens & Ésaïe',
+        'Psaumes & Luc & Philippiens & Proverbes',
       ],
       'Expérimenter la guérison': [
-        'Psaumes & Luc & 1 Jean',
-        'Psaumes & Matthieu & Jacques',
-        'Luc & Psaumes & Romains',
+        'Psaumes & Luc & 1 Jean & Ésaïe',
+        'Psaumes & Matthieu & Jacques & Proverbes',
+        'Luc & Psaumes & Romains & Psaumes',
       ],
       'Partager ma foi': [
-        'Matthieu & Actes & 1 Pierre',
-        'Marc & Actes & Philippiens',
-        'Luc & Actes & 1 Corinthiens',
+        'Matthieu & Actes & 1 Pierre & Ésaïe',
+        'Marc & Actes & Philippiens & Proverbes',
+        'Luc & Actes & 1 Corinthiens & Psaumes',
       ],
       'Mieux prier': [
-        'Psaumes & Matthieu & Luc',
-        'Jean & Éphésiens & 1 Thessaloniciens',
-        'Psaumes & Luc & Jacques',
+        'Psaumes & Matthieu & Luc & 1 Samuel',
+        'Jean & Éphésiens & 1 Thessaloniciens & Psaumes',
+        'Psaumes & Luc & Jacques & Proverbes',
       ],
     };
     

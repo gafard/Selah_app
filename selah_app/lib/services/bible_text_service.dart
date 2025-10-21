@@ -122,11 +122,47 @@ class BibleTextService {
       print('   - Start: ch$sc:v$sv');
       print('   - End: ch$ec:v$ev');
       
-      final rows = await _database!.rawQuery('''
-        SELECT text FROM verses
-        WHERE version = ? AND book = ? AND chapter = ? AND verse >= ? AND verse <= ?
-        ORDER BY verse
-      ''', [version, book, sc, sv, ev]);
+      List<Map<String, dynamic>> rows;
+      
+      if (sc == ec) {
+        // Passage dans un seul chapitre
+        rows = await _database!.rawQuery('''
+          SELECT text FROM verses
+          WHERE version = ? AND book = ? AND chapter = ? AND verse >= ? AND verse <= ?
+          ORDER BY verse
+        ''', [version, book, sc, sv, ev]);
+      } else {
+        // Passage multi-chapitres
+        final allRows = <Map<String, dynamic>>[];
+        
+        // Récupérer le chapitre de début (du verset de début à la fin)
+        final startChapterRows = await _database!.rawQuery('''
+          SELECT text FROM verses
+          WHERE version = ? AND book = ? AND chapter = ? AND verse >= ?
+          ORDER BY verse
+        ''', [version, book, sc, sv]);
+        allRows.addAll(startChapterRows);
+        
+        // Récupérer les chapitres intermédiaires complets (si il y en a)
+        for (int chapter = sc + 1; chapter < ec; chapter++) {
+          final middleChapterRows = await _database!.rawQuery('''
+            SELECT text FROM verses
+            WHERE version = ? AND book = ? AND chapter = ?
+            ORDER BY verse
+          ''', [version, book, chapter]);
+          allRows.addAll(middleChapterRows);
+        }
+        
+        // Récupérer le chapitre de fin (du début au verset de fin)
+        final endChapterRows = await _database!.rawQuery('''
+          SELECT text FROM verses
+          WHERE version = ? AND book = ? AND chapter = ? AND verse <= ?
+          ORDER BY verse
+        ''', [version, book, ec, ev]);
+        allRows.addAll(endChapterRows);
+        
+        rows = allRows;
+      }
       
       print('   - Rows found: ${rows.length}');
       if (rows.isNotEmpty) {

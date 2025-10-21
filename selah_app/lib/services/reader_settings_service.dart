@@ -29,10 +29,7 @@ class ReaderSettingsService extends ChangeNotifier {
   String get selectedFont => _settings.font;
   double get fontSize => _settings.fontSize;
   String get textAlignment => _settings.textAlignment;
-  bool get isOfflineMode => _settings.isOfflineMode;
-  bool get isLocked => _settings.isLocked;
   bool get isSearchEnabled => _settings.isSearchEnabled;
-  bool get isTransitionsEnabled => _settings.isTransitionsEnabled;
   double get brightness => _settings.brightness;
   
   /// 🌅 Retourne le thème effectif (auto adapté à l'heure)
@@ -294,26 +291,8 @@ class ReaderSettingsService extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setOfflineMode(bool enabled) {
-    _settings = _settings.copyWith(isOfflineMode: enabled);
-    _saveSettings();
-    notifyListeners();
-  }
-
-  void setLocked(bool locked) {
-    _settings = _settings.copyWith(isLocked: locked);
-    _saveSettings();
-    notifyListeners();
-  }
-
   void setSearchEnabled(bool enabled) {
     _settings = _settings.copyWith(isSearchEnabled: enabled);
-    _saveSettings();
-    notifyListeners();
-  }
-
-  void setTransitionsEnabled(bool enabled) {
-    _settings = _settings.copyWith(isTransitionsEnabled: enabled);
     _saveSettings();
     notifyListeners();
   }

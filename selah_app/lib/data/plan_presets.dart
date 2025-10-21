@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import '../models/plan_preset.dart';
 
 class PlanPresets {

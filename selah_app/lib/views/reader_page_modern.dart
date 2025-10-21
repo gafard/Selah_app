@@ -28,6 +28,7 @@ import '../services/biblical_timeline_service.dart';
 import '../services/thomson_characters_service.dart';
 import '../services/bsb_topical_service.dart';
 import '../services/mirror_verse_service.dart';
+import '../services/daily_display_service.dart';
 import '../services/treasury_crossref_service.dart';
 import '../services/bsb_book_outlines_service.dart';
 // Services supprimés (packs incomplets)
@@ -68,6 +69,7 @@ class _ReaderPageModernState extends State<ReaderPageModern>
   bool _isBookmarked = false;
   bool _hasNote = false;
   bool _isMarkedAsRead = false;
+  bool _hasMarkedAsReadToday = false;
   SpiritualFoundation? _foundationOfDay;
   late AnimationController _buttonAnimationController;
   String _notedVerse = ''; // Verset noté par l'utilisateur
@@ -94,6 +96,9 @@ class _ReaderPageModernState extends State<ReaderPageModern>
       duration: const Duration(milliseconds: 200),
       vsync: this,
     );
+    
+    // Vérifier si déjà marqué comme lu aujourd'hui
+    _hasMarkedAsReadToday = DailyDisplayService.hasMarkedAsReadToday();
     
     // Initialiser la session de lecture de manière synchrone
     _initializeReadingSession();
@@ -160,8 +165,13 @@ class _ReaderPageModernState extends State<ReaderPageModern>
     super.didChangeDependencies();
     if (_hasInitialized) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
+        // Sauvegarder la version actuelle AVANT de recharger
+        final previousVersion = _selectedVersion;
+        
         await _loadUserBibleVersion();
-        if (_selectedVersion != _lastAppliedVersion) {
+        
+        // Ne recharger que si la version a VRAIMENT changé
+        if (_selectedVersion != previousVersion && _selectedVersion != _lastAppliedVersion) {
           _lastAppliedVersion = _selectedVersion;
           await _reloadCurrentPassage();
         }
@@ -728,51 +738,58 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
 
 
   void _markAsRead() async {
+    // Si déjà marqué comme lu aujourd'hui, ne rien faire
+    if (_hasMarkedAsReadToday) {
+      _showSnackBar(
+        'Passage déjà marqué comme lu aujourd\'hui',
+        Icons.info,
+        Colors.orange,
+      );
+      return;
+    }
+    
     setState(() {
-      _isMarkedAsRead = !_isMarkedAsRead;
+      _isMarkedAsRead = true;
+      _hasMarkedAsReadToday = true;
     });
     HapticFeedback.mediumImpact();
+    
+    // Marquer comme lu aujourd'hui dans le service
+    await DailyDisplayService.markPassageAsReadToday();
     
     // ✅ Marquer côté PlanService si contexte connu
     final planId = widget.planId;
     final day = widget.dayNumber;
     if (planId != null && day != null) {
       try {
-        await bootstrap.planService.markDayCompleted(planId, day, _isMarkedAsRead);
+        await bootstrap.planService.markDayCompleted(planId, day, true);
         
         // 🧠 ACTIVATION DE TOUS LES SERVICES D'ANALYSE ET DE PROGRESSION
-    if (_isMarkedAsRead) {
-          await _activateAllAnalysisServices();
-        }
+        await _activateAllAnalysisServices();
         
-        // Optionnel: feedback
         _showSnackBar(
-          _isMarkedAsRead ? 'Jour marqué comme lu' : 'Marqué comme non lu',
-          _isMarkedAsRead ? Icons.check_circle : Icons.radio_button_unchecked,
-          _isMarkedAsRead ? Colors.green : Colors.grey,
+          'Jour marqué comme lu',
+          Icons.check_circle,
+          Colors.green,
         );
       } catch (e) {
         // rollback UI si erreur critique
-        setState(() => _isMarkedAsRead = !_isMarkedAsRead);
+        setState(() {
+          _isMarkedAsRead = false;
+          _hasMarkedAsReadToday = false;
+        });
         _showSnackBar('Impossible de mettre à jour l\'état du jour', Icons.error_outline, Colors.red);
         print('❌ markDayCompleted: $e');
       }
     } else {
       // Pas de contexte de plan (lecture libre)
-      if (_isMarkedAsRead) {
-        await _activateAllAnalysisServices();
-      }
+      await _activateAllAnalysisServices();
       
       _showSnackBar(
-        _isMarkedAsRead ? 'Lu (mode libre)' : 'Non lu (mode libre)',
-        _isMarkedAsRead ? Icons.check_circle : Icons.radio_button_unchecked,
-        _isMarkedAsRead ? Colors.green : Colors.grey,
+        'Lu (mode libre)',
+        Icons.check_circle,
+        Colors.green,
       );
-    }
-    
-    if (_isMarkedAsRead) {
-      // Afficher les prompts de réflexion au lieu du bottom sheet
-      _showReflectionPrompts();
     }
   }
 
@@ -975,7 +992,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Choisissez un prompt pour approfondir votre méditation',
+                  'Répondez à l\'une ou plusieurs de ces questions pour approfondir votre méditation',
                   style: TextStyle(
                     fontFamily: 'Gilroy',
                     fontSize: 14,
@@ -1009,8 +1026,9 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
   }
 
   void _goToMeditation() {
-    // Vérifier si le texte est marqué comme lu
-    if (!_isMarkedAsRead) {
+    // Le bouton méditation est accessible si le passage a été marqué comme lu aujourd'hui
+    // OU s'il a été marqué comme lu avant (état persistant)
+    if (!_isMarkedAsRead && !_hasMarkedAsReadToday) {
       _showSnackBar(
         'Veuillez d\'abord marquer le texte comme lu',
         Icons.info,
@@ -1053,12 +1071,12 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
               
               // Option 1: Méditation guidée
               _buildOptionButton(
-                icon: Icons.auto_awesome,
+                icon: Icons.edit_note,
                 title: 'Méditation guidée',
                 subtitle: 'Réflexion structurée avec questions',
                 onTap: () {
                   Navigator.pop(context);
-    context.go('/meditation/chooser', extra: {
+    context.go('/meditation/bible-warning', extra: {
                     'passageRef': _readingSession?.currentPassage?.reference ?? 'Jean 14:1-19',
       'passageText': _passageText,
                     'memoryVerse': _notedVerse,
@@ -1796,64 +1814,51 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
               ),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _dayTitle,
-                  style: TextStyle(
-                    fontFamily: 'Gilroy',
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _readingSession?.currentPassage?.reference ?? 'Jean 14:1-19',
-                  style: TextStyle(
-                    fontFamily: 'Gilroy',
-                    fontSize: 14,
-                    color: isDark ? Colors.white70 : Colors.grey.shade600,
-                  ),
-                ),
-              ],
+            child: Text(
+              '${_dayTitle} • ${_readingSession?.currentPassage?.reference ?? 'Jean 14:1-19'}',
+              style: TextStyle(
+                fontFamily: 'Gilroy',
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : Colors.black,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ),
-          // IconToggle pour les actions rapides
+          // Icônes essentielles seulement
           Row(
             children: [
-              IconButton(
-                onPressed: _toggleFavorite,
-                icon: Icon(
-                  _isFavorite ? Icons.favorite : Icons.favorite_border,
-                  color: _isFavorite ? Colors.red : Colors.white,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                onPressed: _toggleBookmark,
-                icon: Icon(
-                  _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                  color: _isBookmarked ? Colors.blue : Colors.white,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                onPressed: _toggleNote,
-                icon: Icon(
-                  _hasNote ? Icons.note : Icons.note_outlined,
-                  color: _hasNote ? Colors.green : Colors.white,
-                  size: 20,
+              // Icône moderne pour la prise de notes
+              GestureDetector(
+                onTap: _showReflectionPrompts,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDark ? Colors.white.withOpacity(0.2) : Colors.black.withOpacity(0.2),
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.edit_note_rounded,
+                    color: isDark ? Colors.white : Colors.black,
+                    size: 20,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
               GestureDetector(
-                onTap: () => context.go('/reader_settings'),
+                onTap: () => context.go('/reader_settings', extra: {
+                  'passageRef': _readingSession?.currentPassage?.reference ?? 'Jean 14:1-19',
+                  'passageText': _passageText,
+                  'dayTitle': _dayTitle,
+                  'planId': widget.planId,
+                  'dayNumber': widget.dayNumber,
+                }),
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
@@ -1908,11 +1913,13 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
   Widget _buildTextContent(bool isDark) {
     return Consumer<ReaderSettingsService>(
       builder: (context, settings, child) {
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        return Opacity(
+          opacity: settings.brightness,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               // En-tête avec navigation si plusieurs passages
               _buildPassageHeader(isDark),
               const SizedBox(height: 8),
@@ -2011,7 +2018,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                   text: _passageText,
                     style: settings.getFontStyle().copyWith(
                       color: isDark ? Colors.white : Colors.black,
-                      fontSize: 16,
+                      fontSize: settings.fontSize,
                       height: 1.6,
                     ),
                   textAlign: settings.getTextAlign(),
@@ -2020,6 +2027,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
               
             ],
           ),
+        ),
         );
       },
     );
@@ -2245,95 +2253,102 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
       builder: (context, settings, child) {
         final isDark = settings.effectiveTheme == 'dark';
         
-    return Row(
-      children: [
-        Expanded(
-          child: GestureDetector(
-            onTap: _markAsRead,
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-              decoration: BoxDecoration(
-                    color: _isMarkedAsRead ? const Color(0xFF49C98D) : const Color(0xFF1553FF),
-                borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
+        // Déterminer si le bouton est désactivé
+        final isDisabled = _hasMarkedAsReadToday;
+        
+        return Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: isDisabled ? null : _markAsRead,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: isDisabled 
+                        ? Colors.grey.withOpacity(0.3)
+                        : (_isMarkedAsRead ? const Color(0xFF49C98D) : const Color(0xFF1553FF)),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: isDisabled ? null : [
                       BoxShadow(
                         color: (_isMarkedAsRead ? const Color(0xFF49C98D) : const Color(0xFF1553FF)).withOpacity(0.3),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),
                     ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                children: [
-                      Flexible(
-                    child: Text(
-                          _isMarkedAsRead ? 'Marqué comme lu' : 'Marquer comme lu',
-                          style: const TextStyle(
-                            fontFamily: 'Gilroy',
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      textAlign: TextAlign.center,
-                      overflow: TextOverflow.ellipsis,
-                    ),
                   ),
-                ],
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          isDisabled 
+                              ? 'Déjà lu aujourd\'hui'
+                              : (_isMarkedAsRead ? 'Marqué comme lu' : 'Marquer comme lu'),
+                          style: TextStyle(
+                            fontFamily: 'Gilroy',
+                            color: isDisabled ? Colors.grey.shade600 : Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: GestureDetector(
-            onTap: _goToMeditation,
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-              decoration: BoxDecoration(
-                    color: _isMarkedAsRead 
+            const SizedBox(width: 12),
+            Expanded(
+              child: GestureDetector(
+                onTap: _goToMeditation,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: (_isMarkedAsRead || _hasMarkedAsReadToday)
                         ? const Color(0xFF1553FF) 
                         : (isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1)),
-                borderRadius: BorderRadius.circular(16),
-                    border: _isMarkedAsRead 
+                    borderRadius: BorderRadius.circular(16),
+                    border: (_isMarkedAsRead || _hasMarkedAsReadToday)
                         ? null 
                         : Border.all(
                             color: isDark ? Colors.white.withOpacity(0.2) : Colors.black.withOpacity(0.2),
                           ),
-                    boxShadow: _isMarkedAsRead ? [
+                    boxShadow: (_isMarkedAsRead || _hasMarkedAsReadToday) ? [
                       BoxShadow(
                         color: const Color(0xFF1553FF).withOpacity(0.3),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),
                     ] : null,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     mainAxisSize: MainAxisSize.min,
-                children: [
+                    children: [
                       Flexible(
-                    child: Text(
-                      'Méditation',
+                        child: Text(
+                          'Méditation',
                           style: TextStyle(
                             fontFamily: 'Gilroy',
-                            color: _isMarkedAsRead 
+                            color: (_isMarkedAsRead || _hasMarkedAsReadToday)
                                 ? Colors.white 
                                 : (isDark ? Colors.white70 : Colors.black87),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      textAlign: TextAlign.center,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
-          ),
-        ),
-      ],
+          ],
         );
       },
     );
@@ -3101,10 +3116,91 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
     );
   }
 
+  /// Traduit un thème anglais en français
+  String _translateTheme(String theme) {
+    final translations = {
+      'Faith': 'Foi',
+      'Love': 'Amour',
+      'Hope': 'Espérance',
+      'Grace': 'Grâce',
+      'Salvation': 'Salut',
+      'Redemption': 'Rédemption',
+      'Forgiveness': 'Pardon',
+      'Peace': 'Paix',
+      'Joy': 'Joie',
+      'Wisdom': 'Sagesse',
+      'Truth': 'Vérité',
+      'Light': 'Lumière',
+      'Life': 'Vie',
+      'Death': 'Mort',
+      'Sin': 'Péché',
+      'Righteousness': 'Justice',
+      'Holiness': 'Sainteté',
+      'Mercy': 'Miséricorde',
+      'Compassion': 'Compassion',
+      'Patience': 'Patience',
+      'Humility': 'Humilité',
+      'Courage': 'Courage',
+      'Strength': 'Force',
+      'Victory': 'Victoire',
+      'Triumph': 'Triomphe',
+      'Glory': 'Gloire',
+      'Praise': 'Louange',
+      'Worship': 'Adoration',
+      'Prayer': 'Prière',
+      'Obedience': 'Obéissance',
+      'Discipleship': 'Discipulat',
+      'Service': 'Service',
+      'Sacrifice': 'Sacrifice',
+      'Cross': 'Croix',
+      'Resurrection': 'Résurrection',
+      'Eternal': 'Éternel',
+      'Heaven': 'Ciel',
+      'Hell': 'Enfer',
+      'Judgment': 'Jugement',
+      'Repentance': 'Repentance',
+      'Conversion': 'Conversion',
+      'Baptism': 'Baptême',
+      'Communion': 'Communion',
+      'Church': 'Église',
+      'Fellowship': 'Communion fraternelle',
+      'Unity': 'Unité',
+      'Brotherhood': 'Fraternité',
+      'Sisterhood': 'Sororité',
+      'Family': 'Famille',
+      'Marriage': 'Mariage',
+      'Children': 'Enfants',
+      'Parents': 'Parents',
+      'Elders': 'Anciens',
+      'Leaders': 'Dirigeants',
+      'Ministry': 'Ministère',
+      'Mission': 'Mission',
+      'Evangelism': 'Évangélisation',
+      'Witness': 'Témoignage',
+      'Testimony': 'Témoignage',
+      'Gospel': 'Évangile',
+      'Kingdom': 'Royaume',
+      'Covenant': 'Alliance',
+      'Promise': 'Promesse',
+      'Blessing': 'Bénédiction',
+      'Curse': 'Malédiction',
+      'Law': 'Loi',
+      'Commandment': 'Commandement',
+      'Freedom': 'Liberté',
+      'Bondage': 'Esclavage',
+      'Slavery': 'Esclavage',
+      'Liberty': 'Liberté',
+      'Justice': 'Justice',
+    };
+    
+    return translations[theme] ?? theme;
+  }
+
   /// Construit un élément de thème avec type
   Widget _buildThemeItem(String theme, bool isDark, String type) {
     final color = type == 'thomson' ? Colors.purple : Colors.blue;
     final icon = type == 'thomson' ? Icons.label : Icons.bookmark;
+    final translatedTheme = _translateTheme(theme);
     
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -3127,7 +3223,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              theme,
+              translatedTheme,
               style: TextStyle(
                 fontFamily: 'Gilroy',
                 fontSize: 16,

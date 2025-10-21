@@ -1,15 +1,129 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../bootstrap.dart' as bootstrap;
+import '../services/daily_display_service.dart';
 
 /// Widget d'indicateur de connectivité pour l'interface utilisateur
-class ConnectivityIndicator extends StatelessWidget {
+class ConnectivityIndicator extends StatefulWidget {
   const ConnectivityIndicator({super.key});
+
+  @override
+  State<ConnectivityIndicator> createState() => _ConnectivityIndicatorState();
+}
+
+class _ConnectivityIndicatorState extends State<ConnectivityIndicator> {
+  bool _showAirplaneWarning = false;
+  bool _isDismissed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAirplaneWarning();
+  }
+
+  void _checkAirplaneWarning() {
+    final connectivity = bootstrap.connectivityService;
+    
+    // Afficher le warning seulement si hors ligne ET pas encore affiché aujourd'hui
+    if (!connectivity.isOnline && DailyDisplayService.shouldShowAirplaneWarning()) {
+      setState(() {
+        _showAirplaneWarning = true;
+      });
+      
+      // Auto-dismiss après 10 secondes
+      Future.delayed(const Duration(seconds: 10), () {
+        if (mounted && !_isDismissed) {
+          _dismissWarning();
+        }
+      });
+    }
+  }
+
+  void _dismissWarning() async {
+    if (_isDismissed) return;
+    
+    setState(() {
+      _isDismissed = true;
+      _showAirplaneWarning = false;
+    });
+    
+    // Marquer comme affiché aujourd'hui
+    await DailyDisplayService.markAirplaneWarningAsShown();
+  }
 
   @override
   Widget build(BuildContext context) {
     final connectivity = bootstrap.connectivityService;
     
+    // Afficher le warning mode avion si nécessaire
+    if (_showAirplaneWarning && !_isDismissed) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.amber.shade50,
+              Colors.orange.shade50,
+            ],
+          ),
+          border: Border(
+            bottom: BorderSide(color: Colors.amber.shade300, width: 1),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.flight_takeoff_rounded,
+              color: Colors.amber.shade700,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Mode avion recommandé',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: Colors.amber.shade800,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Pour une méditation sans distraction',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: Colors.amber.shade700,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            GestureDetector(
+              onTap: _dismissWarning,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.close_rounded,
+                  color: Colors.amber.shade700,
+                  size: 16,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    // Afficher l'indicateur hors ligne normal si en ligne
     if (connectivity.isOnline) {
       return const SizedBox.shrink(); // Masquer si en ligne
     }

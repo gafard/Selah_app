@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
 
 /// Widget moderne pour afficher un mini graphique de progression de lecture
 class ProgressChart extends StatelessWidget {
@@ -99,7 +98,7 @@ class ProgressChart extends StatelessWidget {
   Widget _buildCompactChart() {
     final maxValue = last7Days.isNotEmpty ? last7Days.reduce((a, b) => a > b ? a : b) : 1;
     
-    return Container(
+    return SizedBox(
       height: 40,
       child: CustomPaint(
         painter: _LineChartPainter(

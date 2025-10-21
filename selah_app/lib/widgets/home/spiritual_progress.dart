@@ -41,7 +41,7 @@ class SpiritualProgress extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Icon(
+            const Icon(
               Icons.track_changes,
               size: 40,
               color: Colors.white,
@@ -99,10 +99,10 @@ class SpiritualProgress extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           colors: [
-            const Color(0xFF1C1740),
-            const Color(0xFF2D1B69),
+            Color(0xFF1C1740),
+            Color(0xFF2D1B69),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -125,9 +125,9 @@ class SpiritualProgress extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.trending_up,
-                      color: const Color(0xFF10B981),
+                      color: Color(0xFF10B981),
                       size: 20,
                     ),
                     const SizedBox(width: 8),

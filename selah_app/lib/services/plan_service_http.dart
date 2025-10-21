@@ -210,10 +210,16 @@ class PlanServiceHttp implements PlanService {
   Future<List<PlanDay>> getPlanDays(String planId, {int? fromDay, int? toDay}) async {
     final key = 'days:$planId:${fromDay ?? 1}:${toDay ?? 0}';
     final altKey = 'days:$planId'; // ancien format
+    
+    print('🔍 getPlanDays appelé pour planId: $planId, fromDay: $fromDay, toDay: $toDay');
+    print('🔍 Clé principale: $key');
+    print('🔍 Clé alternative: $altKey');
 
     List readFromCache(String cacheKey) {
       final cached = cachePlanDays.get(cacheKey);
-      return (cached is List) ? cached : const [];
+      final result = (cached is List) ? cached : const [];
+      print('🔍 Cache $cacheKey: ${result.length} éléments');
+      return result;
     }
 
     List<PlanDay> parse(List data) {
@@ -231,14 +237,30 @@ class PlanServiceHttp implements PlanService {
 
     // 1) cache direct
     final cached = readFromCache(key);
-    if (cached.isNotEmpty) return parse(cached);
+    if (cached.isNotEmpty) {
+      print('✅ Jours trouvés avec la clé principale: $key');
+      return parse(cached);
+    }
 
     // 2) alt cache
     final alt = readFromCache(altKey);
     if (alt.isNotEmpty) {
+      print('✅ Jours trouvés avec la clé alternative: $altKey');
       final parsed = parse(alt);
 
       // 🔧 auto-migration: re-écrire au bon key (et formats normalisés via toJson)
+      await cachePlanDays.put(key, parsed.map((d) => d.toJson()).toList());
+      return parsed;
+    }
+    
+    // 3) Essayer de récupérer depuis la clé de sauvegarde standard
+    final standardKey = 'days:$planId:1:0';
+    final standard = readFromCache(standardKey);
+    if (standard.isNotEmpty) {
+      print('✅ Jours trouvés avec la clé standard: $standardKey');
+      final parsed = parse(standard);
+      
+      // Sauvegarder avec la clé demandée pour les prochaines fois
       await cachePlanDays.put(key, parsed.map((d) => d.toJson()).toList());
       return parsed;
     }
@@ -246,6 +268,13 @@ class PlanServiceHttp implements PlanService {
     // 3) 🔧 NOUVEAU: Auto-régénération des jours si plan local existe
     final activePlan = await getActivePlan();
     if (activePlan != null && activePlan.id == planId) {
+      // Vérifier si les jours existent déjà pour éviter la boucle infinie
+      final existingDays = readFromCache(key);
+      if (existingDays.isNotEmpty) {
+        print('✅ Jours déjà présents dans le cache (${existingDays.length} jours)');
+        return parse(existingDays);
+      }
+      
       print('🔄 Auto-régénération des jours pour le plan local $planId');
       try {
         await _createLocalPlanDays(
@@ -257,11 +286,14 @@ class PlanServiceHttp implements PlanService {
           activePlan.daysOfWeek,
         );
         
-        // Retry après génération
+        // Retry après génération avec un petit délai pour la synchronisation
+        await Future.delayed(const Duration(milliseconds: 100));
         final regenerated = readFromCache(key);
         if (regenerated.isNotEmpty) {
           print('✅ Jours régénérés avec succès (${regenerated.length} jours)');
           return parse(regenerated);
+        } else {
+          print('❌ Échec de la régénération - cache vide après génération');
         }
       } catch (e) {
         print('❌ Erreur auto-régénération: $e');
@@ -800,9 +832,26 @@ class PlanServiceHttp implements PlanService {
       }
     }
     
-    // Sauvegarder les jours avec la même clé que getPlanDays
-    await cachePlanDays.put('days:$planId:1:0', days.map((d) => d.toJson()).toList());
-    print('✅ ${days.length} jours de plan sauvegardés localement');
+    // Sauvegarder les jours avec plusieurs clés pour assurer la compatibilité
+    final primaryKey = 'days:$planId:1:0';
+    final altKey = 'days:$planId';
+    
+    // Sauvegarder avec la clé principale
+    await cachePlanDays.put(primaryKey, days.map((d) => d.toJson()).toList());
+    print('✅ ${days.length} jours de plan sauvegardés localement avec la clé: $primaryKey');
+    
+    // Sauvegarder aussi avec la clé alternative pour compatibilité
+    await cachePlanDays.put(altKey, days.map((d) => d.toJson()).toList());
+    print('✅ ${days.length} jours de plan sauvegardés localement avec la clé alternative: $altKey');
+    
+    // Vérification immédiate que les jours sont bien sauvegardés
+    final verification1 = cachePlanDays.get(primaryKey);
+    final verification2 = cachePlanDays.get(altKey);
+    if (verification1 != null && verification1 is List && verification2 != null && verification2 is List) {
+      print('✅ Vérification: ${verification1.length} jours confirmés dans le cache (clés: $primaryKey, $altKey)');
+    } else {
+      print('❌ ERREUR: Les jours ne sont pas trouvés dans le cache après sauvegarde');
+    }
   }
 
   /// 🧠 Génère des passages intelligents avec IntelligentLocalPresetGenerator
@@ -958,7 +1007,8 @@ class PlanServiceHttp implements PlanService {
     
     // 🚀 FALCON X v2 - Service sémantique avec contexte historique et priorisation intelligente
     final maxChapters = _getMaxChaptersForBook(book);
-    final chapter = (day % maxChapters) + 1;
+    // Corriger la logique pour commencer par le chapitre 1
+    final chapter = ((day - 1) % maxChapters) + 1;
     
     // 1. PRIORISATION INTELLIGENTE : Sélectionner l'unité littéraire la plus pertinente
     final prioritizedUnit = _selectPrioritizedLiteraryUnit(book, chapter, day, userProfile);
@@ -1016,7 +1066,25 @@ class PlanServiceHttp implements PlanService {
         url: null,
       );
     } else if (_isNewTestament(book)) {
-      // Pour les livres du NT, utiliser le nombre réel de versets
+      // Pour les livres du NT, utiliser le service sémantique pour respecter les unités littéraires
+      final semanticBoundary = await SemanticPassageBoundaryService.adjustPassageVerses(
+        book: book,
+        startChapter: chapter,
+        startVerse: 1,
+        endChapter: chapter + 1, // Permettre d'aller au chapitre suivant
+        endVerse: 999, // Fin du chapitre
+      );
+      
+      if (semanticBoundary.adjusted && semanticBoundary.includedUnit != null) {
+        print('🧠 Passage sémantique NT généré: ${semanticBoundary.reference} (${semanticBoundary.includedUnit?.name})');
+        return ReadingRef(
+          book: book,
+          range: _extractRangeFromReference(semanticBoundary.reference, book),
+          url: null,
+        );
+      }
+      
+      // Fallback si pas d'unité littéraire trouvée
       final maxVerses = _getVersesInChapter(book, chapter);
       final requestedVerses = readingLength['gospels'] ?? 30;
       final actualVerses = requestedVerses > maxVerses ? maxVerses : requestedVerses;
@@ -1027,9 +1095,28 @@ class PlanServiceHttp implements PlanService {
         url: null,
       );
     } else {
+      // Pour les livres de l'AT, utiliser le service sémantique pour respecter les unités littéraires
+      final semanticBoundary = await SemanticPassageBoundaryService.adjustPassageVerses(
+        book: book,
+        startChapter: chapter,
+        startVerse: 1,
+        endChapter: chapter + 1, // Permettre d'aller au chapitre suivant
+        endVerse: 999, // Fin du chapitre
+      );
+      
+      if (semanticBoundary.adjusted && semanticBoundary.includedUnit != null) {
+        print('🧠 Passage sémantique AT généré: ${semanticBoundary.reference} (${semanticBoundary.includedUnit?.name})');
+        return ReadingRef(
+          book: book,
+          range: _extractRangeFromReference(semanticBoundary.reference, book),
+          url: null,
+        );
+      }
+      
+      // Fallback si pas d'unité littéraire trouvée
       return ReadingRef(
         book: book,
-        range: '${(day % 10) + 1}:1-${readingLength['default']}',
+        range: '$chapter:1-${readingLength['default']}',
         url: null,
       );
     }
@@ -1052,7 +1139,23 @@ class PlanServiceHttp implements PlanService {
       if (lastSpace <= 0) return '1:1'; // Fallback
       
       final bookPart = cleanRef.substring(0, lastSpace).trim();
-      final rangePart = cleanRef.substring(lastSpace + 1).trim();
+      var rangePart = cleanRef.substring(lastSpace + 1).trim();
+      
+      // 🔧 NOUVEAU : Remplacer :999 par le dernier verset du chapitre
+      if (rangePart.contains(':999')) {
+        // Parser la référence pour extraire les chapitres
+        final match = RegExp(r'(\d+):(\d+)-(\d+):999').firstMatch(rangePart);
+        if (match != null) {
+          final startChapter = int.parse(match.group(1)!);
+          final startVerse = int.parse(match.group(2)!);
+          final endChapter = int.parse(match.group(3)!);
+          
+          // Récupérer le dernier verset du chapitre de fin
+          final lastVerse = _getVersesInChapter(book, endChapter);
+          rangePart = '$startChapter:$startVerse-$endChapter:$lastVerse';
+          print('🔧 Référence corrigée: $rangePart (999 → $lastVerse)');
+        }
+      }
       
       // Vérifier que le livre correspond (pour éviter les erreurs)
       if (bookPart.toLowerCase() == book.toLowerCase()) {

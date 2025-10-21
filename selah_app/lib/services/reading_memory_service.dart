@@ -1,7 +1,5 @@
 import 'package:hive/hive.dart';
 import 'semantic_passage_boundary_service.dart';
-import 'thompson_plan_service.dart';
-import 'meditation_journal_service.dart';
 
 /// ⚡ ÉVANGÉLISTE - Service de mémoire de lecture avec intelligence sémantique
 /// 

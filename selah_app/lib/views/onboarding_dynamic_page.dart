@@ -1,14 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive/hive.dart';
-import '../services/plan_service.dart';
 import '../services/onboarding_actions.dart';
 import '../services/user_prefs_hive.dart';
-import '../services/sync_queue_hive.dart';
-import '../services/telemetry_console.dart';
 import '../features/onboarding/onboarding_vm.dart';
 import '../repositories/user_repository.dart';
 import '../bootstrap.dart' as bootstrap;
@@ -259,10 +255,10 @@ class _MeditationBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white.withOpacity(.14)),
       ),
-      child: Text(
+      child: const Text(
         'Selah est une app de méditation de la Bible (pas de lecture). '
         'Garde ta Bible physique à portée de main pour chaque séance.',
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: 'Gilroy',
           color: Colors.white70, 
           fontSize: 12, 
@@ -423,7 +419,7 @@ class _SlideCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStackedFolder(String label, Color color, {double size = 50, bool isMain = false}) {
+  Widget _buildStackedFolder(String label, Color color, {double size = 50}) {
     return Container(
       width: size,
       height: size * 0.7,
@@ -688,7 +684,7 @@ class _SlideCard extends StatelessWidget {
       if (hours > 0) {
         durationText = remainingMinutes > 0 ? '${hours}h ${remainingMinutes}min' : '${hours}h';
       } else {
-        durationText = '${minutesPerDay} min/jour';
+        durationText = '$minutesPerDay min/jour';
       }
 
       return {
@@ -803,7 +799,7 @@ class _Loader extends StatelessWidget {
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(Colors.white)),
         const SizedBox(height: 16),
-        Text('Chargement…', style: const TextStyle(
+        const Text('Chargement…', style: TextStyle(
           fontFamily: 'Gilroy',
           color: Colors.white70,
         )),

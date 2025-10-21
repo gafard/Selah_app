@@ -26,6 +26,7 @@ import 'services/intelligent_alarm_service.dart';
 import 'services/fullscreen_notification_service.dart';
 import 'services/app_lifecycle_tracker.dart';
 import 'services/ios_alarm_service.dart';
+import 'services/daily_display_service.dart';
 import 'bootstrap_plans.dart';
 
 late SyncQueueHive syncQueue;
@@ -109,6 +110,10 @@ Future<void> appBootstrap() async {
   // Initialiser TreasuryCrossRefService
   await TreasuryCrossRefService.init();
   print('✅ TreasuryCrossRefService initialisé');
+  
+  // Initialiser le service de gestion des affichages quotidiens
+  await DailyDisplayService.init();
+  print('✅ DailyDisplayService initialisé');
 }
 
 /// Initialise les services d'alarme intelligente

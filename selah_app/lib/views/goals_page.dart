@@ -13,7 +13,7 @@ import 'package:provider/provider.dart';
 import '../services/dynamic_preset_generator.dart';
 import '../services/intelligent_local_preset_generator.dart';
 import '../services/semantic_passage_boundary_service.dart'; // 🚀 FALCON X
-import '../services/intelligent_duration_calculator.dart'; // 🧠 IntelligentDurationCalculator
+// 🧠 IntelligentDurationCalculator
 import '../services/preset_theology_gate_v2.dart' as Theology; // 🕊️ TheologyGate V2
 import '../services/preset_theology_adapter_v2.dart'; // 🔄 Adaptateur V2
 import '../services/doctrine/doctrine_pipeline.dart'; // 🕊️ Pipeline doctrinal multi-modules

@@ -119,3 +119,23 @@ flutter:
           weight: 800
         - asset: assets/fonts/Gilroy-Black.ttf
           weight: 900
+  
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-VariableFont_opsz,wght.ttf
+  
+    - family: Lora
+      fonts:
+        - asset: assets/fonts/Lora-VariableFont_wght.ttf
+  
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-VariableFont_wdth,wght.ttf
+  
+    - family: Merriweather
+      fonts:
+        - asset: assets/fonts/Merriweather-VariableFont_opsz,wdth,wght.ttf
+  
+    - family: PT Serif
+      fonts:
+        - asset: assets/fonts/PTSerif-Regular.ttf

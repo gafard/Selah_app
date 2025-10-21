@@ -1,10 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../services/semantic_passage_boundary_service.dart';
 import '../services/bsb_topical_service.dart';
 import '../services/bsb_concordance_service.dart';
-import '../services/bible_context_service.dart';
 import '../services/bsb_book_outlines_service.dart';
 import '../services/biblical_timeline_service.dart';
 

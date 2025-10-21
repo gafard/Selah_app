@@ -38,7 +38,7 @@ class OnboardingVM extends ChangeNotifier {
     loading = true; error = null; notifyListeners();
     try {
       // Récupérer le profil utilisateur complet depuis LocalStorageService
-      final localUser = await LocalStorageService.getLocalUser();
+      final localUser = LocalStorageService.getLocalUser();
       print('🎯 OnboardingVM: localUser=$localUser');
       
       if (localUser != null) {

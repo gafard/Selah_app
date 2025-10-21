@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'local_storage_service.dart';
 
 class SupabaseAuthService {
   static SupabaseClient get client => Supabase.instance.client;
@@ -33,8 +34,12 @@ class SupabaseAuthService {
   
   /// Vérifie si l'utilisateur existe localement
   static bool _hasLocalUser() {
-    // TODO: Vérifier dans Hive si un utilisateur local existe
-    return false; // Placeholder
+    try {
+      return LocalStorageService.hasLocalUser();
+    } catch (e) {
+      print('❌ Erreur vérification utilisateur local: $e');
+      return false;
+    }
   }
   
   /// Vérifie si le compte a été marqué pour suppression
@@ -54,8 +59,13 @@ class SupabaseAuthService {
   
   /// Récupère l'ID utilisateur local
   static String? _getLocalUserId() {
-    // TODO: Récupérer depuis Hive
-    return null; // Placeholder
+    try {
+      final localUser = LocalStorageService.getLocalUser();
+      return localUser?['id'] as String?;
+    } catch (e) {
+      print('❌ Erreur récupération ID local: $e');
+      return null;
+    }
   }
   
   /// Création de compte (nécessite une connexion)
@@ -104,15 +114,47 @@ class SupabaseAuthService {
   
   /// Sauvegarde locale de l'utilisateur
   static Future<void> _saveUserLocally(User user) async {
-    // TODO: Sauvegarder dans Hive
-    print('Sauvegarde locale de l\'utilisateur: ${user.id}');
+    try {
+      final userData = {
+        'id': user.id,
+        'email': user.email,
+        'display_name': user.userMetadata?['display_name'] ?? user.email?.split('@').first,
+        'is_complete': false,
+        'has_onboarded': false,
+        'current_plan_id': null,
+        'created_at': DateTime.now().toIso8601String(),
+        'needs_supabase_sync': false, // Déjà synchronisé avec Supabase
+      };
+      
+      await LocalStorageService.saveLocalUser(userData);
+      print('✅ Utilisateur sauvegardé localement: ${user.id}');
+    } catch (e) {
+      print('❌ Erreur sauvegarde locale: $e');
+    }
   }
   
   /// Mode offline : création d'un utilisateur local temporaire
   static Future<String> createOfflineUser() async {
     final offlineUserId = 'offline_${DateTime.now().millisecondsSinceEpoch}';
-    // TODO: Sauvegarder dans Hive
-    print('Utilisateur offline créé: $offlineUserId');
+    
+    try {
+      final userData = {
+        'id': offlineUserId,
+        'email': 'offline@local.com',
+        'display_name': 'Utilisateur Offline',
+        'is_complete': false,
+        'has_onboarded': false,
+        'current_plan_id': null,
+        'created_at': DateTime.now().toIso8601String(),
+        'needs_supabase_sync': true, // Besoin de sync quand en ligne
+      };
+      
+      await LocalStorageService.saveLocalUser(userData);
+      print('✅ Utilisateur offline créé et sauvegardé: $offlineUserId');
+    } catch (e) {
+      print('❌ Erreur création utilisateur offline: $e');
+    }
+    
     return offlineUserId;
   }
   
@@ -121,8 +163,20 @@ class SupabaseAuthService {
   
   /// Déconnexion
   static Future<void> signOut() async {
-    await client.auth.signOut();
-    // TODO: Nettoyer le stockage local
+    try {
+      // Déconnexion Supabase si en ligne
+      await client.auth.signOut();
+    } catch (e) {
+      print('⚠️ Erreur déconnexion Supabase: $e');
+    }
+    
+    // Nettoyer le stockage local
+    try {
+      await LocalStorageService.clearLocalUser();
+      print('✅ Utilisateur déconnecté et données locales nettoyées');
+    } catch (e) {
+      print('❌ Erreur nettoyage local: $e');
+    }
   }
   
   /// Suppression du compte utilisateur (OFFLINE-FIRST)

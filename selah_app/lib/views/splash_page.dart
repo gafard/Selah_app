@@ -50,6 +50,14 @@ class _SplashPageState extends State<SplashPage> {
       final localUser = LocalStorageService.getLocalUser();
       final isOnline = ConnectivityService.instance.isOnline;
       
+      // Debug: Logs détaillés pour diagnostiquer le problème
+      if (kDebugMode) {
+        print('🔍 Debug SplashPage:');
+        print('   - localUser: $localUser');
+        print('   - isOnline: $isOnline');
+        print('   - hasLocalUser(): ${LocalStorageService.hasLocalUser()}');
+      }
+      
       // Vérifier l'état de l'utilisateur (priorité au stockage local)
       final hasAccount = localUser != null && localUser['id'] != null;
       final profileComplete = localUser?['is_complete'] == true;
@@ -136,9 +144,9 @@ class _SplashPageState extends State<SplashPage> {
                     const SizedBox(height: 24),
                     
                     // Texte Selah en Gilroy Black (comme logo original)
-                    Text(
+                    const Text(
                       'Selah',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Gilroy',
                         fontSize: 42,
                         fontWeight: FontWeight.w900, // ✅ Black (900 au lieu de 800)
@@ -153,10 +161,10 @@ class _SplashPageState extends State<SplashPage> {
                     const SizedBox(height: 16),
 
                     // Sous-titre
-                    Text(
+                    const Text(
                       'Un temps pour s\'arrêter et méditer',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Gilroy',
                         fontSize: 16,
                         color: Colors.white70,

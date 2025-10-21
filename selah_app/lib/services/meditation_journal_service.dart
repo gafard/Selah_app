@@ -4,8 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive/hive.dart';
 import '../models/meditation_journal_entry.dart';
 import 'semantic_passage_boundary_service.dart';
-import 'thompson_plan_service.dart';
-import 'reading_memory_service.dart';
 
 /// ⚡ ÉVANGÉLISTE - Service de journal de méditation avec analyse émotionnelle
 /// 

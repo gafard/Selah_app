@@ -71,12 +71,20 @@ class MeditationChooserPage extends StatelessWidget {
                                 children: [
                                   const SizedBox(height: 8),
                                   // Header
-                                  _buildHeader(context),
+                                  _buildHeader(context, passagePayload),
                                   const SizedBox(height: 20),
                                   
                                   // Titre principal
                                   _buildTitleSection(),
-                                  const SizedBox(height: 24),
+                                  const SizedBox(height: 32),
+                                  
+                                  // Informations sur le passage
+                                  _buildPassageInfo(passagePayload),
+                                  const SizedBox(height: 20),
+                                  
+                                  // Conseils de méditation
+                                  _buildMeditationTips(),
+                                  const SizedBox(height: 32),
                                   
                                   // Options de méditation
                                   _buildOptionsSection(context, passagePayload),
@@ -98,11 +106,32 @@ class MeditationChooserPage extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, PassagePayload passagePayload) {
     return Row(
       children: [
         IconButton(
-          onPressed: () => context.pop(),
+          onPressed: () {
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              // Si pas de page précédente, naviguer vers reader avec les paramètres du passage
+              // Récupérer les paramètres depuis GoRouterState
+              final goRouterState = GoRouterState.of(context);
+              final extra = goRouterState.extra as Map<String, dynamic>?;
+              
+              if (extra != null && extra['passageRef'] != null) {
+                context.go('/reader', extra: {
+                  'passageRef': extra['passageRef'],
+                  'passageText': extra['passageText'],
+                  'dayTitle': extra['dayTitle'],
+                  'planId': extra['planId'],
+                  'dayNumber': extra['dayNumber'],
+                });
+              } else {
+                context.go('/reader');
+              }
+            }
+          },
           icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
         ),
         Expanded(
@@ -136,7 +165,7 @@ class MeditationChooserPage extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Trois approches pour méditer ce passage',
+          'Deux approches pour méditer ce passage',
           style: GoogleFonts.inter(
             fontSize: 14,
             color: Colors.white70,
@@ -155,7 +184,7 @@ class MeditationChooserPage extends StatelessWidget {
           context: context,
           title: 'Méditation libre',
           subtitle: 'Réflexion personnelle en 3 étapes',
-          icon: Icons.self_improvement_rounded,
+          icon: Icons.book_rounded,
           gradient: const [Color(0xFF6366F1), Color(0xFF8B5CF6)],
           onTap: () {
             HapticFeedback.lightImpact();
@@ -178,18 +207,6 @@ class MeditationChooserPage extends StatelessWidget {
               'passageRef': passagePayload.ref,
               'passageText': passagePayload.text,
             });
-          },
-        ),
-        const SizedBox(height: 16),
-        _buildOptionCard(
-          context: context,
-          title: 'Méditation intelligente',
-          subtitle: 'Questions générées automatiquement',
-          icon: Icons.auto_awesome_rounded,
-          gradient: const [Color(0xFF10B981), Color(0xFF059669)],
-          onTap: () {
-            HapticFeedback.lightImpact();
-            context.go('/meditation/auto_qcm', extra: passagePayload.toMap());
           },
         ),
       ],
@@ -265,6 +282,122 @@ class MeditationChooserPage extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPassageInfo(PassagePayload passagePayload) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.menu_book_rounded,
+                color: Colors.white.withOpacity(0.9),
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Passage du jour',
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white.withOpacity(0.9),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            passagePayload.ref.isNotEmpty ? passagePayload.ref : 'Aucun passage sélectionné',
+            style: GoogleFonts.inter(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            passagePayload.dayTitle ?? 'Jour de lecture',
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              color: Colors.white.withOpacity(0.6),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMeditationTips() {
+    final tips = [
+      {'icon': Icons.menu_book_rounded, 'text': 'Aie ta Bible à portée de main pour relire le passage'},
+      {'icon': Icons.lightbulb_outline_rounded, 'text': 'Laisse le Saint-Esprit éclairer ta compréhension'},
+      {'icon': Icons.favorite_outline_rounded, 'text': 'Applique le passage à ta vie quotidienne'},
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.tips_and_updates_rounded,
+                color: Colors.amber.shade300,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Conseils pour méditer',
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white.withOpacity(0.9),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...tips.map((tip) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  tip['icon'] as IconData,
+                  color: Colors.white.withOpacity(0.7),
+                  size: 18,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    tip['text'] as String,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: Colors.white.withOpacity(0.8),
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )).toList(),
+        ],
       ),
     );
   }

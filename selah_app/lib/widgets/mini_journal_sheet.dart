@@ -32,20 +32,22 @@ Future<List<String>?> showMiniJournalSheet(BuildContext context) {
             Row(
               children: [
                 const Icon(
-                  Icons.auto_awesome,
+                  Icons.edit_note,
                   color: Colors.white,
                   size: 24,
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  'Comment appliquer cela aujourd\'hui ?',
-                  style: GoogleFonts.inter(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                Expanded(
+                  child: Text(
+                    'Comment appliquer cela aujourd\'hui ?',
+                    style: GoogleFonts.inter(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
                   child: Container(

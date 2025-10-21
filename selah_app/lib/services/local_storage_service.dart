@@ -26,16 +26,38 @@ class LocalStorageService {
   
   /// Sauvegarde un utilisateur local
   static Future<void> saveLocalUser(Map<String, dynamic> userData) async {
-    await _userBox?.put('current_user', userData);
+    try {
+      await _userBox?.put('current_user', userData);
+      print('✅ Utilisateur sauvegardé localement: ${userData['email']}');
+      
+      // Vérifier la sauvegarde
+      final saved = _userBox?.get('current_user');
+      print('✅ Vérification sauvegarde: $saved');
+    } catch (e) {
+      print('❌ Erreur sauvegarde utilisateur: $e');
+    }
   }
   
   /// Récupère l'utilisateur local
   static Map<String, dynamic>? getLocalUser() {
     try {
+      print('🔍 LocalStorageService.getLocalUser() appelé');
+      print('   - _userBox: $_userBox');
+      print('   - _userBox.isOpen: ${_userBox?.isOpen}');
+      
       final userData = _userBox?.get('current_user');
-      if (userData == null) return null;
-      return Map<String, dynamic>.from(userData as Map);
+      print('   - userData récupéré: $userData');
+      
+      if (userData == null) {
+        print('   - Aucun utilisateur trouvé');
+        return null;
+      }
+      
+      final result = Map<String, dynamic>.from(userData as Map);
+      print('   - Utilisateur converti: $result');
+      return result;
     } catch (e) {
+      print('❌ Erreur getLocalUser: $e');
       // Box fermée ou erreur → pas d'utilisateur local
       return null;
     }

@@ -38,11 +38,11 @@ class ReadingRetentionDialog {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-            title: Row(
+            title: const Row(
               children: [
-                const Icon(Icons.lightbulb, color: Color(0xFFFFA726)),
-                const SizedBox(width: 12),
-                const Expanded(
+                Icon(Icons.lightbulb, color: Color(0xFFFFA726)),
+                SizedBox(width: 12),
+                Expanded(
                   child: Text(
                     'Qu\'as-tu retenu ?',
                     style: TextStyle(fontSize: 20),
@@ -267,14 +267,14 @@ class PosterProposalWidget extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                const Row(
                   children: [
-                    const Icon(Icons.image, color: Color(0xFF4CAF50), size: 28),
-                    const SizedBox(width: 12),
+                    Icon(Icons.image, color: Color(0xFF4CAF50), size: 28),
+                    SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'Créer des posters',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),

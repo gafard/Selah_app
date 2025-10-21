@@ -2,8 +2,6 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive/hive.dart';
 import 'semantic_passage_boundary_service.dart';
-import 'thompson_plan_service.dart';
-import 'bible_context_service.dart';
 
 /// 🔧 PASTEUR - Note avec contexte sémantique
 class Note {

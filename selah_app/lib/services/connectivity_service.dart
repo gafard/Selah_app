@@ -2,8 +2,6 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import 'sync_queue_hive.dart';
-import 'plan_service_http.dart';
-import 'user_prefs_hive.dart';
 import 'telemetry_console.dart';
 import 'user_repo_supabase.dart';
 

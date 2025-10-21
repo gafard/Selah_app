@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:airplane_mode_checker/airplane_mode_checker.dart';
 import '../bootstrap.dart'; // pour planService + _navigateToReader()
+import '../services/daily_display_service.dart';
 
 class PreMeditationPrayerPage extends StatefulWidget {
   const PreMeditationPrayerPage({super.key});
@@ -29,6 +30,15 @@ class _PreMeditationPrayerPageState extends State<PreMeditationPrayerPage>
   @override
   void initState() {
     super.initState();
+
+    // Vérifier si la page doit être affichée aujourd'hui
+    if (!DailyDisplayService.shouldShowPreMeditationPrayer()) {
+      // Déjà affichée aujourd'hui, naviguer directement vers le lecteur
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _navigateToReader();
+      });
+      return;
+    }
 
     _fadeIn = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
     _fade = CurvedAnimation(parent: _fadeIn, curve: Curves.easeOutCubic);
@@ -415,6 +425,10 @@ class _PreMeditationPrayerPageState extends State<PreMeditationPrayerPage>
 
   Future<void> _onReadyPressed() async {
     HapticFeedback.mediumImpact();
+    
+    // Marquer la page comme affichée aujourd'hui
+    await DailyDisplayService.markPreMeditationPrayerAsShown();
+    
     await _navigateToReader();
   }
 

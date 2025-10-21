@@ -1,12 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../services/reader_settings_service.dart';
 import '../services/bible_version_manager.dart';
 import '../services/bible_assets_service.dart';
-import '../widgets/uniform_back_button.dart';
 
 class ReaderSettingsPage extends StatefulWidget {
   const ReaderSettingsPage({super.key});
@@ -130,7 +128,28 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => context.go('/reader'),
+            onTap: () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                // Si pas de page précédente, naviguer vers reader avec les paramètres actuels
+                // Récupérer les paramètres depuis GoRouterState
+                final goRouterState = GoRouterState.of(context);
+                final extra = goRouterState.extra as Map<String, dynamic>?;
+                
+                if (extra != null && extra['passageRef'] != null) {
+                  context.go('/reader', extra: {
+                    'passageRef': extra['passageRef'],
+                    'passageText': extra['passageText'],
+                    'dayTitle': extra['dayTitle'],
+                    'planId': extra['planId'],
+                    'dayNumber': extra['dayNumber'],
+                  });
+                } else {
+                  context.go('/reader');
+                }
+              }
+            },
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
@@ -364,16 +383,12 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
 
   Widget _buildFontOptions(ReaderSettingsService settings, bool isDark) {
     final fonts = [
+      {'name': 'Gilroy', 'display': 'Gilroy'},
       {'name': 'Inter', 'display': 'Inter'},
-      {'name': 'Playfair Display', 'display': 'Playfair'},
       {'name': 'Lora', 'display': 'Lora'},
-      {'name': 'Poppins', 'display': 'Poppins'},
-      {'name': 'Montserrat', 'display': 'Montserrat'},
-      {'name': 'Source Sans Pro', 'display': 'Source Sans'},
-      {'name': 'Open Sans', 'display': 'Open Sans'},
       {'name': 'Roboto', 'display': 'Roboto'},
-      {'name': 'Nunito', 'display': 'Nunito'},
-      {'name': 'Work Sans', 'display': 'Work Sans'},
+      {'name': 'Merriweather', 'display': 'Merriweather'},
+      {'name': 'PT Serif', 'display': 'PT Serif'},
     ];
     
     return Wrap(
@@ -569,38 +584,11 @@ class _ReaderSettingsPageState extends State<ReaderSettingsPage> {
     return Column(
       children: [
         _buildSwitchOption(
-          'Mode hors ligne',
-          'Télécharger les passages pour une lecture sans internet',
-          Icons.cloud_off,
-          settings.isOfflineMode,
-          (value) => settings.setOfflineMode(value),
-          isDark,
-        ),
-        const SizedBox(height: 16),
-        _buildSwitchOption(
-          'Verrouiller la lecture',
-          'Empêche les modifications accidentelles',
-          Icons.lock,
-          settings.isLocked,
-          (value) => settings.setLocked(value),
-          isDark,
-        ),
-        const SizedBox(height: 16),
-        _buildSwitchOption(
           'Activer la recherche',
           'Permet de rechercher dans le texte',
           Icons.search,
           settings.isSearchEnabled,
           (value) => settings.setSearchEnabled(value),
-          isDark,
-        ),
-        const SizedBox(height: 16),
-        _buildSwitchOption(
-          'Activer les transitions',
-          'Animations fluides entre les pages',
-          Icons.animation,
-          settings.isTransitionsEnabled,
-          (value) => settings.setTransitionsEnabled(value),
           isDark,
         ),
       ],

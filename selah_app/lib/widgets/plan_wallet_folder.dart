@@ -1,6 +1,4 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class PlanWalletFolder extends StatelessWidget {
   final Widget card;
@@ -110,16 +108,16 @@ class MainContainer extends StatelessWidget {
       ),
       child: CustomPaint(
         painter: FolderShapePainter(),
-        child: Stack(
+        child: const Stack(
           children: [
             // Avatar en haut à droite
-            const Positioned(
+            Positioned(
               top: 20,
               right: 20,
               child: AvatarGhost(),
             ),
             // Titre du dossier
-            const Positioned(
+            Positioned(
               top: 20,
               left: 20,
               child: Text(
@@ -133,13 +131,13 @@ class MainContainer extends StatelessWidget {
               ),
             ),
             // Icône de crâne en bas à gauche
-            const Positioned(
+            Positioned(
               bottom: 20,
               left: 20,
               child: SkullIcon(),
             ),
             // Groupe de documents en bas à droite
-            const Positioned(
+            Positioned(
               bottom: 20,
               right: 20,
               child: DocumentGroup(),

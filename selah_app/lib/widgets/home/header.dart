@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class HomeHeader extends StatelessWidget {
   const HomeHeader({super.key, required this.displayName, required this.subtitle, this.trailing});

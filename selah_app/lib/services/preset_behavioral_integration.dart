@@ -11,6 +11,7 @@
 /// - Harmonisation des clés (compat multi-formats)
 /// - Télémétrie optionnelle
 /// ═══════════════════════════════════════════════════════════════════════════
+library;
 
 import 'preset_behavioral_scorer.dart';
 import 'preset_behavioral_config.dart';
@@ -73,7 +74,7 @@ class PresetBehavioralIntegration {
       // 4) COMBINER SCORES
       // ═══════════════════════════════════════════════════════════════════
 
-      final baseWeight = 1.0 - PresetBehavioralConfig.injectInFinalScore;
+      const baseWeight = 1.0 - PresetBehavioralConfig.injectInFinalScore;
       final enrichedScore = currentScore * baseWeight +
           behavioralScore.combinedScore * PresetBehavioralConfig.injectInFinalScore;
 

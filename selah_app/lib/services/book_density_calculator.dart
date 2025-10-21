@@ -605,7 +605,7 @@ class DailyReading {
   
   @override
   String toString() {
-    return 'Jour $dayNumber: $reference (~$estimatedMinutes min, ${recommendedMeditationType})';
+    return 'Jour $dayNumber: $reference (~$estimatedMinutes min, $recommendedMeditationType)';
   }
 }
 

@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
-import 'package:hive/hive.dart';
 import '../services/notification_service.dart';
-import '../services/semantic_passage_boundary_service.dart';
-import '../services/thompson_plan_service.dart';
-import '../services/plan_service_http.dart';
-import '../services/user_prefs_hive.dart';
 
 /// ID de notification fixe pour le rappel journalier
 const int kDailyNotifId = 7771;

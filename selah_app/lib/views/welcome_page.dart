@@ -135,9 +135,9 @@ class _WelcomePageState extends State<WelcomePage> {
           .slideY(begin: 0.3, end: 0, duration: 600.ms, delay: 800.ms),
           
           // ✅ Texte Selah en Gilroy Black (comme logo original)
-          Text(
+          const Text(
             'Selah',
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'Gilroy',
               fontSize: 32,
               fontWeight: FontWeight.w900, // ✅ Black

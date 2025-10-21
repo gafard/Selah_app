@@ -12,7 +12,7 @@ class BibleVersionsPage extends StatefulWidget {
 }
 
 class _BibleVersionsPageState extends State<BibleVersionsPage> {
-  Map<String, bool> _downloadStatus = {};
+  final Map<String, bool> _downloadStatus = {};
   bool _isLoading = false;
   Map<String, dynamic>? _stats;
 
@@ -100,7 +100,7 @@ class _BibleVersionsPageState extends State<BibleVersionsPage> {
         children: [
           Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.menu_book_rounded,
                 color: Colors.white,
                 size: 24,
@@ -272,7 +272,7 @@ class _BibleVersionsPageState extends State<BibleVersionsPage> {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.language,
                       size: 14,
                       color: Colors.white60,

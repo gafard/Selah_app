@@ -10,8 +10,8 @@
 ///
 /// Intégration avec IntelligentLocalPresetGenerator pour scoring ultra-précis.
 /// ═══════════════════════════════════════════════════════════════════════════
+library;
 
-import 'dart:math' as math;
 import 'preset_behavioral_config.dart';
 
 /// Résultat d'analyse comportementale d'un preset
@@ -560,7 +560,7 @@ class PresetBehavioralScorer {
 
     // Ajouter au score existant (pondération configurable)
     final currentScore = preset['score'] as double? ?? 0.0;
-    final baseWeight = 1.0 - PresetBehavioralConfig.injectInFinalScore;
+    const baseWeight = 1.0 - PresetBehavioralConfig.injectInFinalScore;
     final enrichedScore = currentScore * baseWeight + 
         behavioralScore.combinedScore * PresetBehavioralConfig.injectInFinalScore;
 

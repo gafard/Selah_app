@@ -13,6 +13,7 @@ import 'package:selah_app/views/profile_settings_page.dart';
 import 'package:selah_app/views/reader_page_modern.dart';
 import 'package:selah_app/views/reader_settings_page.dart';
 import 'package:selah_app/models/reading_passage.dart';
+import 'package:selah_app/views/meditation_bible_warning_page.dart';
 import 'package:selah_app/views/meditation_chooser_page.dart';
 import 'package:selah_app/views/meditation_free_v2_page.dart';
 import 'package:selah_app/views/meditation_qcm_page.dart';
@@ -259,6 +260,11 @@ class AppRouter {
       // ─────────────────────────────────────────────────────────────────
       // Méditation (PROTECTED)
       // ─────────────────────────────────────────────────────────────────
+      GoRoute(
+        path: '/meditation/bible-warning',
+        name: 'meditation_bible_warning',
+        builder: (context, state) => const MeditationBibleWarningPage(),
+      ),
       GoRoute(
         path: '/meditation/chooser',
         name: 'meditation_chooser',

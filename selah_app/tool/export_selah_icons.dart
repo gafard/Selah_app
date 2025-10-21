@@ -66,7 +66,7 @@ class SelahHybridPainter extends CustomPainter {
     final bool onBadge = badge != SelahBadge.none;
     final Color halo = (onBadge || dark) ? SelahColors.white : SelahColors.indigo;
     final Color bars = halo;
-    final Color dot = SelahColors.sage;
+    const Color dot = SelahColors.sage;
 
     final double rHalo = 0.41 * size.width;
     final double sw = strokeWidth ?? 0.088 * size.width;
