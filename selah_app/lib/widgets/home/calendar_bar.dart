@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../bootstrap.dart' as bootstrap;
+import '../../services/home_vm.dart';
 
 class CalendarBar extends StatefulWidget {
   final String? planId;
@@ -103,7 +105,17 @@ class _CalendarBarState extends State<CalendarBar> {
   
   @override
   Widget build(BuildContext context) {
-    return _buildCalendarRow();
+    return Consumer<HomeVM>(
+      builder: (context, homeVM, child) {
+        // Rafraîchir les données quand HomeVM notifie un changement
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _loadCompletedDays();
+          }
+        });
+        return _buildCalendarRow();
+      },
+    );
   }
   
   Widget _buildCalendarRow() {

@@ -187,6 +187,12 @@ class HomeVM extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Rafraîchir spécifiquement le calendrier après un marquage
+  Future<void> refreshCalendarAfterCompletion() async {
+    await _refreshTodayData();
+    notifyListeners();
+  }
+
   /// 🏎️ FERRARI - Charger la progression du quiz intelligent
   Future<void> _loadQuizProgress() async {
     try {

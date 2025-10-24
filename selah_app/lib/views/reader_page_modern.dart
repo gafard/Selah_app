@@ -17,6 +17,7 @@ import '../services/bible_version_manager.dart';
 import '../services/user_prefs.dart';
 import '../services/user_prefs_hive.dart';
 import '../services/user_prefs_sync.dart';
+import '../services/home_vm.dart';
 import '../services/version_change_notifier.dart';
 import '../bootstrap.dart' as bootstrap;
 import '../services/spiritual_foundations_service.dart';
@@ -661,12 +662,22 @@ class _ReaderPageModernState extends State<ReaderPageModern>
           print('🧠 Longueur optimale calculée avec unités littéraires: $maxVersesHint versets');
         } catch (e) {
           print('⚠️ Erreur calcul longueur optimale: $e');
-          // Fallback vers les préférences utilisateur
-          maxVersesHint = userPrefs['maxVerses'] as int? ?? 18;
+          // Fallback vers les préférences utilisateur ou calcul intelligent
+          maxVersesHint = userPrefs['maxVerses'] as int? ?? 
+            IntelligentDatabases.calculateOptimalPassageLength(
+              book: book,
+              minutes: minutes,
+              meditationType: meditationType,
+            );
         }
       } else {
-        // Utiliser les préférences utilisateur directes
-        maxVersesHint = userPrefs['maxVerses'] as int? ?? 18;
+        // Utiliser les préférences utilisateur directes ou calcul intelligent
+        maxVersesHint = userPrefs['maxVerses'] as int? ?? 
+          IntelligentDatabases.calculateOptimalPassageLength(
+            book: book,
+            minutes: minutes,
+            meditationType: meditationType,
+          );
       }
       
       // Utiliser le service sémantique pour ajuster le passage avec la limite
@@ -806,6 +817,13 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
           Icons.check_circle,
           Colors.green,
         );
+        
+        // Notifier le HomeVM pour rafraîchir le calendrier
+        try {
+          context.read<HomeVM>().refreshCalendarAfterCompletion();
+        } catch (e) {
+          print('⚠️ Erreur rafraîchissement calendrier: $e');
+        }
       } catch (e) {
         // rollback UI si erreur critique
         setState(() {
@@ -824,6 +842,13 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
         Icons.check_circle,
         Colors.green,
       );
+      
+      // Notifier le HomeVM pour rafraîchir le calendrier
+      try {
+        context.read<HomeVM>().refreshCalendarAfterCompletion();
+      } catch (e) {
+        print('⚠️ Erreur rafraîchissement calendrier: $e');
+      }
     }
   }
 
@@ -2042,28 +2067,11 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                   ),
                 )
               else
-                GestureDetector(
-                  onLongPress: () {
-                    Clipboard.setData(ClipboardData(text: _passageText));
-                    _showSnackBar('Verset copié !', Icons.copy, Colors.blue);
-                    HapticFeedback.mediumImpact();
-                  },
-                  child: HighlightableText(
-                  text: _passageText,
-                    style: settings.getFontStyle().copyWith(
-                      color: isDark ? Colors.white : Colors.black,
-                      fontSize: settings.fontSize,
-                      height: 1.6,
-                    ),
-                  textAlign: settings.getTextAlign(),
-                  reference: _readingSession?.currentPassage?.reference,
-                  version: _selectedVersion,
-                  book: _extractBookFromReference(_readingSession?.currentPassage?.reference ?? ''),
-                  startChapter: _extractStartChapter(_readingSession?.currentPassage?.reference ?? ''),
-                  startVerse: _extractStartVerse(_readingSession?.currentPassage?.reference ?? ''),
-                  endChapter: _extractEndChapter(_readingSession?.currentPassage?.reference ?? ''),
-                  endVerse: _extractEndVerse(_readingSession?.currentPassage?.reference ?? ''),
-                ),
+                // Drop-cap intégré au début du texte
+                _buildTextWithDropCap(
+                  isDark,
+                  settings,
+                  context,
                 ),
               
             ],
@@ -2071,6 +2079,142 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
         ),
         );
       },
+    );
+  }
+
+  /// Texte avec alignement responsive et style "livre"
+  Widget _buildTextWithDropCap(bool isDark, ReaderSettingsService settings, BuildContext context) {
+    if (_passageText.trim().isEmpty) return const SizedBox.shrink();
+
+    // Largeur "tablette" : ajuste le seuil à ton design
+    final width = MediaQuery.sizeOf(context).width;
+    final isTabletLayout = width >= 720;
+
+    // 1) Base style "livre"
+    final baseStyle = settings.getFontStyle().copyWith(
+      fontFamily: 'Merriweather',     // force la police par défaut
+      height: 1.6,                    // interligne
+      color: isDark ? Colors.white : Colors.black,
+      fontSize: settings.fontSize,
+    );
+
+    // 2) Alignement : si l'utilisateur a "Center" (défaut), on JUSTIFIE sur tablette
+    TextAlign userAlign = settings.getTextAlign(); // Left | Center | Right | Justify
+    if (settings.textAlignment == 'Center' && isTabletLayout) {
+      userAlign = TextAlign.justify;
+    }
+
+    // 3) Marges responsives (pour un effet "page de livre")
+    final horizontalPadding = isTabletLayout ? 40.0 : 24.0;
+    final verticalPadding = 24.0;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: horizontalPadding,
+        vertical: verticalPadding,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Drop-cap décoratif au-dessus
+          _buildDecorativeDropCap(isDark, settings.getFontStyle().copyWith(
+            color: isDark ? Colors.white : Colors.black,
+          )),
+          
+          // HighlightableText pour le surlignage
+          HighlightableText(
+            text: _passageText,
+            style: baseStyle,                      // style livre + Merriweather + interligne
+            textAlign: userAlign,                  // centré par défaut, justifié sur tablette
+            reference: _readingSession?.currentPassage?.reference,
+            version: _selectedVersion,
+            book: _extractBookFromReference(_readingSession?.currentPassage?.reference ?? ''),
+            startChapter: _extractStartChapter(_readingSession?.currentPassage?.reference ?? ''),
+            startVerse: _extractStartVerse(_readingSession?.currentPassage?.reference ?? ''),
+            endChapter: _extractEndChapter(_readingSession?.currentPassage?.reference ?? ''),
+            endVerse: _extractEndVerse(_readingSession?.currentPassage?.reference ?? ''),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Drop-cap décoratif non intrusif (ne casse pas la sélection)
+  Widget _buildDecorativeDropCap(bool isDark, TextStyle baseStyle) {
+    if (_passageText.trim().isEmpty) return const SizedBox.shrink();
+
+    final firstLetter = _passageText.trim().characters.first; // gère les accents/emoji
+    final subtitle = _readingSession?.currentPassage?.reference ?? '';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8, left: 2, right: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Bloc lettre décorative
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isDark
+                    ? const [Color(0xFF5B6BFF), Color(0xFF9B4DFF)]
+                    : const [Color(0xFF1553FF), Color(0xFF67AEFF)],
+              ),
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.25 : 0.1),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              firstLetter.toUpperCase(),
+              style: baseStyle.copyWith(
+                fontWeight: FontWeight.w800,
+                fontSize: 24,
+                height: 1.0,
+                color: Colors.white,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Sous-titre léger (référence) et micro-intro
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (subtitle.isNotEmpty)
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: baseStyle.copyWith(
+                      fontSize: 12,
+                      color: isDark ? Colors.white70 : Colors.black54,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                const SizedBox(height: 6),
+                // Trait fin esthétique
+                Container(
+                  height: 2,
+                  width: 40,
+                  decoration: BoxDecoration(
+                    color: (isDark ? Colors.white : Colors.black).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
   
