@@ -17,6 +17,7 @@ import 'thompson_plan_generator.dart';
 import 'semantic_passage_boundary_service_v2.dart';
 import 'intelligent_local_preset_generator.dart';
 import 'bible_verses_database.dart';
+import 'intelligent_databases.dart';
 
 class PlanServiceHttp implements PlanService {
   final String baseUrl; // ex: https://api.selah.app
@@ -1003,7 +1004,7 @@ class PlanServiceHttp implements PlanService {
   Future<ReadingRef> _generateIntelligentPassageForBook(String book, int day, Map<String, dynamic> userProfile) async {
     final durationMin = userProfile['durationMin'] ?? 15;
     final meditationType = userProfile['meditation'] as String?;
-    final readingLength = _calculateReadingLength(durationMin, meditationType: meditationType);
+    final readingLength = await _calculateReadingLength(durationMin, meditationType: meditationType, book: book);
     
     // 🚀 FALCON X v2 - Service sémantique avec contexte historique et priorisation intelligente
     final maxChapters = _getMaxChaptersForBook(book);
@@ -1236,7 +1237,7 @@ class PlanServiceHttp implements PlanService {
     final meditationType = await _getUserMeditationType();
     
     // Calculer le nombre de versets/chapitres selon la durée et le type de méditation
-    final readingLength = _calculateReadingLength(durationMin, meditationType: meditationType);
+    final readingLength = await _calculateReadingLength(durationMin, meditationType: meditationType);
     
     // Parser la chaîne books pour extraire les livres individuels
     final bookList = books.split(',').map((b) => b.trim()).where((b) => b.isNotEmpty).toList();
@@ -1338,8 +1339,31 @@ class PlanServiceHttp implements PlanService {
 
   /// Calcule la longueur de lecture selon la durée disponible
   /// S'adapte au type de méditation pour ajuster la vitesse de lecture
-  Map<String, int> _calculateReadingLength(int durationMin, {String? meditationType}) {
-    // Vitesse de base adaptée au type de méditation
+  /// NOUVEAU: Utilise IntelligentRecommendationsFacade pour des calculs plus intelligents
+  Future<Map<String, int>> _calculateReadingLength(int durationMin, {String? meditationType, String? book}) async {
+    try {
+      // 🧠 NOUVEAU: Utiliser IntelligentDatabases pour des calculs plus précis
+      if (book != null) {
+        final optimalLength = await IntelligentDatabases.calculateOptimalPassageLength(
+          book: book,
+          minutes: durationMin,
+          meditationType: meditationType ?? 'Méditation Biblique',
+        );
+        
+        return {
+          'psalms': optimalLength.clamp(3, 15),
+          'proverbs': optimalLength.clamp(5, 20),
+          'gospels': optimalLength.clamp(4, 18),
+          'epistles': optimalLength.clamp(6, 25),
+          'ot': optimalLength.clamp(5, 22),
+          'default': optimalLength.clamp(4, 18),
+        };
+      }
+    } catch (e) {
+      print('⚠️ Erreur IntelligentDatabases, fallback vers calculs traditionnels: $e');
+    }
+    
+    // Fallback vers l'ancien système
     double versesPerMinute = _getVersesPerMinuteForMeditation(meditationType);
     final totalVerses = (durationMin * versesPerMinute).round();
     

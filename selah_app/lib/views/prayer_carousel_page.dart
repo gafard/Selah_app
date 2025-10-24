@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:go_router/go_router.dart';
@@ -26,11 +25,30 @@ class _PrayerCarouselPageState extends State<PrayerCarouselPage> {
   Duration _pos = Duration.zero;
   Duration _dur = Duration.zero;
 
+
   // Fonction utilitaire pour récupérer les arguments GoRouter
   Map _readArgs(BuildContext context) {
     final goExtra = (GoRouterState.of(context).extra as Map?) ?? {};
     final modal = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};
     return {...modal, ...goExtra}; // go_router prioritaire
+  }
+
+  // Utilitaires responsive + rotation stable
+  Size _responsiveCardSize(BoxConstraints c) {
+    final w = c.maxWidth;
+    final h = c.maxHeight;
+
+    // Base: carte occupe ~70–80% en largeur/hauteur selon l'espace
+    final cardW = (w * 0.78).clamp(280.0, 520.0);
+    final cardH = (h * 0.70).clamp(360.0, 640.0);
+    return Size(cardW, cardH);
+  }
+
+  /// rotation légère par index (constante, pas d'anim)
+  double _tiltForIndex(int index) {
+    final rnd = Random(index);          // seedé par l'index
+    final deg = (rnd.nextDouble() - 0.5) * 4.0; // -2°..+2°
+    return deg * 3.1415926535 / 180.0;
   }
 
   @override
@@ -249,25 +267,30 @@ class _PrayerCarouselPageState extends State<PrayerCarouselPage> {
                 ),
               ),
               
-              // Cartes avec CardSwiper
+              // Cartes avec CardSwiper - Version responsive
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                  child: Center(
-                    child: CardSwiper(
-                      cardsCount: _items.length,
-                      isLoop: false, // Pas de boucle - finir quand toutes les cartes sont swipées
-                      cardBuilder: (context, index, percentThresholdX, percentThresholdY) {
-                        return _buildPrayerCard(_items[index], index);
-                      },
-                      // onSwipe: _onCardSwiped, // Temporairement désactivé pour la compatibilité
-                      onEnd: () {
-                        // Quand toutes les cartes sont swipées, afficher la page de succès
-                        debugPrint('Toutes les cartes ont été swipées - Prière terminée !');
-                        _showSuccessPage();
-                        return true;
-                      },
-                    ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final cardSize = _responsiveCardSize(constraints);
+                      return Center(
+                        child: CardSwiper(
+                          cardsCount: _items.length,
+                          isLoop: false, // Pas de boucle - finir quand toutes les cartes sont swipées
+                          cardBuilder: (context, index, percentThresholdX, percentThresholdY) {
+                            return _buildPrayerCard(_items[index], index, cardSize);
+                          },
+                          // onSwipe: _onCardSwiped, // Temporairement désactivé pour la compatibilité
+                          onEnd: () {
+                            // Quand toutes les cartes sont swipées, afficher la page de succès
+                            debugPrint('Toutes les cartes ont été swipées - Prière terminée !');
+                            _showSuccessPage();
+                            return true;
+                          },
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -284,208 +307,260 @@ class _PrayerCarouselPageState extends State<PrayerCarouselPage> {
     );
   }
 
-  Widget _buildPrayerCard(PrayerItem item, int index) {
+  Widget _buildPrayerCard(PrayerItem item, int index, Size cardSize) {
     final isValidated = item.validated;
-    
-    // Couleurs vives de papier postiche
+
+    // palette papier (tes couleurs déjà OK)
     final paperColors = [
-      Colors.pink[100]!,
-      Colors.blue[100]!,
-      Colors.green[100]!,
-      Colors.yellow[100]!,
-      Colors.orange[100]!,
-      Colors.purple[100]!,
-      Colors.cyan[100]!,
-      Colors.lime[100]!,
+      Colors.yellow[200]!, Colors.pink[200]!, Colors.green[200]!,
+      Colors.blue[200]!, Colors.orange[200]!, Colors.purple[200]!,
+      Colors.lime[200]!, Colors.cyan[200]!,
     ];
-    
     final cardColor = paperColors[index % paperColors.length];
-    
-    return Container(
+
+    // légère rotation statique
+    final tilt = _tiltForIndex(index);
+
+    return Transform.rotate(
+      angle: tilt,
       child: GestureDetector(
         onTap: () => _toggleValidate(index),
-        child: Container(
-            width: 300,
-            height: 400,
+        child: ColorFiltered(
+          colorFilter: isValidated
+              ? const ColorFilter.matrix(<double>[
+                  // désat. simple
+                  0.2126, 0.7152, 0.0722, 0, 0,
+                  0.2126, 0.7152, 0.0722, 0, 0,
+                  0.2126, 0.7152, 0.0722, 0, 0,
+                  0,      0,      0,      1, 0,
+                ])
+              : const ColorFilter.mode(Colors.transparent, BlendMode.srcOver),
+          child: Container(
+            width: cardSize.width,
+            height: cardSize.height,
             decoration: BoxDecoration(
-              color: isValidated ? Colors.grey[200] : cardColor,
-              borderRadius: BorderRadius.circular(16),
+              color: cardColor,
+              borderRadius: BorderRadius.circular(10), // post-it = coins peu arrondis
               boxShadow: [
+                // ombre principale
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 6,
-                  offset: const Offset(2, 4),
+                  color: Colors.black.withOpacity(0.25),
+                  blurRadius: 14,
+                  spreadRadius: 1,
+                  offset: const Offset(0, 10),
                 ),
+                // ombre de proximité
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 2,
-                  offset: const Offset(1, 2),
+                  color: Colors.black.withOpacity(0.10),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
             child: Stack(
               children: [
-                // Texture papier de fond
-                _buildPaperTexture(),
-                
-                // Contenu de la carte
+                // grain + lignes légères (tu avais PaperTexturePainter)
+                Positioned.fill(child: CustomPaint(painter: PaperTexturePainter())),
+
+                // bande washi (adhésif) au sommet
+                Positioned(
+                  top: 8,
+                  left: 30,
+                  right: 30,
+                  child: CustomPaint(
+                    painter: WashiTapePainter(),
+                    child: const SizedBox(height: 22),
+                  ),
+                ),
+
+                // petit coin replié en bas à droite
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: CustomPaint(
+                    painter: FoldedCornerPainter(color: cardColor),
+                    child: const SizedBox(width: 46, height: 46),
+                  ),
+                ),
+
+                // contenu
                 Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(16, 38, 16, 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // En-tête avec icône
+                      // "épingle" visuelle = petit rond foncé + icône check/tap
                       Row(
                         children: [
                           Container(
-                            width: 40,
-                            height: 40,
+                            width: 18,
+                            height: 18,
                             decoration: BoxDecoration(
-                              color: isValidated ? Colors.grey[400] : item.color,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(
-                              isValidated ? Icons.check : Icons.touch_app,
-                              color: Colors.white,
-                              size: 20,
+                              color: Colors.black.withOpacity(0.15),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.25),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               item.theme.toUpperCase(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.caveat(
-                                color: Colors.black,
-                                fontSize: 22,
+                                color: Colors.black87,
+                                fontSize: 26,
                                 fontWeight: FontWeight.w700,
-                                letterSpacing: 0.5,
-                                decoration: isValidated ? TextDecoration.lineThrough : TextDecoration.none,
+                                letterSpacing: 0.6,
+                                decoration: isValidated
+                                    ? TextDecoration.lineThrough
+                                    : TextDecoration.none,
                                 decorationColor: Colors.black,
                                 decorationThickness: 2.0,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(isValidated ? Icons.check : Icons.touch_app,
+                              size: 18, color: Colors.black87),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+
+                      // sujet (scroll si très long)
+                      Expanded(
+                        child: SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          child: Text(
+                            item.subject,
+                            style: GoogleFonts.kalam(
+                              color: Colors.black87,
+                              fontSize: 22,
+                              height: 1.25,
+                              decoration: isValidated
+                                  ? TextDecoration.lineThrough
+                                  : TextDecoration.none,
+                              decorationColor: Colors.black,
+                              decorationThickness: 2.0,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // notes si présentes
+                      if (item.notes.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.35),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: Colors.black.withOpacity(0.1),
+                              width: 1,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Ce que Dieu me dit :',
+                                  style: GoogleFonts.caveat(
+                                    color: Colors.black87,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                  )),
+                              const SizedBox(height: 4),
+                              Text(
+                                item.notes,
+                                style: GoogleFonts.kalam(
+                                  color: Colors.black87,
+                                  fontSize: 15,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: 10),
+
+                      // bande d'action "post-it" (noir tranchait bcp; on reste papier)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => _showNotesDialog(index),
+                              borderRadius: BorderRadius.circular(6),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: (item.notes.isNotEmpty
+                                          ? Colors.green[700]
+                                          : Colors.blue[700])
+                                      ?.withOpacity(0.9),
+                                  borderRadius: BorderRadius.circular(6),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.18),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      item.notes.isNotEmpty
+                                          ? 'MODIFIER'
+                                          : 'ÉCRIRE',
+                                      style: GoogleFonts.caveat(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700),
+                                    ),
+                                    if (item.notes.isNotEmpty) ...[
+                                      const SizedBox(width: 6),
+                                      const Icon(Icons.edit,
+                                          size: 16, color: Colors.white),
+                                    ]
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.65),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                isValidated ? 'VALIDÉ' : 'TAPER POUR VALIDER',
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.caveat(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.6,
+                                ),
                               ),
                             ),
                           ),
                         ],
-                      ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      // Sujet de prière
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item.subject,
-                              style: GoogleFonts.kalam(
-                                color: Colors.black,
-                                fontSize: 22,
-                                fontWeight: FontWeight.w400,
-                                decoration: isValidated ? TextDecoration.lineThrough : TextDecoration.none,
-                                decorationColor: Colors.black,
-                                decorationThickness: 2.0,
-                              ),
-                            ),
-                            
-                            // Afficher les notes si elles existent
-                            if (item.notes.isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(
-                                    color: Colors.blue.withOpacity(0.3),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Ce que Dieu me dit:',
-                                      style: GoogleFonts.caveat(
-                                        color: Colors.blue[800],
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      item.notes,
-                                      style: GoogleFonts.kalam(
-                                        color: Colors.black87,
-                                        fontSize: 14,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      
-                      // Zone action avec boutons
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.black,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            // Bouton Écrire
-                            GestureDetector(
-                              onTap: () => _showNotesDialog(index),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: item.notes.isNotEmpty ? Colors.green : Colors.blue,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      item.notes.isNotEmpty ? 'MODIFIER' : 'ÉCRIRE',
-                                      style: GoogleFonts.caveat(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    if (item.notes.isNotEmpty) ...[
-                                      const SizedBox(width: 4),
-                                      const Icon(
-                                        Icons.edit,
-                                        color: Colors.white,
-                                        size: 12,
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            ),
-                            
-                            // Statut de validation
-                            Text(
-                              isValidated ? 'VALIDÉ' : 'TAPER POUR VALIDER',
-                              style: GoogleFonts.caveat(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      )
                     ],
                   ),
                 ),
@@ -493,17 +568,10 @@ class _PrayerCarouselPageState extends State<PrayerCarouselPage> {
             ),
           ),
         ),
-      );
-  }
-
-  Widget _buildPaperTexture() {
-    return Positioned.fill(
-      child: CustomPaint(
-        painter: PaperTexturePainter(),
-        size: const Size(300, 400),
       ),
     );
   }
+
 
   Widget _buildAudioSection() {
     final progress = _dur.inMilliseconds == 0
@@ -625,22 +693,6 @@ class _PrayerCarouselPageState extends State<PrayerCarouselPage> {
     });
   }
 
-  Future<bool> _onCardSwiped(int previousIndex, int? currentIndex) async {
-    if (previousIndex >= _items.length) return true;
-    
-    final item = _items[previousIndex];
-    
-    // Vérifier si la carte est validée avant de permettre le swipe
-    if (!item.validated) {
-      // Si la carte n'est pas validée, on empêche le swipe
-      // L'utilisateur doit d'abord cliquer pour griser
-      return false;
-    }
-    
-    
-    debugPrint('Carte swipée: ${item.theme}');
-    return true;
-  }
 
   void _showSuccessPage() {
     showDialog(
@@ -1009,6 +1061,74 @@ class PaperTexturePainter extends CustomPainter {
       Offset(size.width * 0.8, size.height * 0.3),
       shadowPaint,
     );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class WashiTapePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final base = Paint()
+      ..style = PaintingStyle.fill
+      ..color = const Color(0xFFFFF3A6).withOpacity(0.9); // beige tape
+
+    final r = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      const Radius.circular(6),
+    );
+    canvas.drawRRect(r, base);
+
+    // motif strié léger
+    final stripe = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..color = Colors.black.withOpacity(0.06);
+
+    for (double x = 0; x < size.width; x += 8) {
+      canvas.drawLine(Offset(x, 0), Offset(x + 12, size.height), stripe);
+    }
+
+    // ombre douce
+    canvas.drawShadow(Path()..addRRect(r), Colors.black.withOpacity(0.25), 6, false);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class FoldedCornerPainter extends CustomPainter {
+  final Color color;
+  FoldedCornerPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+
+    // triangle du coin replié
+    final path = Path()
+      ..moveTo(w, h)
+      ..lineTo(0, h)
+      ..lineTo(w, 0)
+      ..close();
+
+    final base = Paint()..color = color.withOpacity(0.95);
+    canvas.drawPath(path, base);
+
+    // ombre du pli
+    final edge = Paint()
+      ..color = Colors.black.withOpacity(0.12)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    canvas.drawLine(Offset(w, 0), Offset(0, h), edge);
+
+    // reflet
+    final highlight = Paint()
+      ..color = Colors.white.withOpacity(0.25)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+    canvas.drawLine(Offset(w - 1.5, 0), Offset(0, h - 1.5), highlight);
   }
 
   @override

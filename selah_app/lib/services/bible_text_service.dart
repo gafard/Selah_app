@@ -63,6 +63,8 @@ class BibleTextService {
       case 'lsg1910': return 'assets/bibles/lsg1910.json';
       case 'semeur': return 'assets/bibles/semeur.json';
       case 'francais_courant': return 'assets/bibles/francais_courant.json';
+      case 'nouvelle_segond': return 'assets/bibles/nouvelle_segond.json';
+      case 'oecumenique': return 'assets/bibles/oecumenique.json';
       default: return null;
     }
   }

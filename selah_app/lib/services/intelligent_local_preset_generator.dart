@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/plan_preset.dart';
-import 'intelligent_duration_calculator.dart';
+import 'intelligent_recommendations_facade.dart';
+import 'intelligent_databases.dart';
+import 'bible_verses_database.dart';
 // ═══ NOUVEAU ! Générateur Ultime (Jean 5:40) ⭐ ═══
 import 'intelligent_heart_posture.dart';
 import 'intelligent_motivation.dart';
@@ -2041,11 +2043,14 @@ class IntelligentLocalPresetGenerator {
     });
     
     // 1. Calculer la durée optimale basée sur la science comportementale et témoignages chrétiens
-    final durationCalculation = IntelligentDurationCalculator.calculateOptimalDuration(
+    final durationCalculation = await IntelligentRecommendationsFacade.calculateOptimalDuration(
       goal: goal,
       level: level,
       dailyMinutes: durationMin,
       meditationType: meditationType,
+      profile: profile,
+      motivation: motivation,
+      posture: heartPosture,
     );
     
     print('📊 Durée calculée intelligemment: ${durationCalculation.optimalDays} jours (${durationCalculation.intensity})');
@@ -2053,6 +2058,44 @@ class IntelligentLocalPresetGenerator {
     print('🔬 Études référencées: ${durationCalculation.scientificBasis.join(', ')}');
     print('💡 Raisonnement complet: ${durationCalculation.reasoning}');
     print('⏱️ Temps total: ${durationCalculation.totalHours.toStringAsFixed(1)}h');
+    
+    // 🧠 NOUVEAU: Récupérer les recommandations de livres intelligentes
+    final recommendedBooks = await IntelligentRecommendationsFacade.getRecommendedBooks(
+      goal: goal,
+      posture: heartPosture,
+      motivation: motivation,
+      limit: 5,
+    );
+    print('📚 Livres recommandés intelligemment: ${recommendedBooks.join(', ')}');
+    
+    // 🧠 NOUVEAU: Exemple d'utilisation de la base de données des versets
+    // pour dimensionner intelligemment les passages
+    print('📖 Exemple dimensionnement intelligent:');
+    for (final book in recommendedBooks.take(3)) {
+      try {
+        // Test avec Éphésiens 1 comme exemple
+        if (book.toLowerCase().contains('éphésiens')) {
+          final maxVerses = IntelligentDatabases.getDynamicMaxVerses(
+            book: book,
+            sc: 1,
+            unit: null,
+          );
+          print('   - $book chapitre 1: max $maxVerses versets (DB: ${BibleVersesDatabase.getVersesInChapter(book, 1)} versets réels)');
+          
+          // Test de borne "dure"
+          final clamped = IntelligentDatabases.clampToChapterBounds(
+            book: book,
+            sc: 1,
+            sv: 1,
+            ec: 1,
+            ev: 25, // Essayer d'aller au-delà du chapitre
+          );
+          print('   - Borne dure pour $book 1:1-25 → 1:1-$clamped');
+        }
+      } catch (e) {
+        print('   - Erreur test $book: $e');
+      }
+    }
     
     // ═══ DÉTECTION : Première configuration vs Configuration suivante ═══
     final isFirstConfiguration = _isFirstConfiguration(profile);

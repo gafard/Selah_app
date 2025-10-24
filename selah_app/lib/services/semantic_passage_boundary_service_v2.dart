@@ -1950,12 +1950,23 @@ class SemanticPassageBoundaryService {
   }
 
   /// Résout un cut selon la priorité de l'unité
-  static VerseRange _resolveCut(VerseRange range, LiteraryUnit unit) {
+  static VerseRange _resolveCut(VerseRange range, LiteraryUnit unit, {required String book, int? maxVersesHint}) {
     if (unit.priority == UnitPriority.critical ||
         unit.priority == UnitPriority.high ||
         unit.type == UnitType.collection) {
       // Inclure l'unité complète
-      return _includeUnit(range, unit);
+      final includedRange = _includeUnit(range, unit);
+      
+      // Vérifier si l'inclusion respecte la limite de versets
+      if (maxVersesHint != null) {
+        final currentVerses = _countVersesInRange(includedRange, book);
+        if (currentVerses > maxVersesHint) {
+          // Si l'unité complète dépasse la limite, tronquer à la limite
+          return _truncateRangeToLimit(includedRange, maxVersesHint, book);
+        }
+      }
+      
+      return includedRange;
     }
 
     // Pour low/medium : exclure l'unité (ajuster avant)
@@ -1965,14 +1976,76 @@ class SemanticPassageBoundaryService {
 
     if (rangeEnd > unitStart) {
       // Terminer juste avant l'unité
-      return VerseRange(
+      final truncatedRange = VerseRange(
         range.sc,
         range.sv,
         uRange.sc,
         max(1, uRange.sv - 1),
       );
+      
+      // Vérifier si le résultat respecte la limite de versets
+      if (maxVersesHint != null) {
+        final currentVerses = _countVersesInRange(truncatedRange, book);
+        if (currentVerses > maxVersesHint) {
+          return _truncateRangeToLimit(truncatedRange, maxVersesHint, book);
+        }
+      }
+      
+      return truncatedRange;
     }
 
+    return range;
+  }
+  
+  /// Compte le nombre de versets dans une plage
+  static int _countVersesInRange(VerseRange range, String book) {
+    if (range.sc == range.ec) {
+      return range.ev - range.sv + 1;
+    }
+    
+    // Calculer pour plusieurs chapitres
+    int totalVerses = 0;
+    for (int chapter = range.sc; chapter <= range.ec; chapter++) {
+      if (chapter == range.sc) {
+        // Premier chapitre : de startVerse à la fin du chapitre
+        totalVerses += ChapterIndex.verseCount(book, chapter) - range.sv + 1;
+      } else if (chapter == range.ec) {
+        // Dernier chapitre : du début à endVerse
+        totalVerses += range.ev;
+      } else {
+        // Chapitres intermédiaires : tout le chapitre
+        totalVerses += ChapterIndex.verseCount(book, chapter);
+      }
+    }
+    return totalVerses;
+  }
+  
+  /// Tronque une plage pour respecter la limite de versets
+  static VerseRange _truncateRangeToLimit(VerseRange range, int maxVerses, String book) {
+    int remainingVerses = maxVerses;
+    int currentChapter = range.sc;
+    int currentVerse = range.sv;
+    
+    while (remainingVerses > 0 && currentChapter <= range.ec) {
+      final versesInChapter = ChapterIndex.verseCount(book, currentChapter);
+      final maxVerseInChapter = currentChapter == range.ec ? range.ev : versesInChapter;
+      
+      if (remainingVerses <= (maxVerseInChapter - currentVerse + 1)) {
+        // On peut finir dans ce chapitre
+        return VerseRange(
+          range.sc,
+          range.sv,
+          currentChapter,
+          currentVerse + remainingVerses - 1,
+        );
+      }
+      
+      // Consommer tout le chapitre
+      remainingVerses -= (maxVerseInChapter - currentVerse + 1);
+      currentChapter++;
+      currentVerse = 1;
+    }
+    
     return range;
   }
 
@@ -1987,6 +2060,7 @@ class SemanticPassageBoundaryService {
     required int startVerse,
     required int endChapter,
     required int endVerse,
+    int? maxVersesHint,
   }) async {
     var range = VerseRange(startChapter, startVerse, endChapter, endVerse);
     final units = getUnitsForBook(book);
@@ -2009,7 +2083,7 @@ class SemanticPassageBoundaryService {
 
       final dominantUnit = _pickDominantCut(cuts)!;
       finalUnit = dominantUnit;
-      range = _resolveCut(range, dominantUnit);
+      range = _resolveCut(range, dominantUnit, book: book, maxVersesHint: maxVersesHint);
       reason = 'Inclus "${dominantUnit.name}" (${dominantUnit.priority.name})';
     }
 

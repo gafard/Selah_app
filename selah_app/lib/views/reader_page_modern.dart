@@ -28,6 +28,7 @@ import '../services/biblical_timeline_service.dart';
 import '../services/thomson_characters_service.dart';
 import '../services/bsb_topical_service.dart';
 import '../services/mirror_verse_service.dart';
+import '../services/intelligent_databases.dart';
 import '../services/daily_display_service.dart';
 import '../services/treasury_crossref_service.dart';
 import '../services/bsb_book_outlines_service.dart';
@@ -637,13 +638,45 @@ class _ReaderPageModernState extends State<ReaderPageModern>
       final startVerse = int.tryParse(verseParts[0]) ?? 1;
       final endVerse = verseParts.length > 1 ? int.tryParse(verseParts[1]) ?? startVerse : startVerse;
       
-      // Utiliser le service sémantique pour ajuster le passage
+      // 🧠 NOUVEAU: Récupérer les préférences utilisateur pour les limites de versets
+      final userPrefs = await UserPrefs.getVerseReadingPreferences();
+      final meditationType = userPrefs['meditationType'] as String? ?? 'Méditation Biblique';
+      final minutes = userPrefs['dailyMinutes'] as int? ?? 15;
+      final useIntelligentLimits = userPrefs['useIntelligentLimits'] as bool? ?? true;
+      
+      int? maxVersesHint;
+      
+      if (useIntelligentLimits) {
+        // Calculer la longueur optimale avec IntelligentDatabases et unités littéraires
+        try {
+          maxVersesHint = await IntelligentDatabases.calculateOptimalPassageLengthWithLiteraryUnits(
+            book: book,
+            minutes: minutes,
+            meditationType: meditationType,
+            startChapter: chapter,
+            startVerse: startVerse,
+            endChapter: chapter,
+            endVerse: endVerse,
+          );
+          print('🧠 Longueur optimale calculée avec unités littéraires: $maxVersesHint versets');
+        } catch (e) {
+          print('⚠️ Erreur calcul longueur optimale: $e');
+          // Fallback vers les préférences utilisateur
+          maxVersesHint = userPrefs['maxVerses'] as int? ?? 18;
+        }
+      } else {
+        // Utiliser les préférences utilisateur directes
+        maxVersesHint = userPrefs['maxVerses'] as int? ?? 18;
+      }
+      
+      // Utiliser le service sémantique pour ajuster le passage avec la limite
       final adjusted = await SemanticPassageBoundaryService.adjustPassageVerses(
         book: book,
         startChapter: chapter,
         startVerse: startVerse,
         endChapter: chapter,
         endVerse: endVerse,
+        maxVersesHint: maxVersesHint,
       );
       
       // Construire la nouvelle référence
@@ -655,6 +688,7 @@ class _ReaderPageModernState extends State<ReaderPageModern>
       print('   - Ajusté: ${adjusted.adjusted}');
       print('   - Raison: ${adjusted.reason}');
       print('   - Unité incluse: ${adjusted.includedUnit?.name ?? "Aucune"}');
+      print('   - Limite utilisée: $maxVersesHint versets');
       
       return newReference;
     } catch (e) {
@@ -1817,7 +1851,7 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              '${_dayTitle} • ${_readingSession?.currentPassage?.reference ?? 'Jean 14:1-19'}',
+              '$_dayTitle • ${_readingSession?.currentPassage?.reference ?? 'Jean 14:1-19'}',
               style: TextStyle(
                 fontFamily: 'Gilroy',
                 fontSize: 14,
@@ -2022,6 +2056,13 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
                       height: 1.6,
                     ),
                   textAlign: settings.getTextAlign(),
+                  reference: _readingSession?.currentPassage?.reference,
+                  version: _selectedVersion,
+                  book: _extractBookFromReference(_readingSession?.currentPassage?.reference ?? ''),
+                  startChapter: _extractStartChapter(_readingSession?.currentPassage?.reference ?? ''),
+                  startVerse: _extractStartVerse(_readingSession?.currentPassage?.reference ?? ''),
+                  endChapter: _extractEndChapter(_readingSession?.currentPassage?.reference ?? ''),
+                  endVerse: _extractEndVerse(_readingSession?.currentPassage?.reference ?? ''),
                 ),
                 ),
               
@@ -5086,6 +5127,77 @@ Encore un peu de temps, et le monde ne me verra plus; mais vous, vous me verrez,
     );
   }
 
+  /// Extraire le chapitre de début depuis une référence
+  int _extractStartChapter(String reference) {
+    if (reference.isEmpty) return 1;
+    
+    final lastSpace = reference.lastIndexOf(' ');
+    if (lastSpace <= 0) return 1;
+    
+    final rest = reference.substring(lastSpace + 1).trim();
+    if (rest.contains(':')) {
+      final chapterPart = rest.split(':')[0];
+      return int.tryParse(chapterPart) ?? 1;
+    }
+    
+    return int.tryParse(rest) ?? 1;
+  }
+
+  /// Extraire le verset de début depuis une référence
+  int _extractStartVerse(String reference) {
+    if (reference.isEmpty) return 1;
+    
+    final lastSpace = reference.lastIndexOf(' ');
+    if (lastSpace <= 0) return 1;
+    
+    final rest = reference.substring(lastSpace + 1).trim();
+    if (rest.contains(':')) {
+      final versePart = rest.split(':')[1];
+      if (versePart.contains('-')) {
+        return int.tryParse(versePart.split('-')[0]) ?? 1;
+      }
+      return int.tryParse(versePart) ?? 1;
+    }
+    
+    return 1;
+  }
+
+  /// Extraire le chapitre de fin depuis une référence
+  int _extractEndChapter(String reference) {
+    if (reference.isEmpty) return 1;
+    
+    final lastSpace = reference.lastIndexOf(' ');
+    if (lastSpace <= 0) return 1;
+    
+    final rest = reference.substring(lastSpace + 1).trim();
+    if (rest.contains('-')) {
+      final endPart = rest.split('-')[1];
+      if (endPart.contains(':')) {
+        return int.tryParse(endPart.split(':')[0]) ?? 1;
+      }
+    }
+    
+    return _extractStartChapter(reference);
+  }
+
+  /// Extraire le verset de fin depuis une référence
+  int _extractEndVerse(String reference) {
+    if (reference.isEmpty) return 1;
+    
+    final lastSpace = reference.lastIndexOf(' ');
+    if (lastSpace <= 0) return 1;
+    
+    final rest = reference.substring(lastSpace + 1).trim();
+    if (rest.contains('-')) {
+      final endPart = rest.split('-')[1];
+      if (endPart.contains(':')) {
+        return int.tryParse(endPart.split(':')[1]) ?? 1;
+      }
+      return int.tryParse(endPart) ?? 1;
+    }
+    
+    return _extractStartVerse(reference);
+  }
 
 }
 

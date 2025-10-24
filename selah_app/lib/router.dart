@@ -284,7 +284,13 @@ class AppRouter {
       GoRoute(
         path: '/meditation/qcm',
         name: 'meditation_qcm',
-        builder: (context, state) => const MeditationQcmPage(),
+        builder: (context, state) {
+          final args = state.extra as Map<String, dynamic>?;
+          return MeditationQcmPage(
+            passageRef: args?['passageRef'] as String?,
+            passageText: args?['passageText'] as String?,
+          );
+        },
       ),
       GoRoute(
         path: '/meditation/auto_qcm',

@@ -1,17 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import '../models/bible_highlight.dart';
+import '../services/bible_highlight_service.dart';
 
 class HighlightableText extends StatefulWidget {
   final String text;
   final TextStyle? style;
   final TextAlign? textAlign;
+  final String? reference; // Référence biblique (ex: "Jean 3:16")
+  final String? version; // Version de la Bible
+  final String? book; // Livre biblique
+  final int? startChapter;
+  final int? startVerse;
+  final int? endChapter;
+  final int? endVerse;
 
   const HighlightableText({
     super.key,
     required this.text,
     this.style,
     this.textAlign,
+    this.reference,
+    this.version,
+    this.book,
+    this.startChapter,
+    this.startVerse,
+    this.endChapter,
+    this.endVerse,
   });
 
   @override
@@ -27,6 +43,9 @@ class _HighlightableTextState extends State<HighlightableText>
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
+  
+  // Gestion des surlignages
+  List<BibleHighlight> _currentHighlights = [];
 
   @override
   void initState() {
@@ -49,12 +68,29 @@ class _HighlightableTextState extends State<HighlightableText>
       parent: _animationController,
       curve: Curves.easeInOut,
     ));
+    
+    // Charger les surlignages existants
+    _loadHighlights();
   }
 
   @override
   void dispose() {
     _animationController.dispose();
     super.dispose();
+  }
+
+  /// Charger les surlignages existants pour ce passage
+  Future<void> _loadHighlights() async {
+    if (widget.reference == null) return;
+    
+    try {
+      final highlights = await BibleHighlightService.getHighlightsForReference(widget.reference!);
+      setState(() {
+        _currentHighlights = highlights;
+      });
+    } catch (e) {
+      print('⚠️ Erreur chargement surlignages: $e');
+    }
   }
 
   void _showHighlightMenu() {
@@ -198,7 +234,7 @@ class _HighlightableTextState extends State<HighlightableText>
                                       () {
                                         _animationController.reverse().then((_) {
                                           context.pop();
-                                          _highlightText();
+                                          _showColorPalette();
                                         });
                                       },
                                     ),
@@ -520,16 +556,183 @@ class _HighlightableTextState extends State<HighlightableText>
     );
   }
 
-  void _highlightText() {
-    if (_currentSelection != null && !_currentSelection!.isCollapsed) {
+  /// Afficher la palette de couleurs pour le surlignage
+  void _showColorPalette() {
+    if (_currentSelection == null || _currentSelection!.isCollapsed) return;
+    
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withOpacity(0.4),
+      builder: (context) {
+        return Material(
+          color: Colors.transparent,
+          child: Center(
+            child: Container(
+              margin: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 30,
+                    offset: const Offset(0, 15),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Color(0xFFFFD700),
+                          Color(0xFFFFF8E1),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(24),
+                        topRight: Radius.circular(24),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'Choisir une couleur',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '"$_selectedText"',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                            fontStyle: FontStyle.italic,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // Palette de couleurs
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: HighlightColor.availableColors.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final color = entry.value;
+                        final colorName = HighlightColor.colorNames[index];
+                        
+                        return _buildColorButton(color, colorName, () {
+                          context.pop();
+                          _highlightTextWithColor(color);
+                        });
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Bouton de couleur
+  Widget _buildColorButton(Color color, String name, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 80,
+        height: 80,
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: color,
+            width: 2,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              name,
+              style: TextStyle(
+                fontSize: 10,
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Surligner le texte avec une couleur spécifique
+  Future<void> _highlightTextWithColor(Color color) async {
+    if (_currentSelection == null || _currentSelection!.isCollapsed) return;
+    
+    try {
+      // Créer le surlignage
+      final highlight = BibleHighlight.fromSelection(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        reference: widget.reference ?? '',
+        book: widget.book ?? '',
+        startChapter: widget.startChapter ?? 1,
+        startVerse: widget.startVerse ?? 1,
+        endChapter: widget.endChapter ?? widget.startChapter ?? 1,
+        endVerse: widget.endVerse ?? widget.startVerse ?? 1,
+        selectedText: _selectedText,
+        highlightColor: color,
+        version: widget.version ?? 'lsg1910',
+      );
+      
+      // Sauvegarder
+      await BibleHighlightService.saveHighlight(highlight);
+      
+      // Mettre à jour l'affichage
       setState(() {
         _highlightedRanges.add(TextRange(start: _currentSelection!.start, end: _currentSelection!.end));
         _isTextSelected = false;
         _selectedText = '';
+        _currentHighlights.add(highlight);
       });
-      _showFeedback('Texte surligné !', const Color(0xFFFFD700));
+      
+      _showFeedback('Texte surligné en ${HighlightColor.getColorName(color)} !', color);
+    } catch (e) {
+      print('❌ Erreur sauvegarde surlignage: $e');
+      _showFeedback('Erreur lors du surlignage', Colors.red);
     }
   }
+
 
   void _copyText() {
     Clipboard.setData(ClipboardData(text: _selectedText));
@@ -590,7 +793,15 @@ class _HighlightableTextState extends State<HighlightableText>
           _showHighlightMenu();
         }
       },
-      child: SelectableText(
+      child: _buildHighlightedText(),
+    );
+  }
+
+  /// Construire le texte avec les surlignages
+  Widget _buildHighlightedText() {
+    if (_currentHighlights.isEmpty) {
+      // Pas de surlignages, affichage normal
+      return SelectableText(
         widget.text,
         style: widget.style,
         textAlign: widget.textAlign,
@@ -606,7 +817,58 @@ class _HighlightableTextState extends State<HighlightableText>
             }
           });
         },
-      ),
+      );
+    }
+
+    // Construire le texte avec les surlignages
+    final textSpans = <TextSpan>[];
+    int currentIndex = 0;
+
+    for (final highlight in _currentHighlights) {
+      // Ajouter le texte avant le surlignage
+      if (currentIndex < highlight.startChapter) {
+        textSpans.add(TextSpan(
+          text: widget.text.substring(currentIndex, highlight.startChapter),
+          style: widget.style,
+        ));
+      }
+
+      // Ajouter le texte surligné
+      textSpans.add(TextSpan(
+        text: highlight.selectedText,
+        style: (widget.style ?? const TextStyle()).copyWith(
+          backgroundColor: highlight.highlightColor.withOpacity(0.3),
+          color: highlight.highlightColor,
+          fontWeight: FontWeight.w600,
+        ),
+      ));
+
+      currentIndex = highlight.endChapter;
+    }
+
+    // Ajouter le texte restant
+    if (currentIndex < widget.text.length) {
+      textSpans.add(TextSpan(
+        text: widget.text.substring(currentIndex),
+        style: widget.style,
+      ));
+    }
+
+    return SelectableText.rich(
+      TextSpan(children: textSpans),
+      textAlign: widget.textAlign,
+      onSelectionChanged: (selection, cause) {
+        setState(() {
+          if (selection.isCollapsed) {
+            _isTextSelected = false;
+            _selectedText = '';
+          } else {
+            _isTextSelected = true;
+            _selectedText = selection.textInside(widget.text);
+            _currentSelection = selection;
+          }
+        });
+      },
     );
   }
 

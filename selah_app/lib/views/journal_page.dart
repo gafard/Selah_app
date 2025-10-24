@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../widgets/uniform_back_button.dart';
+import '../models/bible_highlight.dart';
+import '../services/bible_highlight_service.dart';
 
 class JournalPage extends StatefulWidget {
   final Map<String, dynamic>? prefillData;
@@ -17,15 +19,12 @@ class JournalPage extends StatefulWidget {
 class _JournalPageState extends State<JournalPage> with TickerProviderStateMixin {
   // Variables d'état
   final _searchController = TextEditingController();
-  String _searchQuery = '';
   String _tagFilter = 'tous';
-  final bool _onlyScripture = false;
-  final String _sortBy = 'recent';
-  final int _currentPage = 0;
-  final int _pageSize = 20;
   bool _isLoading = false;
   List<Map<String, dynamic>> _notes = [];
-  final bool _hasMore = true;
+  
+  // Gestion des surlignages
+  List<BibleHighlight> _highlights = [];
 
   // Pour l'édition
   final _titleController = TextEditingController();
@@ -50,6 +49,7 @@ class _JournalPageState extends State<JournalPage> with TickerProviderStateMixin
     );
     
     _loadNotes();
+    _loadHighlights();
     _fadeController.forward();
     
     // Pré-remplir avec les données si disponibles
@@ -129,6 +129,18 @@ class _JournalPageState extends State<JournalPage> with TickerProviderStateMixin
     }
   }
 
+  /// Charger les surlignages
+  Future<void> _loadHighlights() async {
+    try {
+      final highlights = await BibleHighlightService.getAllHighlights();
+      setState(() {
+        _highlights = highlights;
+      });
+    } catch (e) {
+      print('⚠️ Erreur chargement surlignages: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -205,6 +217,7 @@ class _JournalPageState extends State<JournalPage> with TickerProviderStateMixin
       {'key': 'tous', 'label': 'Tous'},
       {'key': 'scripture', 'label': 'Écritures'},
       {'key': 'personal', 'label': 'Personnel'},
+      {'key': 'highlights', 'label': 'Surlignages'},
     ];
 
     return SingleChildScrollView(
@@ -228,7 +241,11 @@ class _JournalPageState extends State<JournalPage> with TickerProviderStateMixin
                 setState(() {
                   _tagFilter = filter['key']!;
                 });
-                _loadNotes();
+                if (filter['key'] == 'highlights') {
+                  _loadHighlights();
+                } else {
+                  _loadNotes();
+                }
               },
               backgroundColor: Colors.white.withOpacity(0.1),
               selectedColor: Colors.white,
@@ -321,9 +338,9 @@ class _JournalPageState extends State<JournalPage> with TickerProviderStateMixin
             _buildStatsCard(),
             const SizedBox(height: 24),
             
-            // Notes
+            // Notes ou Surlignages selon le filtre
             Text(
-              'Mes Notes',
+              _tagFilter == 'highlights' ? 'Mes Surlignages' : 'Mes Notes',
               style: GoogleFonts.inter(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -332,7 +349,10 @@ class _JournalPageState extends State<JournalPage> with TickerProviderStateMixin
             ),
             const SizedBox(height: 16),
             
-            ..._notes.map((note) => _buildNoteCard(note)),
+            if (_tagFilter == 'highlights')
+              ..._highlights.map((highlight) => _buildHighlightCard(highlight))
+            else
+              ..._notes.map((note) => _buildNoteCard(note)),
           ],
         ),
       ),
@@ -341,11 +361,18 @@ class _JournalPageState extends State<JournalPage> with TickerProviderStateMixin
 
   Widget _buildStatsCard() {
     final totalNotes = _notes.length;
-    final scriptureNotes = _notes.where((n) => n['isScripture'] == true).length;
     final thisWeek = _notes.where((n) {
       final now = DateTime.now();
       final weekAgo = now.subtract(const Duration(days: 7));
       return n['createdAt'].isAfter(weekAgo);
+    }).length;
+    
+    // Statistiques des surlignages
+    final totalHighlights = _highlights.length;
+    final highlightsThisWeek = _highlights.where((h) {
+      final now = DateTime.now();
+      final weekAgo = now.subtract(const Duration(days: 7));
+      return h.createdAt.isAfter(weekAgo);
     }).length;
 
     return Container(
@@ -396,13 +423,13 @@ class _JournalPageState extends State<JournalPage> with TickerProviderStateMixin
           Row(
             children: [
               Expanded(
-                child: _buildStatItem('Total', totalNotes.toString(), Icons.book),
+                child: _buildStatItem('Notes', totalNotes.toString(), Icons.book),
               ),
               Expanded(
-                child: _buildStatItem('Écritures', scriptureNotes.toString(), Icons.menu_book),
+                child: _buildStatItem('Surlignages', totalHighlights.toString(), Icons.highlight),
               ),
               Expanded(
-                child: _buildStatItem('Cette semaine', thisWeek.toString(), Icons.calendar_today),
+                child: _buildStatItem('Cette semaine', (thisWeek + highlightsThisWeek).toString(), Icons.calendar_today),
               ),
             ],
           ),
@@ -443,6 +470,131 @@ class _JournalPageState extends State<JournalPage> with TickerProviderStateMixin
           ),
         ),
       ],
+    );
+  }
+
+  /// Construire une carte pour un surlignage
+  Widget _buildHighlightCard(BibleHighlight highlight) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: highlight.highlightColor.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header avec couleur et référence
+          Row(
+            children: [
+              Container(
+                width: 16,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: highlight.highlightColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  highlight.reference,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              Text(
+                DateFormat('dd/MM/yyyy').format(highlight.createdAt),
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: Colors.white70,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          
+          // Texte surligné
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: highlight.highlightColor.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: highlight.highlightColor.withOpacity(0.5),
+                width: 1,
+              ),
+            ),
+            child: Text(
+              highlight.selectedText,
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: Colors.white,
+                fontStyle: FontStyle.italic,
+                height: 1.4,
+              ),
+            ),
+          ),
+          
+          // Note si disponible
+          if (highlight.note != null && highlight.note!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                highlight.note!,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: Colors.white70,
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ],
+          
+          // Tags si disponibles
+          if (highlight.tags.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: highlight.tags.map((tag) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: highlight.highlightColor.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: highlight.highlightColor.withOpacity(0.5),
+                    width: 1,
+                  ),
+                ),
+                child: Text(
+                  tag,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: highlight.highlightColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              )).toList(),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -654,7 +806,7 @@ class _JournalPageState extends State<JournalPage> with TickerProviderStateMixin
           TextButton(
             onPressed: () {
               setState(() {
-                _searchQuery = _searchController.text;
+                    // _searchQuery = _searchController.text;
               });
               context.pop();
               _loadNotes();

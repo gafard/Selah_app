@@ -217,7 +217,7 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
   }
 
   // Route finale vers le carrousel (mets le bon path selon ton app)
-  static const _kPrayerCarouselRoute = '/prayer';
+  static const _kPrayerCarouselRoute = '/payerpage';
 
   Map<String, Set<String>> _buildAnswersForGenerator() {
     // On encode chaque champ texte dans un Set<String>.
@@ -320,6 +320,9 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+    
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -342,21 +345,23 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
               Expanded(
                 child: Stack(
                   children: [
-                    // Ornements légers en arrière-plan
-                    Positioned(
-                      right: -60,
-                      top: -40,
-                      child: _softBlob(180),
-                    ),
-                    Positioned(
-                      left: -40,
-                      bottom: -50,
-                      child: _softBlob(220),
-                    ),
+                    // Ornements adaptatifs selon la taille d'écran
+                    if (isTablet) ...[
+                      Positioned(
+                        right: -60,
+                        top: -40,
+                        child: _softBlob(180),
+                      ),
+                      Positioned(
+                        left: -40,
+                        bottom: -50,
+                        child: _softBlob(220),
+                      ),
+                    ],
 
-                    // Contenu principal
+                    // Contenu principal avec padding adaptatif
                     Padding(
-                      padding: const EdgeInsets.all(20),
+                      padding: EdgeInsets.all(isTablet ? 32 : 20),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(20),
                         child: BackdropFilter(
@@ -398,8 +403,11 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
   }
 
   Widget _buildHeader() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+    
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: EdgeInsets.all(isTablet ? 24.0 : 16.0),
       child: Row(
         children: [
           IconButton(
@@ -425,13 +433,14 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
               }
             },
             icon: const Icon(Icons.arrow_back, color: Colors.white),
+            iconSize: isTablet ? 28 : 24,
           ),
           Expanded(
             child: Text(
               'Méditation Libre',
               textAlign: TextAlign.center,
               style: GoogleFonts.inter(
-                fontSize: 20,
+                fontSize: isTablet ? 24 : 20,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
               ),
@@ -445,17 +454,19 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
                 icon: Icon(
                   _isPlaying ? Icons.pause_circle : Icons.play_circle,
                   color: Colors.white,
-                  size: 20,
+                  size: isTablet ? 24 : 20,
                 ),
+                tooltip: _isPlaying ? 'Mettre en pause' : 'Lecture',
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: isTablet ? 12 : 8),
               IconButton(
                 onPressed: _toggleMute,
                 icon: Icon(
                   _isMuted ? Icons.volume_off : Icons.volume_up,
                   color: Colors.white,
-                  size: 20,
+                  size: isTablet ? 24 : 20,
                 ),
+                tooltip: _isMuted ? 'Audio coupé' : 'Audio activé',
               ),
             ],
           ),
@@ -465,33 +476,50 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
   }
 
   Widget _buildProgressBar() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+    
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      padding: EdgeInsets.symmetric(
+        horizontal: isTablet ? 24.0 : 16.0, 
+        vertical: isTablet ? 12.0 : 8.0
+      ),
       child: Column(
         children: [
-          // Pills de progression
+          // Pills de progression cliquables
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: List.generate(_totalSteps, (index) {
               final isActive = index <= _currentStep;
               final isCompleted = index < _currentStep;
               
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                width: isActive ? 32 : 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: isCompleted 
-                    ? Colors.white 
-                    : isActive 
-                      ? Colors.white.withOpacity(0.8)
-                      : Colors.white.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(4),
+              return GestureDetector(
+                onTap: () {
+                  if (index <= _currentStep || _isCurrentStepValid()) {
+                    _pageController.animateToPage(
+                      index, 
+                      duration: const Duration(milliseconds: 300), 
+                      curve: Curves.easeInOut
+                    );
+                  }
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  width: isActive ? (isTablet ? 40 : 32) : (isTablet ? 12 : 8),
+                  height: isTablet ? 10 : 8,
+                  decoration: BoxDecoration(
+                    color: isCompleted 
+                      ? Colors.white 
+                      : isActive 
+                        ? Colors.white.withOpacity(0.8)
+                        : Colors.white.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(isTablet ? 5 : 4),
+                  ),
                 ),
               );
             }),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: isTablet ? 12 : 8),
           
           // Barre de progression linéaire
           AnimatedBuilder(
@@ -501,7 +529,7 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
                 value: _progressAnimation.value,
                 backgroundColor: Colors.white.withOpacity(0.2),
                 valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                minHeight: 2,
+                minHeight: isTablet ? 3 : 2,
               );
             },
           ),
@@ -659,7 +687,12 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+          padding: EdgeInsets.fromLTRB(
+            MediaQuery.of(context).size.width > 600 ? 32 : 20, 
+            MediaQuery.of(context).size.width > 600 ? 16 : 10, 
+            MediaQuery.of(context).size.width > 600 ? 32 : 20, 
+            MediaQuery.of(context).size.width > 600 ? 32 : 20
+          ),
           child: Row(
             children: [
               if (_currentStep > 0)
@@ -675,7 +708,9 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: EdgeInsets.symmetric(
+                          vertical: MediaQuery.of(context).size.width > 600 ? 20 : 16
+                        ),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -683,13 +718,18 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
                       ),
                       child: Text(
                         'Étape précédente',
-                        style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w600,
+                          fontSize: MediaQuery.of(context).size.width > 600 ? 16 : 14,
+                        ),
                       ),
                     ),
                   ),
                 ),
               
-              if (_currentStep > 0) const SizedBox(width: 12),
+              if (_currentStep > 0) SizedBox(
+                width: MediaQuery.of(context).size.width > 600 ? 16 : 12
+              ),
               
               Expanded(
                 flex: _currentStep == 0 ? 1 : 1,
@@ -719,7 +759,9 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: EdgeInsets.symmetric(
+                          vertical: MediaQuery.of(context).size.width > 600 ? 20 : 16
+                        ),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -729,7 +771,10 @@ class _MeditationFreeV2PageState extends State<MeditationFreeV2Page>
                         _currentStep == _totalSteps - 1 
                           ? 'Proposer des sujets de prière'
                           : 'Étape suivante',
-                        style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w600,
+                          fontSize: MediaQuery.of(context).size.width > 600 ? 16 : 14,
+                        ),
                       ),
                     ),
                   ),
@@ -769,15 +814,19 @@ class _StepCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+    
     return Padding(
-      padding: const EdgeInsets.all(20.0),
+      padding: EdgeInsets.all(isTablet ? 28.0 : 20.0),
       child: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
           // Titre de l'étape
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(isTablet ? 24 : 20),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.10),
               borderRadius: BorderRadius.circular(12),
@@ -789,25 +838,25 @@ class _StepCard extends StatelessWidget {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: EdgeInsets.all(isTablet ? 12 : 8),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
                         ),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.book_rounded,
                         color: Colors.white,
-                        size: 20,
+                        size: isTablet ? 24 : 20,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: isTablet ? 16 : 12),
                     Expanded(
                       child: Text(
                         title,
                         style: GoogleFonts.inter(
-                          fontSize: 20,
+                          fontSize: isTablet ? 24 : 20,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
                         ),
@@ -815,11 +864,11 @@ class _StepCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: isTablet ? 16 : 12),
                 Text(
                   subtitle,
                   style: GoogleFonts.inter(
-                    fontSize: 14,
+                    fontSize: isTablet ? 16 : 14,
                     color: Colors.white.withOpacity(0.7),
                     height: 1.4,
                   ),
@@ -828,7 +877,7 @@ class _StepCard extends StatelessWidget {
             ),
           ),
           
-          const SizedBox(height: 24),
+          SizedBox(height: isTablet ? 32 : 24),
           
           // Champs de l'étape
           ...children,
@@ -852,18 +901,21 @@ class _FreeFieldDark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
           style: GoogleFonts.inter(
-            fontSize: 16,
+            fontSize: isTablet ? 18 : 16,
             fontWeight: FontWeight.w600,
             color: Colors.white,
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: isTablet ? 12 : 8),
         Container(
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.10),
@@ -875,19 +927,19 @@ class _FreeFieldDark extends StatelessWidget {
           ),
           child: TextField(
             controller: controller,
-            maxLines: 3,
+            maxLines: isTablet ? 4 : 3,
             style: GoogleFonts.inter(
               color: Colors.white,
-              fontSize: 16,
+              fontSize: isTablet ? 18 : 16,
             ),
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: GoogleFonts.inter(
                 color: Colors.white.withOpacity(0.5),
-                fontSize: 16,
+                fontSize: isTablet ? 18 : 16,
               ),
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.all(16),
+              contentPadding: EdgeInsets.all(isTablet ? 20 : 16),
             ),
           ),
         ),
