@@ -53,29 +53,17 @@ class OnboardingDynamicPage extends StatelessWidget {
   
   Future<OnboardingVM> _initializeOnboardingVM(BuildContext context) async {
     try {
-      // 🔒 PRÉCONDITION : Vérifier qu'un plan actif existe
-      print('🔒 OnboardingDynamicPage: Vérification précondition plan...');
+      // ✅ Récupérer le service de plans
+      print('🔒 OnboardingDynamicPage: Initialisation...');
       final plans = bootstrap.planService;
+      
+      // ✅ Vérifier s'il y a un plan actif (optionnel, pour logging)
       final activePlan = await plans.getActiveLocalPlan();
-      
-      if (activePlan == null) {
-        print('❌ OnboardingDynamicPage: Aucun plan actif trouvé - redirection vers /goals');
-        // Sécurité de ceinture et bretelles
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Aucun plan actif. Reprends la sélection.'),
-                backgroundColor: Colors.orange,
-              ),
-            );
-            context.go('/goals');
-          }
-        });
-        throw 'Plan manquant'; // pour interrompre le FutureBuilder
+      if (activePlan != null) {
+        print('✅ OnboardingDynamicPage: Plan actif trouvé: ${activePlan.id}');
+      } else {
+        print('ℹ️ OnboardingDynamicPage: Aucun plan actif - onboarding générique');
       }
-      
-      print('✅ OnboardingDynamicPage: Plan actif confirmé: ${activePlan.id}');
 
       // Essayer d'obtenir les providers, sinon créer des instances par défaut
       UserPrefsHive prefs;
